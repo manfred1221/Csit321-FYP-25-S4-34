@@ -1,4 +1,5 @@
 from flask import Blueprint, request, jsonify
+from datetime import datetime, timedelta
 
 # Blueprint for all resident-facing APIs
 resident_bp = Blueprint("resident_bp", __name__, url_prefix="/api/resident")
@@ -83,9 +84,15 @@ def delete_personal_data(resident_id):
 # ----------------------------------------------------------------------
 @resident_bp.route("/<int:resident_id>/access-history", methods=["GET"])
 def view_personal_access_history(resident_id):
+    # Generate dynamic dates (today and yesterday)
+    today = datetime.now()
+    yesterday = today - timedelta(days=1)
+    
     history = [
-        {"timestamp": "2025-11-20T09:00:00", "door": "Lobby", "result": "GRANTED"},
-        {"timestamp": "2025-11-20T21:30:00", "door": "Lobby", "result": "DENIED"},
+        {"timestamp": today.strftime("%Y-%m-%dT09:00:00"), "door": "Main Lobby", "result": "GRANTED"},
+        {"timestamp": today.strftime("%Y-%m-%dT12:30:00"), "door": "Parking Gate", "result": "GRANTED"},
+        {"timestamp": yesterday.strftime("%Y-%m-%dT21:30:00"), "door": "Side Entrance", "result": "DENIED"},
+        {"timestamp": yesterday.strftime("%Y-%m-%dT08:15:00"), "door": "Main Lobby", "result": "GRANTED"},
     ]
     return jsonify({
         "resident_id": resident_id,
@@ -105,8 +112,8 @@ def create_visitor_entry(resident_id):
       "visitor_name": "Mary Lee",
       "contact_number": "98765432",
       "visiting_unit": "B-12-05",
-      "start_time": "2025-11-21T10:00:00",
-      "end_time": "2025-11-21T12:00:00"
+      "start_time": "2025-12-02T10:00:00",
+      "end_time": "2025-12-02T12:00:00"
     }
     """
     data = request.get_json() or {}
@@ -117,13 +124,20 @@ def create_visitor_entry(resident_id):
     if missing:
         return jsonify({"error": "Missing fields", "missing": missing}), 400
 
-    visitor_id = 101  # mock id
+    # Generate a mock visitor_id (in real app, this comes from database)
+    import random
+    visitor_id = random.randint(100, 999)
 
+    # Return the created visitor with status APPROVED
     return jsonify({
         "message": "Visitor created (mock)",
         "resident_id": resident_id,
         "visitor_id": visitor_id,
-        "visitor": data
+        "visitor": {
+            **data,
+            "visitor_id": visitor_id,
+            "status": "APPROVED"  # Auto-approve for demo
+        }
     }), 201
 
 
@@ -133,20 +147,38 @@ def create_visitor_entry(resident_id):
 # ----------------------------------------------------------------------
 @resident_bp.route("/<int:resident_id>/visitors", methods=["GET"])
 def view_registered_visitors(resident_id):
+    # Generate dynamic dates (today, tomorrow, day after)
+    today = datetime.now()
+    tomorrow = today + timedelta(days=1)
+    day_after = today + timedelta(days=2)
+    
     visitors = [
         {
             "visitor_id": 101,
             "visitor_name": "Mary Lee",
+            "contact_number": "91234567",
+            "visiting_unit": "B-12-05",
             "status": "APPROVED",
-            "start_time": "2025-11-21T10:00:00",
-            "end_time": "2025-11-21T12:00:00",
+            "start_time": tomorrow.strftime("%Y-%m-%dT10:00:00"),
+            "end_time": tomorrow.strftime("%Y-%m-%dT16:00:00"),
         },
         {
             "visitor_id": 102,
             "visitor_name": "David Ong",
+            "contact_number": "98765432",
+            "visiting_unit": "B-12-05",
+            "status": "APPROVED",
+            "start_time": day_after.strftime("%Y-%m-%dT14:00:00"),
+            "end_time": day_after.strftime("%Y-%m-%dT18:00:00"),
+        },
+        {
+            "visitor_id": 103,
+            "visitor_name": "Sarah Lim",
+            "contact_number": "96543210",
+            "visiting_unit": "B-12-05",
             "status": "PENDING",
-            "start_time": "2025-11-22T15:00:00",
-            "end_time": "2025-11-22T17:00:00",
+            "start_time": day_after.strftime("%Y-%m-%dT09:00:00"),
+            "end_time": day_after.strftime("%Y-%m-%dT12:00:00"),
         },
     ]
     return jsonify({
@@ -242,9 +274,13 @@ def upload_visitor_facial_image(resident_id, visitor_id):
     methods=["GET"]
 )
 def view_visitor_access_history(resident_id, visitor_id):
+    # Generate dynamic dates
+    today = datetime.now()
+    
     logs = [
-        {"timestamp": "2025-11-21T10:05:00", "door": "Lobby", "result": "GRANTED"},
-        {"timestamp": "2025-11-21T10:20:00", "door": "Lift Lobby", "result": "GRANTED"},
+        {"timestamp": today.strftime("%Y-%m-%dT10:05:00"), "door": "Main Lobby", "result": "GRANTED"},
+        {"timestamp": today.strftime("%Y-%m-%dT10:20:00"), "door": "Lift Lobby", "result": "GRANTED"},
+        {"timestamp": today.strftime("%Y-%m-%dT15:45:00"), "door": "Parking Gate", "result": "GRANTED"},
     ]
     return jsonify({
         "resident_id": resident_id,
@@ -272,12 +308,21 @@ def temporarily_disable_face_access(resident_id):
 # ----------------------------------------------------------------------
 @resident_bp.route("/<int:resident_id>/alerts", methods=["GET"])
 def receive_unauthorized_access_alert(resident_id):
+    # Generate dynamic timestamp (recent alert)
+    recent_time = (datetime.now() - timedelta(hours=2)).strftime("%Y-%m-%dT%H:%M:%S")
+    
     alerts = [
         {
             "alert_id": 1,
-            "timestamp": "2025-11-20T21:30:00",
+            "timestamp": recent_time,
             "description": "Multiple failed face attempts at lobby door",
             "status": "UNREAD"
+        },
+        {
+            "alert_id": 2,
+            "timestamp": (datetime.now() - timedelta(days=1)).strftime("%Y-%m-%dT21:30:00"),
+            "description": "Unauthorized access attempt at parking gate",
+            "status": "READ"
         }
     ]
     return jsonify({
@@ -313,5 +358,7 @@ def offline_recognition_mode():
     return jsonify({
         "message": "Offline recognition successful (mock)",
         "device_id": device_id,
-        "matched_resident_id": 1
+        "matched_resident_id": 1,
+        "confidence": 0.95,
+        "name": "John Tan"
     }), 200
