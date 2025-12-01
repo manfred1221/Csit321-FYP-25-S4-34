@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Face Registration - Condo Access</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <div class="dashboard">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h2>🏢 Condo Access</h2>
+                <div class="user-info">
+                    <strong id="userName">Loading...</strong>
+                    <p id="userEmail"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="126077617b76777c6652776a737f627e773c717d7f">[email&#160;protected]</a></p>
+                </div>
+            </div>
+            
+            <nav>
+                <ul class="nav-menu">
+                    <li class="nav-item">
+                        <a href="resident-dashboard.html" class="nav-link">📊 Dashboard</a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="resident-profile.html" class="nav-link">👤 My Profile</a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="resident-face-registration.html" class="nav-link active">📸 Face Registration</a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="resident-visitors.html" class="nav-link">👥 Manage Visitors</a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="resident-access-history.html" class="nav-link">📜 Access History</a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="resident-alerts.html" class="nav-link">🔔 Alerts</a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="#" class="nav-link" onclick="logout()">🚪 Logout</a>
+                    </li>
+                </ul>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="page-header">
+                <h1>Face Registration</h1>
+                <p>Register or update your facial recognition data</p>
+            </div>
+
+            <!-- Instructions Card -->
+            <div class="card">
+                <div class="card-header">
+                    <h2>📋 Instructions</h2>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <strong>Important Tips for Best Results:</strong>
+                        <ul style="margin-top: 10px; padding-left: 20px;">
+                            <li>Ensure good lighting on your face</li>
+                            <li>Remove glasses, hats, or face coverings</li>
+                            <li>Look directly at the camera</li>
+                            <li>Keep a neutral expression</li>
+                            <li>Position your face within the frame guide</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Face Capture Card -->
+            <div class="card">
+                <div class="card-header">
+                    <h2>📸 Capture Your Face</h2>
+                </div>
+                <div class="card-body">
+                    <p id="status" style="padding: 10px; background: #f3f4f6; border-radius: 6px; margin-bottom: 15px; text-align: center;">
+                        Ready to capture your face
+                    </p>
+                    
+                    <div class="camera-container">
+                        <video id="video" autoplay playsinline width="320" height="240" 
+                               style="border-radius: 8px; background: #111; display: block; margin: 0 auto;"></video>
+                        <canvas id="canvas" width="320" height="240" style="display: none;"></canvas>
+                        <img id="preview" alt="capture preview" class="preview-image" 
+                             style="display: none; max-width: 320px; border-radius: 8px; margin: 15px auto; display: block;">
+                    </div>
+                    
+                    <div class="camera-controls">
+                        <button id="startBtn" class="btn btn-primary">
+                            Start Camera
+                        </button>
+                        <button id="captureBtn" class="btn btn-success" disabled>
+                            📸 Capture Photo
+                        </button>
+                        <button id="uploadBtn" class="btn btn-primary" disabled>
+                            ✅ Register Face Data
+                        </button>
+                    </div>
+                    
+                    <div id="message" class="message"></div>
+                </div>
+            </div>
+
+            <!-- Current Registration Status -->
+            <div class="card">
+                <div class="card-header">
+                    <h2>Registration Status</h2>
+                </div>
+                <div class="card-body">
+                    <div id="registrationStatus">
+                        <p>Current Status: <span class="badge badge-warning">Not Registered</span></p>
+                        <p>Last Updated: <span id="lastUpdated">Never</span></p>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="js/config.js"></script>
+    <script src="js/resident-face-registration.js"></script>
+</body>
+</html>

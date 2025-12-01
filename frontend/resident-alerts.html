@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Alerts - Condo Access</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <div class="dashboard">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h2>🏢 Condo Access</h2>
+                <div class="user-info">
+                    <strong id="userName">Loading...</strong>
+                    <p id="userEmail"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="314354425855545f45715449505c415d541f525e5c">[email&#160;protected]</a></p>
+                </div>
+            </div>
+            
+            <nav>
+                <ul class="nav-menu">
+                    <li class="nav-item">
+                        <a href="resident-dashboard.html" class="nav-link">📊 Dashboard</a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="resident-profile.html" class="nav-link">👤 My Profile</a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="resident-face-registration.html" class="nav-link">📸 Face Registration</a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="resident-visitors.html" class="nav-link">👥 Manage Visitors</a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="resident-access-history.html" class="nav-link">📜 Access History</a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="resident-alerts.html" class="nav-link active">🔔 Alerts</a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="#" class="nav-link" onclick="logout()">🚪 Logout</a>
+                    </li>
+                </ul>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="page-header">
+                <h1>Security Alerts</h1>
+                <p>View unauthorized access attempts and security notifications</p>
+            </div>
+
+            <!-- Action Bar -->
+            <div class="card">
+                <div class="card-body">
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <span id="unreadCount" class="badge badge-danger">0 Unread</span>
+                        </div>
+                        <div class="flex gap-10">
+                            <button class="btn btn-sm btn-primary" onclick="markAllAsRead()">Mark All as Read</button>
+                            <button class="btn btn-sm btn-secondary" onclick="clearReadAlerts()">Clear Read Alerts</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Alerts List -->
+            <div id="alertsList">
+                <!-- Alerts will be dynamically loaded here -->
+            </div>
+
+            <!-- Empty State -->
+            <div id="emptyState" style="display: none;">
+                <div class="card">
+                    <div class="card-body text-center" style="padding: 60px 20px;">
+                        <div style="font-size: 48px; margin-bottom: 20px;">🔔</div>
+                        <h3>No Alerts</h3>
+                        <p style="color: var(--text-secondary);">You don't have any security alerts at the moment.</p>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="js/config.js"></script>
+    <script src="js/resident-alerts.js"></script>
+</body>
+</html>
+ript><script src="js/config.js"></script>
+    <script src="js/resident-alerts.js"></script>
+</body>
+</html>

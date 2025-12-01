@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Access History - Condo Access</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <div class="dashboard">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h2>🏢 Condo Access</h2>
+                <div class="user-info">
+                    <strong id="userName">Loading...</strong>
+                    <p id="userEmail"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="3d4f584e54595853497d58455c504d5158135e5250">[email&#160;protected]</a></p>
+                </div>
+            </div>
+            
+            <nav>
+                <ul class="nav-menu">
+                    <li class="nav-item">
+                        <a href="resident-dashboard.html" class="nav-link">📊 Dashboard</a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="resident-profile.html" class="nav-link">👤 My Profile</a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="resident-face-registration.html" class="nav-link">📸 Face Registration</a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="resident-visitors.html" class="nav-link">👥 Manage Visitors</a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="resident-access-history.html" class="nav-link active">📜 Access History</a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="resident-alerts.html" class="nav-link">🔔 Alerts</a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="#" class="nav-link" onclick="logout()">🚪 Logout</a>
+                    </li>
+                </ul>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="page-header">
+                <h1>Access History</h1>
+                <p>View your personal access logs</p>
+            </div>
+
+            <!-- Filters Card -->
+            <div class="card">
+                <div class="card-header">
+                    <h2>Filters</h2>
+                </div>
+                <div class="card-body">
+                    <div class="flex gap-10">
+                        <div class="form-group" style="flex: 1;">
+                            <label for="dateFrom">From Date</label>
+                            <input type="date" id="dateFrom" class="form-control">
+                        </div>
+                        <div class="form-group" style="flex: 1;">
+                            <label for="dateTo">To Date</label>
+                            <input type="date" id="dateTo" class="form-control">
+                        </div>
+                        <div class="form-group" style="flex: 1;">
+                            <label for="resultFilter">Result</label>
+                            <select id="resultFilter" class="form-control">
+                                <option value="">All</option>
+                                <option value="GRANTED">Granted</option>
+                                <option value="DENIED">Denied</option>
+                            </select>
+                        </div>
+                        <div style="display: flex; align-items: flex-end;">
+                            <button class="btn btn-primary" onclick="applyFilters()">Apply Filters</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Access History Table -->
+            <div class="card">
+                <div class="card-header">
+                    <h2>Access Records</h2>
+                    <button class="btn btn-sm btn-secondary" onclick="exportHistory()">Export to CSV</button>
+                </div>
+                <div class="card-body">
+                    <div class="table-container">
+                        <table id="accessHistoryTable">
+                            <thead>
+                                <tr>
+                                    <th>Date & Time</th>
+                                    <th>Location</th>
+                                    <th>Access Method</th>
+                                    <th>Result</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td colspan="4" class="text-center">Loading...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <div id="pagination" class="mt-20 text-center">
+                        <!-- Pagination will be added here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Statistics Card -->
+            <div class="card">
+                <div class="card-header">
+                    <h2>Statistics</h2>
+                </div>
+                <div class="card-body">
+                    <div class="stats-grid">
+                        <div>
+                            <h3 style="font-size: 14px; color: var(--text-secondary);">TOTAL ACCESSES</h3>
+                            <div style="font-size: 24px; font-weight: bold;" id="totalAccesses">0</div>
+                        </div>
+                        <div>
+                            <h3 style="font-size: 14px; color: var(--text-secondary);">GRANTED</h3>
+                            <div style="font-size: 24px; font-weight: bold; color: var(--success-color);" id="grantedCount">0</div>
+                        </div>
+                        <div>
+                            <h3 style="font-size: 14px; color: var(--text-secondary);">DENIED</h3>
+                            <div style="font-size: 24px; font-weight: bold; color: var(--danger-color);" id="deniedCount">0</div>
+                        </div>
+                        <div>
+                            <h3 style="font-size: 14px; color: var(--text-secondary);">THIS MONTH</h3>
+                            <div style="font-size: 24px; font-weight: bold;" id="monthCount">0</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="js/config.js"></script>
+    <script src="js/resident-access-history.js"></script>
+</body>
+</html>

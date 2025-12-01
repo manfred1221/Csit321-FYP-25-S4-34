@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Resident Dashboard - Condo Access</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <div class="dashboard">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h2>🏢 Condo Access</h2>
+                <div class="user-info">
+                    <strong id="userName">Loading...</strong>
+                    <p id="userEmail"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="c3b1a6b0aaa7a6adb783a6bba2aeb3afa6eda0acae">[email&#160;protected]</a></p>
+                </div>
+            </div>
+            
+            <nav>
+                <ul class="nav-menu">
+                    <li class="nav-item">
+                        <a href="resident-dashboard.html" class="nav-link active">
+                            📊 Dashboard
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="resident-profile.html" class="nav-link">
+                            👤 My Profile
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="resident-face-registration.html" class="nav-link">
+                            📸 Face Registration
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="resident-visitors.html" class="nav-link">
+                            👥 Manage Visitors
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="resident-access-history.html" class="nav-link">
+                            📜 Access History
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="resident-alerts.html" class="nav-link">
+                            🔔 Alerts
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="#" class="nav-link" onclick="logout()">
+                            🚪 Logout
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="page-header">
+                <h1>Dashboard</h1>
+                <p>Welcome back! Here's an overview of your access system.</p>
+            </div>
+
+            <!-- Stats Cards -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <h3>Active Visitors</h3>
+                    <div class="stat-value" id="activeVisitors">0</div>
+                </div>
+                <div class="stat-card">
+                    <h3>Total Visitors</h3>
+                    <div class="stat-value" id="totalVisitors">0</div>
+                </div>
+                <div class="stat-card">
+                    <h3>Today's Access</h3>
+                    <div class="stat-value" id="todayAccess">0</div>
+                </div>
+                <div class="stat-card">
+                    <h3>Unread Alerts</h3>
+                    <div class="stat-value" id="unreadAlerts">0</div>
+                </div>
+            </div>
+
+            <!-- Recent Visitors -->
+            <div class="card">
+                <div class="card-header">
+                    <h2>Recent Visitors</h2>
+                    <a href="resident-visitors.html" class="btn btn-sm btn-primary">View All</a>
+                </div>
+                <div class="card-body">
+                    <div class="table-container">
+                        <table id="recentVisitorsTable">
+                            <thead>
+                                <tr>
+                                    <th>Visitor Name</th>
+                                    <th>Status</th>
+                                    <th>Visit Time</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td colspan="4" class="text-center">Loading...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Access History -->
+            <div class="card">
+                <div class="card-header">
+                    <h2>Recent Access History</h2>
+                    <a href="resident-access-history.html" class="btn btn-sm btn-primary">View All</a>
+                </div>
+                <div class="card-body">
+                    <div class="table-container">
+                        <table id="accessHistoryTable">
+                            <thead>
+                                <tr>
+                                    <th>Timestamp</th>
+                                    <th>Location</th>
+                                    <th>Result</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td colspan="3" class="text-center">Loading...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="card">
+                <div class="card-header">
+                    <h2>Quick Actions</h2>
+                </div>
+                <div class="card-body">
+                    <div class="flex gap-10">
+                        <a href="resident-visitors.html?action=add" class="btn btn-primary">
+                            + Add New Visitor
+                        </a>
+                        <a href="resident-face-registration.html" class="btn btn-secondary">
+                            Update Face Data
+                        </a>
+                        <button onclick="toggleFaceAccess()" class="btn btn-danger" id="toggleAccessBtn">
+                            Disable Face Access
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </main>    </div>
+
+    <script src="js/config.js"></script>
+    <script src="js/resident-dashboard.js"></script>
+</body>
+</html>
+pt><script src="js/config.js"></script>
+    <script src="js/resident-dashboard.js"></script>
+</body>
+</html>
