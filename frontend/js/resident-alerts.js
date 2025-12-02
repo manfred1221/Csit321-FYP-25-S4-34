@@ -41,7 +41,7 @@ function displayAlerts(alerts) {
                 <div class="flex justify-between items-center">
                     <div style="flex: 1;">
                         <div class="flex items-center gap-10">
-                            <span style="font-size: 24px;">⚠️</span>
+                            <span style="font-size: 24px;"></span>
                             <div>
                                 <h3 style="margin-bottom: 5px; font-size: 16px;">
                                     ${alert.status === 'UNREAD' ? '<strong>' : ''}
