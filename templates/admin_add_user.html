@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add User</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
+            background: #f1f5f9; 
+        }
+        .navbar {
+            background: #1e293b;
+            color: #fff;
+            padding: 18px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .navbar h1 { font-size: 20px; }
+        .navbar-links a { 
+            color: #fff; 
+            text-decoration: none; 
+            margin-left: 25px; 
+            padding: 10px 18px; 
+            border-radius: 6px;
+            font-weight: 500;
+        }
+        .navbar-links a:hover { background: rgba(255,255,255,0.15); }
+        .navbar-links a.active { background: rgba(255,255,255,0.2); }
+        
+        .container { max-width: 600px; margin: 0 auto; padding: 30px; }
+        
+        .back-link { 
+            display: inline-block;
+            margin-bottom: 20px; 
+            color: #3b82f6; 
+            text-decoration: none;
+            font-weight: 500;
+        }
+        .back-link:hover { color: #2563eb; }
+        
+        .card { 
+            background: #fff; 
+            border-radius: 8px; 
+            overflow: hidden;
+        }
+        .card-header { 
+            padding: 25px; 
+            border-bottom: 1px solid #e2e8f0; 
+        }
+        .card-header h2 { font-size: 18px; color: #1e293b; }
+        .card-body { padding: 30px; }
+        
+        .form-group { margin-bottom: 22px; }
+        .form-group label { 
+            display: block; 
+            margin-bottom: 8px; 
+            font-weight: 600; 
+            color: #334155; 
+        }
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%;
+            padding: 14px;
+            border: 2px solid #e2e8f0;
+            border-radius: 6px;
+            font-size: 15px;
+        }
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus { 
+            outline: none; 
+            border-color: #3b82f6; 
+        }
+        .form-group textarea { resize: vertical; min-height: 80px; }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        
+        .btn { 
+            padding: 16px 24px; 
+            border: none; 
+            border-radius: 6px; 
+            cursor: pointer; 
+            font-size: 16px; 
+            font-weight: 600;
+            width: 100%;
+        }
+        .btn-primary { background: #3b82f6; color: #fff; }
+        .btn-primary:hover { background: #2563eb; }
+        
+        .error { 
+            background: #fee2e2; 
+            color: #dc2626; 
+            padding: 15px; 
+            border-radius: 6px; 
+            margin-bottom: 20px; 
+            display: none; 
+        }
+        .success { 
+            background: #dcfce7; 
+            color: #166534; 
+            padding: 15px; 
+            border-radius: 6px; 
+            margin-bottom: 20px; 
+            display: none; 
+        }
+        .required { color: #ef4444; }
+        
+        .temp-worker-fields {
+            display: none;
+            padding: 20px;
+            background: #f8fafc;
+            border-radius: 6px;
+            margin-bottom: 22px;
+        }
+        .temp-worker-fields.show { display: block; }
+        .temp-worker-fields h4 { 
+            margin-bottom: 15px; 
+            color: #7c3aed; 
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <h1>Admin Panel</h1>
+        <div class="navbar-links">
+            <a href="/admin/profile">Profile</a>
+            <a href="/admin/users" class="active">Users</a>
+            <a href="/admin/logs">Logs</a>
+            <a href="/admin/logout">Logout</a>
+        </div>
+    </nav>
+    
+    <div class="container">
+        <a href="/admin/users" class="back-link">Back to Users</a>
+        
+        <div class="card">
+            <div class="card-header">
+                <h2>Add New User</h2>
+            </div>
+            <div class="card-body">
+                <div class="error" id="error"></div>
+                <div class="success" id="success"></div>
+                
+                <form id="userForm">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Username <span class="required">*</span></label>
+                            <input type="text" id="username" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Password <span class="required">*</span></label>
+                            <input type="password" id="password" required>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Full Name <span class="required">*</span></label>
+                        <input type="text" id="full_name" required>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Email <span class="required">*</span></label>
+                            <input type="email" id="email" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Phone</label>
+                            <input type="text" id="phone">
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Role</label>
+                            <select id="role" onchange="toggleTempWorkerFields()">
+                                <option value="USER">User</option>
+                                <option value="ADMIN">Admin</option>
+                                <option value="SECURITY">Security</option>
+                                <option value="GUEST">Guest</option>
+                                <option value="TEMP_WORKER">Temporary Worker</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Access Level</label>
+                            <select id="access_level">
+                                <option value="standard">Standard</option>
+                                <option value="level_1">Level 1</option>
+                                <option value="level_2">Level 2</option>
+                                <option value="level_3">Level 3</option>
+                                <option value="vip">VIP</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="temp-worker-fields" id="tempWorkerFields">
+                        <h4>Temporary Worker Details</h4>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Work Start Date</label>
+                                <input type="date" id="work_start_date">
+                            </div>
+                            <div class="form-group">
+                                <label>Work End Date</label>
+                                <input type="date" id="work_end_date">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Work Schedule</label>
+                            <input type="text" id="work_schedule" placeholder="e.g., Mon-Fri 8:00-17:00">
+                        </div>
+                        <div class="form-group">
+                            <label>Work Details</label>
+                            <textarea id="work_details" placeholder="Description of work to be performed"></textarea>
+                        </div>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary">Create User</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        function toggleTempWorkerFields() {
+            const role = document.getElementById('role').value;
+            const tempFields = document.getElementById('tempWorkerFields');
+            
+            if (role === 'TEMP_WORKER') {
+                tempFields.classList.add('show');
+            } else {
+                tempFields.classList.remove('show');
+            }
+        }
+        
+        document.getElementById('userForm').onsubmit = async (e) => {
+            e.preventDefault();
+            
+            const errorDiv = document.getElementById('error');
+            const successDiv = document.getElementById('success');
+            errorDiv.style.display = 'none';
+            successDiv.style.display = 'none';
+            
+            const data = {
+                username: document.getElementById('username').value,
+                password: document.getElementById('password').value,
+                full_name: document.getElementById('full_name').value,
+                email: document.getElementById('email').value,
+                phone: document.getElementById('phone').value,
+                role: document.getElementById('role').value,
+                access_level: document.getElementById('access_level').value
+            };
+            
+            if (data.role === 'TEMP_WORKER') {
+                data.work_start_date = document.getElementById('work_start_date').value || null;
+                data.work_end_date = document.getElementById('work_end_date').value || null;
+                data.work_schedule = document.getElementById('work_schedule').value;
+                data.work_details = document.getElementById('work_details').value;
+            }
+            
+            try {
+                const response = await fetch('/admin/users/add', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    successDiv.textContent = 'User created! Redirecting...';
+                    successDiv.style.display = 'block';
+                    setTimeout(() => window.location.href = '/admin/users', 1500);
+                } else {
+                    errorDiv.textContent = result.message || 'Failed to create user';
+                    errorDiv.style.display = 'block';
+                }
+            } catch (err) {
+                errorDiv.textContent = 'Network error';
+                errorDiv.style.display = 'block';
+            }
+        };
+    </script>
+</body>
+</html>
