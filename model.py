@@ -124,14 +124,26 @@ def extract_embedding_from_base64(base64_data):
 
 def save_embedding_to_db(embedding, reference_id, user_type='resident'):
     """Save face embedding to database"""
-    conn = get_db_connection()
-    cursor = conn.cursor()
+    conn = None
+    cursor = None
     try:
+        conn = get_db_connection()
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
+        
         # Convert embedding to list for PostgreSQL vector type
         embedding_list = embedding.tolist() if isinstance(embedding, np.ndarray) else list(embedding)
         
+        logger.info(f"Embedding dimensions: {len(embedding_list)}")
+        logger.info(f"Saving for reference_id={reference_id}, user_type={user_type}")
+        
         # Format as PostgreSQL vector string
         embedding_str = '[' + ','.join(map(str, embedding_list)) + ']'
+        
+        # First verify the reference_id exists in residents table
+        cursor.execute("SELECT resident_id FROM residents WHERE resident_id = %s", (reference_id,))
+        check_result = cursor.fetchone()
+        if not check_result:
+            raise ValueError(f"reference_id {reference_id} does not exist in residents table")
         
         cursor.execute("""
             INSERT INTO face_embeddings (user_type, reference_id, embedding)
@@ -139,17 +151,25 @@ def save_embedding_to_db(embedding, reference_id, user_type='resident'):
             RETURNING embedding_id
         """, (user_type, reference_id, embedding_str))
         
-        embedding_id = cursor.fetchone()[0]
+        result = cursor.fetchone()
+        if not result:
+            raise ValueError("INSERT did not return embedding_id")
+        
+        embedding_id = result['embedding_id']
+        
         conn.commit()
         logger.info(f"Saved embedding to database: embedding_id={embedding_id}")
         return embedding_id
     except Exception as e:
-        conn.rollback()
-        logger.error(f"Error saving embedding to database: {e}")
-        raise e
+        if conn:
+            conn.rollback()
+        logger.error(f"Error saving embedding to database: {type(e).__name__}: {e}")
+        raise ValueError(f"Database error: {type(e).__name__}: {str(e)}")
     finally:
-        cursor.close()
-        conn.close()
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
 
 def load_embedding_from_db(embedding_id):
     """Load face embedding from database"""
@@ -299,24 +319,42 @@ def register_face_from_photo(photo_path, reference_id, user_type='resident'):
     Returns:
         tuple: (embedding_id, error_message)
     """
-    logger.info(f"Registering face for {user_type} {reference_id}")
+    logger.info(f"Registering face for {user_type} {reference_id} from {photo_path}")
+    
+    # Check if photo exists
+    if not os.path.exists(photo_path):
+        return None, f"Photo file not found: {photo_path}"
     
     embedding, error = extract_embedding_from_image(photo_path)
     
     if error:
+        logger.error(f"Embedding extraction failed: {error}")
         return None, error
+    
+    if embedding is None:
+        return None, "Failed to extract embedding (returned None)"
+    
+    logger.info(f"Embedding extracted successfully, shape: {np.array(embedding).shape}")
     
     try:
         embedding_id = save_embedding_to_db(embedding, reference_id, user_type)
+        logger.info(f"Face registered successfully: embedding_id={embedding_id}")
         return embedding_id, None
-    except Exception as e:
+    except ValueError as e:
+        logger.error(f"ValueError in save_embedding_to_db: {e}")
         return None, str(e)
+    except Exception as e:
+        logger.error(f"Unexpected error in save_embedding_to_db: {type(e).__name__}: {e}")
+        return None, f"{type(e).__name__}: {str(e)}"
 
 def update_face_embedding(embedding_id, new_embedding):
     """Update existing face embedding"""
-    conn = get_db_connection()
-    cursor = conn.cursor()
+    conn = None
+    cursor = None
     try:
+        conn = get_db_connection()
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
+        
         embedding_list = new_embedding.tolist() if isinstance(new_embedding, np.ndarray) else list(new_embedding)
         embedding_str = '[' + ','.join(map(str, embedding_list)) + ']'
         
@@ -328,24 +366,36 @@ def update_face_embedding(embedding_id, new_embedding):
         conn.commit()
         return cursor.rowcount > 0
     except Exception as e:
-        conn.rollback()
+        if conn:
+            conn.rollback()
         logger.error(f"Error updating embedding: {e}")
         return False
     finally:
-        cursor.close()
-        conn.close()
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
 
 def delete_face_embedding(embedding_id):
     """Delete face embedding from database"""
-    conn = get_db_connection()
-    cursor = conn.cursor()
+    conn = None
+    cursor = None
     try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
         cursor.execute("DELETE FROM face_embeddings WHERE embedding_id = %s", (embedding_id,))
         conn.commit()
         return cursor.rowcount > 0
+    except Exception as e:
+        if conn:
+            conn.rollback()
+        logger.error(f"Error deleting embedding: {e}")
+        return False
     finally:
-        cursor.close()
-        conn.close()
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
 
 def quick_compare(img1, img2, threshold=1.0):
     emb1 = get_face_embedding(img1)

@@ -15,7 +15,8 @@ class AccessLog:
             embedding_id: Reference to face_embeddings table
         """
         conn = get_db_connection()
-        cursor = conn.cursor()
+        # Use RealDictCursor for consistency
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
         try:
             cursor.execute("""
                 INSERT INTO access_logs (recognized_person, person_type, confidence, access_result, embedding_id)
@@ -28,7 +29,8 @@ class AccessLog:
                 access_result,
                 embedding_id
             ))
-            log_id = cursor.fetchone()[0]
+            result = cursor.fetchone()
+            log_id = result['log_id'] if result else None
             conn.commit()
             return log_id
         finally:
