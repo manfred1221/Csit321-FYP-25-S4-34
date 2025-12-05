@@ -18,6 +18,5 @@ def get_db_connection():
         password=password,
         host=host,
         port=port,
-        cursor_factory=RealDictCursor,
     )
     return conn
