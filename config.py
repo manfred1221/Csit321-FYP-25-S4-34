@@ -6,9 +6,9 @@ class Config:
     SESSION_LIFETIME = timedelta(hours=24)
     
     HOST = '0.0.0.0'
-    PORT = 5001
+    PORT = 5420
     CAM_PORT = 5002
-    DEBUG = True
+    DEBUG = False
     
     # Database config - matches db.py
     DATABASE_CONFIG = {
