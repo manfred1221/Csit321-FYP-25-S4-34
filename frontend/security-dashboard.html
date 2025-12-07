@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Security Dashboard - Condo Access</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <div class="dashboard">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h2>🔒 Condo Access</h2>
+                <div class="user-info">
+                    <strong id="userName">Loading...</strong>
+                    <p id="userEmail">security@example.com</p>
+                </div>
+            </div>
+
+            <nav>
+                <ul class="nav-menu">
+                    <li class="nav-item">
+                        <a href="security-dashboard.html" class="nav-link active">
+                            📊 Dashboard
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="security-access-logs.html" class="nav-link">
+                            📋 Access Logs
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="security-residents.html" class="nav-link">
+                            👥 Residents
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="security-visitors.html" class="nav-link">
+                            🚶 Visitors
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="security-alerts.html" class="nav-link">
+                            🚨 Alerts
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="index.html" class="nav-link">
+                            🚪 Logout
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="page-header">
+                <h1>Security Dashboard</h1>
+                <p>Real-time monitoring and access control</p>
+            </div>
+
+            <!-- Statistics Cards -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon">👥</div>
+                    <div class="stat-details">
+                        <h3>Total Residents</h3>
+                        <p class="stat-number" id="totalResidents">0</p>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon">🚶</div>
+                    <div class="stat-details">
+                        <h3>Active Visitors</h3>
+                        <p class="stat-number" id="activeVisitors">0</p>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon">✅</div>
+                    <div class="stat-details">
+                        <h3>Today's Access</h3>
+                        <p class="stat-number" id="todayAccess">0</p>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon">🚨</div>
+                    <div class="stat-details">
+                        <h3>Alerts Today</h3>
+                        <p class="stat-number" id="alertsToday">0</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Access Activity -->
+            <div class="card">
+                <div class="card-header">
+                    <h2>Recent Access Activity</h2>
+                    <button class="btn btn-secondary" onclick="refreshActivity()">🔄 Refresh</button>
+                </div>
+                <div class="card-body">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Time</th>
+                                <th>Name</th>
+                                <th>Type</th>
+                                <th>Location</th>
+                                <th>Result</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="recentActivityTable">
+                            <tr>
+                                <td colspan="6" class="text-center">Loading...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Current Visitors -->
+            <div class="card">
+                <div class="card-header">
+                    <h2>Current Visitors in Building</h2>
+                    <span class="badge" id="visitorCount">0</span>
+                </div>
+                <div class="card-body">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Visitor Name</th>
+                                <th>Visiting Unit</th>
+                                <th>Entry Time</th>
+                                <th>Expected Exit</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="currentVisitorsTable">
+                            <tr>
+                                <td colspan="5" class="text-center">No visitors currently in building</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="card">
+                <div class="card-header">
+                    <h2>Quick Actions</h2>
+                </div>
+                <div class="card-body">
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                        <button class="btn btn-primary" onclick="window.location.href='security-access-logs.html'">
+                            📋 View All Access Logs
+                        </button>
+                        <button class="btn btn-primary" onclick="window.location.href='security-visitors.html'">
+                            🚶 Manage Visitors
+                        </button>
+                        <button class="btn btn-warning" onclick="window.location.href='security-alerts.html'">
+                            🚨 View Alerts
+                        </button>
+                        <button class="btn btn-secondary" onclick="exportReport()">
+                            📄 Export Today's Report
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="js/config.js"></script>
+    <script src="js/security-dashboard.js"></script>
+</body>
+</html>
