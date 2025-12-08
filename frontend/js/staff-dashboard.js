@@ -1,25 +1,13 @@
 // Staff Dashboard JavaScript
-
 let currentUser = null;
 
-// Load user data
 window.addEventListener('DOMContentLoaded', function() {
-    console.log('Staff dashboard loading...');
-    
-    // Check if logged in
+    // Check authentication
     const user = JSON.parse(localStorage.getItem('user') || 'null');
     
-    console.log('Current user:', user);
-    
-    if (!user) {
-        alert('Please login first!');
-        window.location.href = 'index.html';  // ← CHANGED
-        return;
-    }
-    
-    if (user.type !== 'staff') {
-        alert('This page is for staff only!');
-        window.location.href = 'index.html';  // ← CHANGED
+    if (!user || user.type !== 'staff') {
+        alert('Please login as staff first!');
+        window.location.href = 'index.html';
         return;
     }
     
@@ -29,7 +17,6 @@ window.addEventListener('DOMContentLoaded', function() {
     displayUserInfo();
     
     // Load dashboard data
-    loadProfile();
     loadTodaySchedule();
     loadRecentAttendance();
     
@@ -48,52 +35,19 @@ function displayUserInfo() {
 }
 
 function setupEventListeners() {
-    // Logout button
+    // Logout
     document.getElementById('logoutBtn').addEventListener('click', function(e) {
         e.preventDefault();
         if (confirm('Are you sure you want to logout?')) {
             localStorage.removeItem('user');
             localStorage.removeItem('auth_token');
-            window.location.href = 'index.html';  // ← CHANGED
+            window.location.href = 'index.html';
         }
     });
     
-    // Clock in button
-    document.getElementById('clockInBtn').addEventListener('click', function() {
-        recordAttendance('entry');
-    });
-    
-    // Clock out button
-    document.getElementById('clockOutBtn').addEventListener('click', function() {
-        recordAttendance('exit');
-    });
-}
-
-async function loadProfile() {
-    try {
-        const endpoint = API_CONFIG.ENDPOINTS.STAFF.GET_PROFILE(currentUser.staff_id);
-        console.log('Loading profile from:', endpoint);
-        
-        const result = await staffApiCall(endpoint);
-        
-        console.log('Profile result:', result);
-        
-        if (result.success) {
-            const profile = result.data;
-            document.getElementById('profileInfo').innerHTML = `
-                <p><strong>Name:</strong> ${profile.full_name}</p>
-                <p><strong>Position:</strong> ${profile.position}</p>
-                <p><strong>Contact:</strong> ${profile.contact_number}</p>
-                <p><strong>Email:</strong> ${profile.email || 'N/A'}</p>
-                <p><strong>Status:</strong> <span class="badge badge-success">${profile.is_active ? 'Active' : 'Inactive'}</span></p>
-            `;
-        } else {
-            document.getElementById('profileInfo').innerHTML = `<p class="error">Error: ${result.error}</p>`;
-        }
-    } catch (error) {
-        console.error('Load profile error:', error);
-        document.getElementById('profileInfo').innerHTML = '<p class="error">Error loading profile</p>';
-    }
+    // Clock in/out buttons
+    document.getElementById('clockInBtn').addEventListener('click', () => recordAttendance('entry'));
+    document.getElementById('clockOutBtn').addEventListener('click', () => recordAttendance('exit'));
 }
 
 async function loadTodaySchedule() {
@@ -102,52 +56,44 @@ async function loadTodaySchedule() {
         const endpoint = API_CONFIG.ENDPOINTS.STAFF.GET_SCHEDULE(currentUser.staff_id) + 
             `?start_date=${today}&end_date=${today}`;
         
-        console.log('Loading schedule from:', endpoint);
-        
         const result = await staffApiCall(endpoint);
         
-        console.log('Schedule result:', result);
-        
-        if (result.success && result.data.schedules.length > 0) {
+        if (result.success && result.data.schedules && result.data.schedules.length > 0) {
             const schedules = result.data.schedules;
-            let html = '<div>';
+            let html = '';
+            
             schedules.forEach(schedule => {
                 html += `
-                    <div style="padding: 10px; margin-bottom: 10px; border-left: 3px solid #2563eb; background: #f9fafb;">
-                        <p><strong>Time:</strong> ${schedule.shift_start} - ${schedule.shift_end}</p>
-                        <p><strong>Task:</strong> ${schedule.task_description}</p>
+                    <div style="padding: 15px; margin-bottom: 10px; border-left: 4px solid #2563eb; background: #f9fafb; border-radius: 4px;">
+                        <p style="margin: 5px 0;"><strong>⏰ Time:</strong> ${schedule.shift_start} - ${schedule.shift_end}</p>
+                        <p style="margin: 5px 0;"><strong>📋 Task:</strong> ${schedule.task_description}</p>
                     </div>
                 `;
             });
-            html += '</div>';
+            
             document.getElementById('todaySchedule').innerHTML = html;
         } else {
-            document.getElementById('todaySchedule').innerHTML = '<p>No schedule for today</p>';
+            document.getElementById('todaySchedule').innerHTML = '<p style="text-align: center; color: #6b7280; padding: 20px;">No schedule for today</p>';
         }
     } catch (error) {
         console.error('Load schedule error:', error);
-        document.getElementById('todaySchedule').innerHTML = '<p class="error">Error loading schedule</p>';
+        document.getElementById('todaySchedule').innerHTML = '<p style="text-align: center; color: #ef4444;">Error loading schedule</p>';
     }
 }
 
 async function loadRecentAttendance() {
     try {
         const endpoint = API_CONFIG.ENDPOINTS.STAFF.GET_ATTENDANCE(currentUser.staff_id);
-        
-        console.log('Loading attendance from:', endpoint);
-        
         const result = await staffApiCall(endpoint);
         
-        console.log('Attendance result:', result);
-        
-        if (result.success && result.data.records.length > 0) {
-            const records = result.data.records.slice(0, 5); // Show last 5
+        if (result.success && result.data.records && result.data.records.length > 0) {
+            const records = result.data.records.slice(0, 5);
             let html = '';
             
             records.forEach(record => {
                 const entryDate = new Date(record.entry_time).toLocaleDateString();
-                const entryTime = new Date(record.entry_time).toLocaleTimeString();
-                const exitTime = record.exit_time ? new Date(record.exit_time).toLocaleTimeString() : '-';
+                const entryTime = new Date(record.entry_time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                const exitTime = record.exit_time ? new Date(record.exit_time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : '-';
                 const hours = record.duration_hours ? record.duration_hours.toFixed(2) : '-';
                 
                 html += `
@@ -155,29 +101,39 @@ async function loadRecentAttendance() {
                         <td>${entryDate}</td>
                         <td>${entryTime}</td>
                         <td>${exitTime}</td>
-                        <td>${hours}</td>
-                        <td>${record.location || 'N/A'}</td>
+                        <td>${hours} hrs</td>
                     </tr>
                 `;
             });
             
             document.getElementById('attendanceTableBody').innerHTML = html;
             
-            // Calculate week hours
+            // Calculate stats
+            const now = new Date();
+            const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+            const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+            
             const weekHours = records
-                .filter(r => r.duration_hours)
+                .filter(r => new Date(r.entry_time) >= weekAgo && r.duration_hours)
                 .reduce((sum, r) => sum + r.duration_hours, 0);
+                
+            const monthHours = records
+                .filter(r => new Date(r.entry_time) >= monthAgo && r.duration_hours)
+                .reduce((sum, r) => sum + r.duration_hours, 0);
+            
             document.getElementById('weekHours').textContent = weekHours.toFixed(1) + ' hrs';
+            document.getElementById('monthHours').textContent = monthHours.toFixed(1) + ' hrs';
             
         } else {
             document.getElementById('attendanceTableBody').innerHTML = 
-                '<tr><td colspan="5" style="text-align:center;">No attendance records</td></tr>';
+                '<tr><td colspan="4" style="text-align:center;">No attendance records</td></tr>';
             document.getElementById('weekHours').textContent = '0 hrs';
+            document.getElementById('monthHours').textContent = '0 hrs';
         }
     } catch (error) {
         console.error('Load attendance error:', error);
         document.getElementById('attendanceTableBody').innerHTML = 
-            '<tr><td colspan="5" style="text-align:center;">Error loading attendance</td></tr>';
+            '<tr><td colspan="4" style="text-align:center; color: #ef4444;">Error loading attendance</td></tr>';
     }
 }
 
@@ -185,8 +141,6 @@ async function recordAttendance(action) {
     const messageDiv = document.getElementById('actionMessage');
     
     try {
-        console.log('Recording attendance:', action);
-        
         const result = await staffApiCall(
             API_CONFIG.ENDPOINTS.STAFF.RECORD_ATTENDANCE,
             {
@@ -200,26 +154,23 @@ async function recordAttendance(action) {
             }
         );
         
-        console.log('Attendance record result:', result);
-        
         if (result.success) {
-            messageDiv.textContent = result.data.message;
+            messageDiv.textContent = '✅ ' + result.data.message;
             messageDiv.className = 'message success';
             messageDiv.style.display = 'block';
             
-            // Reload attendance
             setTimeout(() => {
                 loadRecentAttendance();
                 messageDiv.style.display = 'none';
             }, 2000);
         } else {
-            messageDiv.textContent = result.error || 'Failed to record attendance';
+            messageDiv.textContent = '❌ ' + (result.error || 'Failed to record attendance');
             messageDiv.className = 'message error';
             messageDiv.style.display = 'block';
         }
     } catch (error) {
         console.error('Record attendance error:', error);
-        messageDiv.textContent = 'Error recording attendance: ' + error.message;
+        messageDiv.textContent = '❌ Error: ' + error.message;
         messageDiv.className = 'message error';
         messageDiv.style.display = 'block';
     }
