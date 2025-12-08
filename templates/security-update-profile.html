@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Update Profile - Security</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <div class="dashboard">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h2>🔐 Condo Access</h2>
+                <div class="user-info"><div>Security Officer</div><div>officer@example.com</div></div>
+            </div>
+            <nav>
+                <ul class="nav-menu">
+                    <li class="nav-item"><a href="security-dashboard.html" class="nav-link">📹 Monitor Cameras</a></li>
+                    <li class="nav-item"><a href="security-override.html" class="nav-link">🚪 Manual Override</a></li>
+                    <li class="nav-item"><a href="security-view-profile.html" class="nav-link">👤 View Profile</a></li>
+                    <li class="nav-item"><a href="security-update-profile.html" class="nav-link active">✏️ Update Profile</a></li>
+                    <li class="nav-item"><a href="security-deactivate.html" class="nav-link">⚠️ Deactivate Account</a></li>
+                    <li class="nav-item"><a href="security-face-verification.html" class="nav-link">🔍 Face Verification</a></li>
+                    <li class="nav-item"><a href="index.html" class="nav-link" style="margin-top:20px;border-top:1px solid rgba(255,255,255,0.1);padding-top:20px;">🚪 Logout</a></li>
+                </ul>
+            </nav>
+        </aside>
+        <main class="main-content">
+            <div class="page-header"><h1>Update Profile</h1><p>Update your security officer information</p></div>
+            <div class="card">
+                <div class="card-header"><h2>✏️ Edit Personal Information</h2></div>
+                <div class="card-body">
+                    <form id="updateForm">
+                        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:20px;">
+                            <div class="form-group">
+                                <label>Full Name</label>
+                                <input type="text" id="fullName" value="David Wong" class="form-control">
+                            </div>
+                            <div class="form-group">
+                                <label>Contact Number</label>
+                                <input type="tel" id="phone" value="+65 9876 5432" class="form-control">
+                            </div>
+                            <div class="form-group">
+                                <label>Email</label>
+                                <input type="email" id="email" value="david.wong@security.com" class="form-control">
+                            </div>
+                            <div class="form-group">
+                                <label>Shift Preference</label>
+                                <select id="shift" class="form-control">
+                                    <option selected>Day Shift (8AM - 4PM)</option>
+                                    <option>Night Shift (4PM - 12AM)</option>
+                                    <option>Graveyard (12AM - 8AM)</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Emergency Contact Name</label>
+                            <input type="text" id="emergencyName" value="Lisa Wong" class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <label>Emergency Contact Number</label>
+                            <input type="tel" id="emergencyPhone" value="+65 9123 4567" class="form-control">
+                        </div>
+                        <button type="button" class="btn btn-primary" onclick="updateProfile()" style="width:100%;">💾 Update Profile</button>
+                    </form>
+                    <div id="message" class="message"></div>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-header"><h2>🔒 Change Password</h2></div>
+                <div class="card-body">
+                    <form id="passwordForm">
+                        <div class="form-group">
+                            <label>Current Password</label>
+                            <input type="password" id="currentPwd" class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <label>New Password</label>
+                            <input type="password" id="newPwd" class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <label>Confirm New Password</label>
+                            <input type="password" id="confirmPwd" class="form-control">
+                        </div>
+                        <button type="button" class="btn btn-primary" onclick="changePassword()" style="width:100%;">🔐 Change Password</button>
+                    </form>
+                    <div id="pwdMessage" class="message"></div>
+                </div>
+            </div>
+        </main>
+    </div>
+    <script>
+        function updateProfile() {
+            const name = document.getElementById('fullName').value;
+            if (!name) {
+                showMsg('message', 'Name is required', 'error');
+                return;
+            }
+            showMsg('message', 'Profile updated successfully!', 'success');
+        }
+        function changePassword() {
+            const current = document.getElementById('currentPwd').value;
+            const newPwd = document.getElementById('newPwd').value;
+            const confirm = document.getElementById('confirmPwd').value;
+            if (!current || !newPwd || !confirm) {
+                showMsg('pwdMessage', 'All fields are required', 'error');
+                return;
+            }
+            if (newPwd !== confirm) {
+                showMsg('pwdMessage', 'Passwords do not match', 'error');
+                return;
+            }
+            if (newPwd.length < 8) {
+                showMsg('pwdMessage', 'Password must be at least 8 characters', 'error');
+                return;
+            }
+            showMsg('pwdMessage', 'Password changed successfully!', 'success');
+            document.getElementById('passwordForm').reset();
+        }
+        function showMsg(id, msg, type) {
+            const el = document.getElementById(id);
+            el.textContent = msg;
+            el.className = 'message ' + type;
+            el.style.display = 'block';
+            setTimeout(() => el.style.display = 'none', 3000);
+        }
+    </script>
+</body>
+</html>
