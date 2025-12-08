@@ -5,7 +5,7 @@ from flask_cors import CORS
 from routes.auth_routes import auth_bp
 from routes.resident_routes import resident_bp
 from routes.visitor_routes import visitor_bp
-from routes.security_routes import security_bp
+
 
 app = Flask(__name__)
 CORS(app)
@@ -14,7 +14,6 @@ CORS(app)
 app.register_blueprint(auth_bp, url_prefix="/api/auth")
 app.register_blueprint(resident_bp, url_prefix="/api/resident")
 app.register_blueprint(visitor_bp, url_prefix="/api/visitor")
-app.register_blueprint(security_bp, url_prefix="/api/security")
 
 
 @app.route("/")   # simple health check
