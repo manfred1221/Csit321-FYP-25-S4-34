@@ -3,334 +3,192 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>User Management</title>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { 
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
-            background: #f1f5f9; 
-        }
-        .navbar {
-            background: #1e293b;
-            color: #fff;
-            padding: 18px 30px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .navbar h1 { font-size: 20px; }
-        .navbar-links a { 
-            color: #fff; 
-            text-decoration: none; 
-            margin-left: 25px; 
-            padding: 10px 18px; 
-            border-radius: 6px;
-            font-weight: 500;
-        }
-        .navbar-links a:hover { background: rgba(255,255,255,0.15); }
-        .navbar-links a.active { background: rgba(255,255,255,0.2); }
-        
-        .container { max-width: 1400px; margin: 0 auto; padding: 30px; }
-        
-        .card { 
-            background: #fff; 
-            border-radius: 8px; 
-            overflow: hidden;
-        }
-        .card-header { 
-            padding: 20px 25px; 
-            border-bottom: 1px solid #e2e8f0; 
-            display: flex; 
-            justify-content: space-between; 
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 15px;
-        }
-        .card-header h2 { font-size: 18px; color: #1e293b; }
-        .card-body { padding: 0; overflow-x: auto; }
-        
-        .filters {
-            display: flex;
-            gap: 10px;
-            align-items: center;
-            flex-wrap: wrap;
-        }
-        .filters input, .filters select {
-            padding: 10px 14px;
-            border: 2px solid #e2e8f0;
-            border-radius: 6px;
-            font-size: 14px;
-        }
-        .filters input:focus, .filters select:focus {
-            outline: none;
-            border-color: #3b82f6;
-        }
-        .filters input { width: 200px; }
-        
-        .header-actions {
-            display: flex;
-            gap: 10px;
-            align-items: center;
-        }
-        
-        table { width: 100%; border-collapse: collapse; }
-        th, td { padding: 14px 16px; text-align: left; border-bottom: 1px solid #e2e8f0; }
-        th { 
-            background: #f8fafc; 
-            font-weight: 600; 
-            color: #64748b; 
-            font-size: 12px; 
-            text-transform: uppercase; 
-        }
-        
-        .badge { 
-            padding: 5px 12px; 
-            border-radius: 4px; 
-            font-size: 12px; 
-            font-weight: 600; 
-        }
-        .badge-success { background: #dcfce7; color: #166534; }
-        .badge-danger { background: #fee2e2; color: #dc2626; }
-        .badge-info { background: #dbeafe; color: #1e40af; }
-        .badge-warning { background: #fef3c7; color: #92400e; }
-        .badge-purple { background: #f3e8ff; color: #7c3aed; }
-        
-        .btn { 
-            padding: 10px 18px; 
-            border: none; 
-            border-radius: 6px; 
-            cursor: pointer; 
-            text-decoration: none; 
-            display: inline-block; 
-            font-weight: 500; 
-            font-size: 14px; 
-        }
-        .btn-sm { padding: 7px 14px; font-size: 13px; }
-        .btn-primary { background: #3b82f6; color: #fff; }
-        .btn-danger { background: #ef4444; color: #fff; }
-        .btn-success { background: #10b981; color: #fff; }
-        .btn-warning { background: #f59e0b; color: #fff; }
-        .btn-secondary { background: #64748b; color: #fff; }
-        .btn-primary:hover { background: #2563eb; }
-        .btn-danger:hover { background: #dc2626; }
-        .btn-success:hover { background: #059669; }
-        
-        .checkbox-cell { width: 40px; }
-        .checkbox-cell input { width: 18px; height: 18px; cursor: pointer; }
-        
-        .bulk-actions {
-            display: none;
-            padding: 15px 25px;
-            background: #fef3c7;
-            border-bottom: 1px solid #e2e8f0;
-            align-items: center;
-            gap: 15px;
-        }
-        .bulk-actions.show { display: flex; }
-        .bulk-actions span { font-weight: 600; color: #92400e; }
-        
-        .empty { text-align: center; color: #94a3b8; padding: 50px; }
-    </style>
+    <title>User Management - Admin</title>
+    <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
-    <nav class="navbar">
-        <h1>Admin Panel</h1>
-        <div class="navbar-links">
-            <a href="/admin/profile">Profile</a>
-            <a href="/admin/users" class="active">Users</a>
-            <a href="/admin/logs">Logs</a>
-            <a href="/admin/logout">Logout</a>
-        </div>
-    </nav>
-    
-    <div class="container">
-        <div class="card">
-            <div class="card-header">
-                <h2>User Management</h2>
-                <div class="filters">
-                    <form id="filterForm" method="GET" style="display: flex; gap: 10px; align-items: center;">
-                        <input type="text" name="search" placeholder="Search users..." value="{{ search_query }}">
-                        <select name="role" onchange="this.form.submit()">
+    <div class="dashboard">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h2>👑 Admin Panel</h2>
+                <div class="user-info">
+                    <div>Administrator</div>
+                    <div><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="3051545d595e70535f5e545f1e535f5d">[email&#160;protected]</a></div>
+                </div>
+            </div>
+            <nav>
+                <ul class="nav-menu">
+                    <li class="nav-item"><a href="admin_users.html" class="nav-link active">👥 Manage Users</a></li>
+                    <li class="nav-item"><a href="admin_add_user.html" class="nav-link">➕ Add User</a></li>
+                    <li class="nav-item"><a href="admin_logs.html" class="nav-link">📋 Access Logs</a></li>
+                    <li class="nav-item"><a href="camera.html" class="nav-link">📹 Cameras</a></li>
+                    <li class="nav-item"><a href="admin_profile.html" class="nav-link">👤 My Profile</a></li>
+                    <li class="nav-item"><a href="admin_login.html" class="nav-link" style="margin-top:20px;border-top:1px solid rgba(255,255,255,0.1);padding-top:20px;">🚪 Logout</a></li>
+                </ul>
+            </nav>
+        </aside>
+        <main class="main-content">
+            <div class="page-header">
+                <h1>User Management</h1>
+                <p>Manage all residents, security officers, and staff accounts</p>
+            </div>
+            
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <h3>Total Users</h3>
+                    <div class="stat-value" id="totalUsers">156</div>
+                </div>
+                <div class="stat-card">
+                    <h3>Active Residents</h3>
+                    <div class="stat-value" id="activeResidents">142</div>
+                </div>
+                <div class="stat-card">
+                    <h3>Security Officers</h3>
+                    <div class="stat-value" id="securityCount">8</div>
+                </div>
+                <div class="stat-card">
+                    <h3>Pending Approvals</h3>
+                    <div class="stat-value" id="pendingCount">3</div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-header">
+                    <h2>👥 All Users</h2>
+                    <div style="display:flex;gap:10px;">
+                        <input type="text" id="searchInput" placeholder="Search users..." style="padding:8px 12px;border:1px solid #e5e7eb;border-radius:6px;width:250px;">
+                        <select id="filterRole" style="padding:8px 12px;border:1px solid #e5e7eb;border-radius:6px;">
                             <option value="">All Roles</option>
-                            <option value="ADMIN" {% if role_filter == 'ADMIN' %}selected{% endif %}>Admin</option>
-                            <option value="USER" {% if role_filter == 'USER' %}selected{% endif %}>User</option>
-                            <option value="SECURITY" {% if role_filter == 'SECURITY' %}selected{% endif %}>Security</option>
-                            <option value="GUEST" {% if role_filter == 'GUEST' %}selected{% endif %}>Guest</option>
-                            <option value="TEMP_WORKER" {% if role_filter == 'TEMP_WORKER' %}selected{% endif %}>Temp Worker</option>
+                            <option value="resident">Residents</option>
+                            <option value="security">Security</option>
+                            <option value="staff">Staff</option>
+                            <option value="admin">Admin</option>
                         </select>
-                        <select name="status" onchange="this.form.submit()">
-                            <option value="">All Status</option>
-                            <option value="active" {% if status_filter == 'active' %}selected{% endif %}>Active</option>
-                            <option value="inactive" {% if status_filter == 'inactive' %}selected{% endif %}>Inactive</option>
-                        </select>
-                        <button type="submit" class="btn btn-secondary btn-sm">Search</button>
-                        {% if search_query or role_filter or status_filter %}
-                        <a href="/admin/users" class="btn btn-sm" style="background:#e2e8f0;color:#334155;">Clear</a>
-                        {% endif %}
-                    </form>
+                        <a href="admin_add_user.html" class="btn btn-primary btn-sm">➕ Add User</a>
+                    </div>
                 </div>
-                <div class="header-actions">
-                    <a href="/admin/users/add" class="btn btn-primary">+ Add User</a>
+                <div class="card-body">
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Name</th>
+                                    <th>Email</th>
+                                    <th>Role</th>
+                                    <th>Unit</th>
+                                    <th>Status</th>
+                                    <th>Registered</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="userTableBody">
+                                <tr>
+                                    <td>001</td>
+                                    <td>John Tan</td>
+                                    <td><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="a1cbcec9cf8fd5c0cfe1c4ccc0c8cd8fc2cecc">[email&#160;protected]</a></td>
+                                    <td><span class="badge badge-info">Resident</span></td>
+                                    <td>12-05</td>
+                                    <td><span class="badge badge-success">Active</span></td>
+                                    <td>2024-01-15</td>
+                                    <td>
+                                        <div class="actions">
+                                            <button class="btn btn-sm btn-secondary" onclick="editUser(1)">Edit</button>
+                                            <button class="btn btn-sm btn-danger" onclick="deleteUser(1)">Delete</button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>002</td>
+                                    <td>David Wong</td>
+                                    <td><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="9cf8fdeaf5f8b2ebf3f2fbdceff9ffe9eef5e8e5b2fff3f1">[email&#160;protected]</a></td>
+                                    <td><span class="badge badge-warning">Security</span></td>
+                                    <td>-</td>
+                                    <td><span class="badge badge-success">Active</span></td>
+                                    <td>2024-02-01</td>
+                                    <td>
+                                        <div class="actions">
+                                            <button class="btn btn-sm btn-secondary" onclick="editUser(2)">Edit</button>
+                                            <button class="btn btn-sm btn-danger" onclick="deleteUser(2)">Delete</button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>003</td>
+                                    <td>Mary Lee</td>
+                                    <td><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="e28f83909bcc8e8787a2878f838b8ecc818d8f">[email&#160;protected]</a></td>
+                                    <td><span class="badge badge-info">Resident</span></td>
+                                    <td>08-03</td>
+                                    <td><span class="badge badge-success">Active</span></td>
+                                    <td>2024-03-10</td>
+                                    <td>
+                                        <div class="actions">
+                                            <button class="btn btn-sm btn-secondary" onclick="editUser(3)">Edit</button>
+                                            <button class="btn btn-sm btn-danger" onclick="deleteUser(3)">Delete</button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>004</td>
+                                    <td>Sarah Kim</td>
+                                    <td><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="7003110211185e1b191d30151d11191c5e131f1d">[email&#160;protected]</a></td>
+                                    <td><span class="badge badge-info">Resident</span></td>
+                                    <td>15-12</td>
+                                    <td><span class="badge badge-warning">Pending</span></td>
+                                    <td>2024-12-05</td>
+                                    <td>
+                                        <div class="actions">
+                                            <button class="btn btn-sm btn-success" onclick="approveUser(4)">Approve</button>
+                                            <button class="btn btn-sm btn-danger" onclick="deleteUser(4)">Reject</button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>005</td>
+                                    <td>Michael Chen</td>
+                                    <td><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="74191d171c1511185a171c111a3407001512125a171b19">[email&#160;protected]</a></td>
+                                    <td><span class="badge" style="background:#dbeafe;color:#1e40af;">Staff</span></td>
+                                    <td>-</td>
+                                    <td><span class="badge badge-success">Active</span></td>
+                                    <td>2024-01-20</td>
+                                    <td>
+                                        <div class="actions">
+                                            <button class="btn btn-sm btn-secondary" onclick="editUser(5)">Edit</button>
+                                            <button class="btn btn-sm btn-danger" onclick="deleteUser(5)">Delete</button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div style="margin-top:20px;display:flex;justify-content:space-between;align-items:center;">
+                        <div style="color:#6b7280;">Showing 5 of 156 users</div>
+                        <div style="display:flex;gap:5px;">
+                            <button class="btn btn-sm btn-secondary">Previous</button>
+                            <button class="btn btn-sm btn-primary">1</button>
+                            <button class="btn btn-sm btn-secondary">2</button>
+                            <button class="btn btn-sm btn-secondary">3</button>
+                            <button class="btn btn-sm btn-secondary">Next</button>
+                        </div>
+                    </div>
                 </div>
             </div>
-            
-            <div class="bulk-actions" id="bulkActions">
-                <span id="selectedCount">0 selected</span>
-                <button class="btn btn-danger btn-sm" onclick="bulkDelete()">Delete Selected</button>
-                <button class="btn btn-sm" style="background:#e2e8f0;color:#334155;" onclick="clearSelection()">Cancel</button>
-            </div>
-            
-            <div class="card-body">
-                <table>
-                    <thead>
-                        <tr>
-                            <th class="checkbox-cell">
-                                <input type="checkbox" id="selectAll" onchange="toggleSelectAll()">
-                            </th>
-                            <th>ID</th>
-                            <th>Username</th>
-                            <th>Full Name</th>
-                            <th>Email</th>
-                            <th>Role</th>
-                            <th>Access Level</th>
-                            <th>Status</th>
-                            <th>Face</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for user in users %}
-                        <tr>
-                            <td class="checkbox-cell">
-                                <input type="checkbox" class="user-checkbox" value="{{ user.id }}" onchange="updateBulkActions()">
-                            </td>
-                            <td>{{ user.id }}</td>
-                            <td><strong>{{ user.username }}</strong></td>
-                            <td>{{ user.full_name }}</td>
-                            <td>{{ user.email }}</td>
-                            <td>
-                                <span class="badge {% if user.role == 'ADMIN' %}badge-danger{% elif user.role == 'SECURITY' %}badge-warning{% elif user.role == 'TEMP_WORKER' %}badge-purple{% else %}badge-info{% endif %}">
-                                    {{ user.role }}
-                                </span>
-                            </td>
-                            <td>{{ user.access_level or 'standard' }}</td>
-                            <td>
-                                <span class="badge {{ 'badge-success' if user.status == 'active' else 'badge-danger' }}">
-                                    {{ user.status }}
-                                </span>
-                            </td>
-                            <td>{{ 'Yes' if user.face_encoding_path else 'No' }}</td>
-                            <td>
-                                <a href="/admin/users/{{ user.id }}/edit" class="btn btn-sm btn-primary">Edit</a>
-                                {% if user.status == 'active' %}
-                                <button class="btn btn-sm btn-warning" onclick="deactivateUser({{ user.id }})">Deactivate</button>
-                                {% else %}
-                                <button class="btn btn-sm btn-success" onclick="activateUser({{ user.id }})">Activate</button>
-                                {% endif %}
-                                <button class="btn btn-sm btn-danger" onclick="deleteUser({{ user.id }})">Delete</button>
-                            </td>
-                        </tr>
-                        {% else %}
-                        <tr>
-                            <td colspan="10" class="empty">No users found</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        </div>
+            <div id="message" class="message"></div>
+        </main>
     </div>
-    
-    <script>
-        function toggleSelectAll() {
-            const selectAll = document.getElementById('selectAll');
-            const checkboxes = document.querySelectorAll('.user-checkbox');
-            checkboxes.forEach(cb => cb.checked = selectAll.checked);
-            updateBulkActions();
+    <script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+        function editUser(id) {
+            window.location.href = 'admin_edit_user.html?id=' + id;
         }
         
-        function updateBulkActions() {
-            const checkboxes = document.querySelectorAll('.user-checkbox:checked');
-            const bulkActions = document.getElementById('bulkActions');
-            const selectedCount = document.getElementById('selectedCount');
-            
-            if (checkboxes.length > 0) {
-                bulkActions.classList.add('show');
-                selectedCount.textContent = checkboxes.length + ' selected';
-            } else {
-                bulkActions.classList.remove('show');
+        function deleteUser(id) {
+            if (confirm('Are you sure you want to delete this user?')) {
+                showMessage('User deleted successfully', 'success');
+                // TODO: Call API to delete user
             }
         }
         
-        function clearSelection() {
-            document.getElementById('selectAll').checked = false;
-            document.querySelectorAll('.user-checkbox').forEach(cb => cb.checked = false);
-            updateBulkActions();
-        }
-        
-        async function bulkDelete() {
-            const checkboxes = document.querySelectorAll('.user-checkbox:checked');
-            const userIds = Array.from(checkboxes).map(cb => parseInt(cb.value));
-            
-            if (userIds.length === 0) return;
-            
-            if (!confirm('Delete ' + userIds.length + ' users? This action cannot be undone.')) return;
-            
-            try {
-                const response = await fetch('/admin/users/bulk-delete', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ user_ids: userIds })
-                });
-                
-                const data = await response.json();
-                
-                if (data.success) {
-                    location.reload();
-                } else {
-                    alert(data.message || 'Delete failed');
-                }
-            } catch (err) {
-                alert('Network error');
-            }
-        }
-        
-        async function deleteUser(id) {
-            if (!confirm('Delete this user?')) return;
-            
-            const response = await fetch('/admin/users/' + id + '/delete', { method: 'POST' });
-            const data = await response.json();
-            
-            if (data.success) {
-                location.reload();
-            } else {
-                alert(data.message || 'Delete failed');
-            }
-        }
-        
-        async function deactivateUser(id) {
-            if (!confirm('Deactivate this user? They will not be able to access the system.')) return;
-            
-            const response = await fetch('/admin/users/' + id + '/deactivate', { method: 'POST' });
-            const data = await response.json();
-            
-            if (data.success) {
-                location.reload();
-            } else {
-                alert(data.message || 'Deactivation failed');
-            }
-        }
-        
-        async function activateUser(id) {
-            const response = await fetch('/admin/users/' + id + '/activate', { method: 'POST' });
-            const data = await response.json();
-            
-            if (data.success) {
-                location.reload();
-            } else {
-                alert(data.message || 'Activation failed');
-            }
-        }
-    </script>
-</body>
-</html>
+        function approveUser(id) {
+            if (confirm('Approve this user registration?')) {
+                showMessage('User approved successfully', 'success');
+                // TODO:

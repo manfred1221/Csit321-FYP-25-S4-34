@@ -3,224 +3,233 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Access Logs</title>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { 
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
-            background: #f1f5f9; 
-        }
-        .navbar {
-            background: #1e293b;
-            color: #fff;
-            padding: 18px 30px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .navbar h1 { font-size: 20px; }
-        .navbar-links a { 
-            color: #fff; 
-            text-decoration: none; 
-            margin-left: 25px; 
-            padding: 10px 18px; 
-            border-radius: 6px;
-            font-weight: 500;
-        }
-        .navbar-links a:hover { background: rgba(255,255,255,0.15); }
-        .navbar-links a.active { background: rgba(255,255,255,0.2); }
-        
-        .container { max-width: 1400px; margin: 0 auto; padding: 30px; }
-        
-        .card { 
-            background: #fff; 
-            border-radius: 8px; 
-            overflow: hidden;
-        }
-        .card-header { 
-            padding: 20px 25px; 
-            border-bottom: 1px solid #e2e8f0; 
-        }
-        .card-header h2 { font-size: 18px; color: #1e293b; margin-bottom: 15px; }
-        .card-body { padding: 0; overflow-x: auto; }
-        
-        .filters {
-            display: flex;
-            gap: 10px;
-            align-items: center;
-            flex-wrap: wrap;
-        }
-        .filters label {
-            font-size: 13px;
-            color: #64748b;
-            font-weight: 500;
-        }
-        .filters input, .filters select {
-            padding: 10px 14px;
-            border: 2px solid #e2e8f0;
-            border-radius: 6px;
-            font-size: 14px;
-        }
-        .filters input:focus, .filters select:focus {
-            outline: none;
-            border-color: #3b82f6;
-        }
-        
-        .btn { 
-            padding: 10px 18px; 
-            border: none; 
-            border-radius: 6px; 
-            cursor: pointer; 
-            text-decoration: none; 
-            display: inline-block; 
-            font-weight: 500; 
-            font-size: 14px; 
-        }
-        .btn-sm { padding: 7px 14px; font-size: 13px; }
-        .btn-primary { background: #3b82f6; color: #fff; }
-        .btn-primary:hover { background: #2563eb; }
-        
-        table { width: 100%; border-collapse: collapse; }
-        th, td { padding: 14px 16px; text-align: left; border-bottom: 1px solid #e2e8f0; }
-        th { 
-            background: #f8fafc; 
-            font-weight: 600; 
-            color: #64748b; 
-            font-size: 12px; 
-            text-transform: uppercase; 
-        }
-        
-        .badge { 
-            padding: 5px 12px; 
-            border-radius: 4px; 
-            font-size: 12px; 
-            font-weight: 600; 
-        }
-        .badge-success { background: #dcfce7; color: #166534; }
-        .badge-danger { background: #fee2e2; color: #dc2626; }
-        .badge-info { background: #dbeafe; color: #1e40af; }
-        
-        .empty { text-align: center; color: #94a3b8; padding: 50px; }
-        
-        .filter-group {
-            display: flex;
-            flex-direction: column;
-            gap: 5px;
-        }
-    </style>
+    <title>Access Logs - Admin</title>
+    <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
-    <nav class="navbar">
-        <h1>Admin Panel</h1>
-        <div class="navbar-links">
-            <a href="/admin/profile">Profile</a>
-            <a href="/admin/users">Users</a>
-            <a href="/admin/logs" class="active">Logs</a>
-            <a href="/admin/logout">Logout</a>
-        </div>
-    </nav>
-    
-    <div class="container">
-        <div class="card">
-            <div class="card-header">
-                <h2>Access Logs</h2>
-                <form class="filters" method="GET">
-                    <div class="filter-group">
-                        <label>User</label>
-                        <select name="user_id">
-                            <option value="">All Users</option>
-                            {% for u in users_for_filter %}
-                            <option value="{{ u.id }}" {% if user_filter == u.id|string %}selected{% endif %}>
-                                {{ u.full_name }} (@{{ u.username }})
-                            </option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="filter-group">
-                        <label>From Date</label>
-                        <input type="date" name="date_from" value="{{ date_from }}">
-                    </div>
-                    <div class="filter-group">
-                        <label>To Date</label>
-                        <input type="date" name="date_to" value="{{ date_to }}">
-                    </div>
-                    <div class="filter-group">
-                        <label>Status</label>
-                        <select name="status">
-                            <option value="">All Status</option>
-                            <option value="granted" {% if status_filter == 'granted' %}selected{% endif %}>Granted</option>
-                            <option value="denied" {% if status_filter == 'denied' %}selected{% endif %}>Denied</option>
-                        </select>
-                    </div>
-                    <div class="filter-group" style="justify-content: flex-end;">
-                        <label>&nbsp;</label>
-                        <div style="display:flex;gap:10px;">
-                            <button type="submit" class="btn btn-primary btn-sm">Filter</button>
-                            {% if user_filter or date_from or date_to or status_filter %}
-                            <a href="/admin/logs" class="btn btn-sm" style="background:#e2e8f0;color:#334155;">Clear</a>
-                            {% endif %}
+    <div class="dashboard">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h2>👑 Admin Panel</h2>
+                <div class="user-info"><div>Administrator</div><div><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="046560696d6a44676b6a606b2a676b69">[email&#160;protected]</a></div></div>
+            </div>
+            <nav>
+                <ul class="nav-menu">
+                    <li class="nav-item"><a href="admin_users.html" class="nav-link">👥 Manage Users</a></li>
+                    <li class="nav-item"><a href="admin_add_user.html" class="nav-link">➕ Add User</a></li>
+                    <li class="nav-item"><a href="admin_logs.html" class="nav-link active">📋 Access Logs</a></li>
+                    <li class="nav-item"><a href="camera.html" class="nav-link">📹 Cameras</a></li>
+                    <li class="nav-item"><a href="admin_profile.html" class="nav-link">👤 My Profile</a></li>
+                    <li class="nav-item"><a href="admin_login.html" class="nav-link" style="margin-top:20px;border-top:1px solid rgba(255,255,255,0.1);padding-top:20px;">🚪 Logout</a></li>
+                </ul>
+            </nav>
+        </aside>
+        <main class="main-content">
+            <div class="page-header">
+                <h1>Access Logs</h1>
+                <p>View and analyze all access events and security incidents</p>
+            </div>
+            
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <h3>Today's Events</h3>
+                    <div class="stat-value">234</div>
+                </div>
+                <div class="stat-card">
+                    <h3>Successful Access</h3>
+                    <div class="stat-value" style="color:#10b981;">218</div>
+                </div>
+                <div class="stat-card">
+                    <h3>Failed Attempts</h3>
+                    <div class="stat-value" style="color:#ef4444;">16</div>
+                </div>
+                <div class="stat-card">
+                    <h3>Manual Overrides</h3>
+                    <div class="stat-value" style="color:#f59e0b;">8</div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-header">
+                    <h2>🔍 Filter Logs</h2>
+                    <button class="btn btn-sm btn-primary" onclick="exportLogs()">📥 Export CSV</button>
+                </div>
+                <div class="card-body">
+                    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:15px;margin-bottom:20px;">
+                        <div class="form-group">
+                            <label>Date From</label>
+                            <input type="date" id="dateFrom">
+                        </div>
+                        <div class="form-group">
+                            <label>Date To</label>
+                            <input type="date" id="dateTo">
+                        </div>
+                        <div class="form-group">
+                            <label>Access Point</label>
+                            <select id="accessPoint">
+                                <option value="">All Locations</option>
+                                <option>Main Entrance</option>
+                                <option>Parking Lot A</option>
+                                <option>Lobby</option>
+                                <option>Back Entrance</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Result</label>
+                            <select id="result">
+                                <option value="">All Results</option>
+                                <option>Granted</option>
+                                <option>Denied</option>
+                                <option>Manual Override</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>User Type</label>
+                            <select id="userType">
+                                <option value="">All Types</option>
+                                <option>Resident</option>
+                                <option>Visitor</option>
+                                <option>Staff</option>
+                                <option>Unknown</option>
+                            </select>
                         </div>
                     </div>
-                </form>
+                    <button class="btn btn-primary" onclick="applyFilter()">🔍 Apply Filter</button>
+                    <button class="btn btn-secondary" onclick="clearFilter()">Clear</button>
+                </div>
             </div>
-            <div class="card-body">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>Date/Time</th>
-                            <th>User</th>
-                            <th>Role</th>
-                            <th>Type</th>
-                            <th>Access Point</th>
-                            <th>Status</th>
-                            <th>Confidence</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for log in logs %}
-                        <tr>
-                            <td>{{ log.id }}</td>
-                            <td>{{ log.created_at.strftime('%Y-%m-%d %H:%M:%S') if log.created_at else '-' }}</td>
-                            <td>
-                                {% if log.full_name %}
-                                    <strong>{{ log.full_name }}</strong>
-                                    <br><small style="color:#64748b;">@{{ log.username }}</small>
-                                {% else %}
-                                    <em style="color:#94a3b8;">Unknown</em>
-                                {% endif %}
-                            </td>
-                            <td>
-                                {% if log.role %}
-                                    <span class="badge badge-info">{{ log.role }}</span>
-                                {% else %}
-                                    -
-                                {% endif %}
-                            </td>
-                            <td>{{ log.access_type or 'entry' }}</td>
-                            <td>{{ log.access_point or 'Main Gate' }}</td>
-                            <td>
-                                <span class="badge {{ 'badge-success' if log.status == 'granted' else 'badge-danger' }}">
-                                    {{ log.status }}
-                                </span>
-                            </td>
-                            <td>
-                                {% if log.confidence %}
-                                    {{ '%d%%' % (log.confidence * 100) }}
-                                {% else %}
-                                    -
-                                {% endif %}
-                            </td>
-                        </tr>
-                        {% else %}
-                        <tr>
-                            <td colspan="8" class="empty">No access logs found</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+            
+            <div class="card">
+                <div class="card-header"><h2>📋 Access Log History</h2></div>
+                <div class="card-body">
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Log ID</th>
+                                    <th>Timestamp</th>
+                                    <th>Location</th>
+                                    <th>Person</th>
+                                    <th>Type</th>
+                                    <th>Confidence</th>
+                                    <th>Result</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>#10234</td>
+                                    <td>2024-12-08 14:23:15</td>
+                                    <td>Main Entrance</td>
+                                    <td>John Tan</td>
+                                    <td><span class="badge badge-info">Resident</span></td>
+                                    <td>98.5%</td>
+                                    <td><span class="badge badge-success">GRANTED</span></td>
+                                    <td><button class="btn btn-sm btn-secondary" onclick="viewDetail(10234)">View</button></td>
+                                </tr>
+                                <tr>
+                                    <td>#10233</td>
+                                    <td>2024-12-08 14:18:42</td>
+                                    <td>Parking Lot A</td>
+                                    <td>Mary Lee</td>
+                                    <td><span class="badge badge-warning">Visitor</span></td>
+                                    <td>95.2%</td>
+                                    <td><span class="badge badge-success">GRANTED</span></td>
+                                    <td><button class="btn btn-sm btn-secondary" onclick="viewDetail(10233)">View</button></td>
+                                </tr>
+                                <tr>
+                                    <td>#10232</td>
+                                    <td>2024-12-08 14:15:01</td>
+                                    <td>Main Entrance</td>
+                                    <td>Unknown Person</td>
+                                    <td><span class="badge badge-danger">Unknown</span></td>
+                                    <td>42.1%</td>
+                                    <td><span class="badge badge-danger">DENIED</span></td>
+                                    <td><button class="btn btn-sm btn-secondary" onclick="viewDetail(10232)">View</button></td>
+                                </tr>
+                                <tr>
+                                    <td>#10231</td>
+                                    <td>2024-12-08 14:10:33</td>
+                                    <td>Lobby</td>
+                                    <td>David Wong</td>
+                                    <td><span class="badge" style="background:#fef3c7;color:#92400e;">Security</span></td>
+                                    <td>-</td>
+                                    <td><span class="badge" style="background:#dbeafe;color:#1e40af;">OVERRIDE</span></td>
+                                    <td><button class="btn btn-sm btn-secondary" onclick="viewDetail(10231)">View</button></td>
+                                </tr>
+                                <tr>
+                                    <td>#10230</td>
+                                    <td>2024-12-08 14:05:18</td>
+                                    <td>Back Entrance</td>
+                                    <td>Sarah Kim</td>
+                                    <td><span class="badge badge-info">Resident</span></td>
+                                    <td>97.8%</td>
+                                    <td><span class="badge badge-success">GRANTED</span></td>
+                                    <td><button class="btn btn-sm btn-secondary" onclick="viewDetail(10230)">View</button></td>
+                                </tr>
+                                <tr>
+                                    <td>#10229</td>
+                                    <td>2024-12-08 13:58:45</td>
+                                    <td>Main Entrance</td>
+                                    <td>Delivery Person</td>
+                                    <td><span class="badge" style="background:#dbeafe;color:#1e40af;">Staff</span></td>
+                                    <td>88.3%</td>
+                                    <td><span class="badge badge-success">GRANTED</span></td>
+                                    <td><button class="btn btn-sm btn-secondary" onclick="viewDetail(10229)">View</button></td>
+                                </tr>
+                                <tr>
+                                    <td>#10228</td>
+                                    <td>2024-12-08 13:52:12</td>
+                                    <td>Parking Lot A</td>
+                                    <td>Unknown</td>
+                                    <td><span class="badge badge-danger">Unknown</span></td>
+                                    <td>35.7%</td>
+                                    <td><span class="badge badge-danger">DENIED</span></td>
+                                    <td><button class="btn btn-sm btn-secondary" onclick="viewDetail(10228)">View</button></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div style="margin-top:20px;display:flex;justify-content:space-between;align-items:center;">
+                        <div style="color:#6b7280;">Showing 7 of 10,234 logs</div>
+                        <div style="display:flex;gap:5px;">
+                            <button class="btn btn-sm btn-secondary">Previous</button>
+                            <button class="btn btn-sm btn-primary">1</button>
+                            <button class="btn btn-sm btn-secondary">2</button>
+                            <button class="btn btn-sm btn-secondary">3</button>
+                            <button class="btn btn-sm btn-secondary">...</button>
+                            <button class="btn btn-sm btn-secondary">Next</button>
+                        </div>
+                    </div>
+                </div>
             </div>
-        </div>
+            <div id="message" class="message"></div>
+        </main>
     </div>
-</body>
-</html>
+    <script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+        function applyFilter() {
+            showMessage('Filters applied. Refreshing logs...', 'success');
+            // TODO: Implement filter logic
+        }
+        
+        function clearFilter() {
+            document.getElementById('dateFrom').value = '';
+            document.getElementById('dateTo').value = '';
+            document.getElementById('accessPoint').value = '';
+            document.getElementById('result').value = '';
+            document.getElementById('userType').value = '';
+            showMessage('Filters cleared', 'success');
+        }
+        
+        function exportLogs() {
+            showMessage('Exporting logs to CSV...', 'success');
+            // TODO: Implement CSV export
+        }
+        
+        function viewDetail(logId) {
+            showMessage('Viewing details for log #' + logId, 'success');
+            // TODO: Show modal with detailed log information
+        }
+        
+        function showMessage(msg, type) {
+            const el = document.getElementById('message'
