@@ -21,7 +21,7 @@ class StaffEntity:
                 cursor.execute("""
                     SELECT u.user_id, u.username, u.password_hash, r.role_name,
                            s.staff_id, s.full_name, s.position, s.is_active,
-                           s.contact_number, s.registered_at
+                           s.contact_number, s.created_at
                     FROM users u
                     JOIN roles r ON u.role_id = r.role_id
                     LEFT JOIN staff s ON s.user_id = u.user_id
@@ -43,7 +43,7 @@ class StaffEntity:
             with get_db_cursor() as cursor:
                 cursor.execute("""
                     SELECT s.staff_id, s.full_name, s.contact_number, s.position,
-                           s.registered_at, s.is_active, u.username, u.email, u.user_id
+                           s.created_at, s.is_active, u.username, u.email, u.user_id
                     FROM staff s
                     LEFT JOIN users u ON s.user_id = u.user_id
                     WHERE s.staff_id = %s
