@@ -11,7 +11,7 @@
         <aside class="sidebar">
             <div class="sidebar-header">
                 <h2>👑 Admin Panel</h2>
-                <div class="user-info"><div>Administrator</div><div><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="38595c555156785b57565c57165b5755">[email&#160;protected]</a></div></div>
+                <div class="user-info"><div>Administrator</div><div><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="95f4f1f8fcfbd5f6fafbf1fabbf6faf8">[email&#160;protected]</a></div></div>
             </div>
             <nav>
                 <ul class="nav-menu">
@@ -40,7 +40,7 @@
                         </div>
                         <div>
                             <div style="font-weight:500;color:#6b7280;margin-bottom:5px;">Email</div>
-                            <div style="font-size:16px;"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="09686d646067496a66676d66276a6664">[email&#160;protected]</a></div>
+                            <div style="font-size:16px;"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="d6b7b2bbbfb896b5b9b8b2b9f8b5b9bb">[email&#160;protected]</a></div>
                         </div>
                         <div>
                             <div style="font-weight:500;color:#6b7280;margin-bottom:5px;">Username</div>
@@ -140,12 +140,7 @@
             e.preventDefault();
             showMessage('profileMessage', 'Profile updated successfully!', 'success');
         });
-        
-        document.getElementById('passwordForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-            const current = document.getElementById('currentPassword').value;
-            const newPwd = document.getElementById('newPassword').value;
-            const confirm = document.getElementById('confirmPassword').value;
+ word').value;
             
             if (!current || !newPwd || !confirm) {
                 showMessage('passwordMessage', 'All fields are required', 'error');
@@ -161,4 +156,16 @@
             }
             
             showMessage('passwordMessage', 'Password changed successfully!', 'success');
-            document.getElementById('passwordForm').reset()
+            document.getElementById('passwordForm').reset();
+        });
+        
+        function showMessage(id, msg, type) {
+            const el = document.getElementById(id);
+            el.textContent = msg;
+            el.className = 'message ' + type;
+            el.style.display = 'block';
+            setTimeout(() => el.style.display = 'none', 3000);
+        }
+    </script>
+</body>
+</html>

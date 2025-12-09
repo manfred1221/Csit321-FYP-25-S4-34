@@ -13,7 +13,7 @@
                 <h2>👑 Admin Panel</h2>
                 <div class="user-info">
                     <div>Administrator</div>
-                    <div><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="3051545d595e70535f5e545f1e535f5d">[email&#160;protected]</a></div>
+                    <div><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="f293969f9b9cb2919d9c969ddc919d9f">[email&#160;protected]</a></div>
                 </div>
             </div>
             <nav>
@@ -86,7 +86,7 @@
                                 <tr>
                                     <td>001</td>
                                     <td>John Tan</td>
-                                    <td><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="a1cbcec9cf8fd5c0cfe1c4ccc0c8cd8fc2cecc">[email&#160;protected]</a></td>
+                                    <td><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="244e4b4c4a0a50454a644149454d480a474b49">[email&#160;protected]</a></td>
                                     <td><span class="badge badge-info">Resident</span></td>
                                     <td>12-05</td>
                                     <td><span class="badge badge-success">Active</span></td>
@@ -101,7 +101,7 @@
                                 <tr>
                                     <td>002</td>
                                     <td>David Wong</td>
-                                    <td><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="9cf8fdeaf5f8b2ebf3f2fbdceff9ffe9eef5e8e5b2fff3f1">[email&#160;protected]</a></td>
+                                    <td><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="026663746b662c756d6c654271676177706b767b2c616d6f">[email&#160;protected]</a></td>
                                     <td><span class="badge badge-warning">Security</span></td>
                                     <td>-</td>
                                     <td><span class="badge badge-success">Active</span></td>
@@ -116,7 +116,7 @@
                                 <tr>
                                     <td>003</td>
                                     <td>Mary Lee</td>
-                                    <td><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="e28f83909bcc8e8787a2878f838b8ecc818d8f">[email&#160;protected]</a></td>
+                                    <td><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="670a06151e490b020227020a060e0b4904080a">[email&#160;protected]</a></td>
                                     <td><span class="badge badge-info">Resident</span></td>
                                     <td>08-03</td>
                                     <td><span class="badge badge-success">Active</span></td>
@@ -131,22 +131,13 @@
                                 <tr>
                                     <td>004</td>
                                     <td>Sarah Kim</td>
-                                    <td><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="7003110211185e1b191d30151d11191c5e131f1d">[email&#160;protected]</a></td>
+                                    <td><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="e3908291828bcd888a8ea3868e828a8fcd808c8e">[email&#160;protected]</a></td>
                                     <td><span class="badge badge-info">Resident</span></td>
                                     <td>15-12</td>
                                     <td><span class="badge badge-warning">Pending</span></td>
                                     <td>2024-12-05</td>
-                                    <td>
-                                        <div class="actions">
-                                            <button class="btn btn-sm btn-success" onclick="approveUser(4)">Approve</button>
-                                            <button class="btn btn-sm btn-danger" onclick="deleteUser(4)">Reject</button>
-                                        </div>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>005</td>
-                                    <td>Michael Chen</td>
-                                    <td><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="74191d171c1511185a171c111a3407001512125a171b19">[email&#160;protected]</a></td>
+       </td>
+                                    <td>michael.chen@staff.com</td>
                                     <td><span class="badge" style="background:#dbeafe;color:#1e40af;">Staff</span></td>
                                     <td>-</td>
                                     <td><span class="badge badge-success">Active</span></td>
@@ -176,7 +167,7 @@
             <div id="message" class="message"></div>
         </main>
     </div>
-    <script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+    <script>
         function editUser(id) {
             window.location.href = 'admin_edit_user.html?id=' + id;
         }
@@ -191,4 +182,29 @@
         function approveUser(id) {
             if (confirm('Approve this user registration?')) {
                 showMessage('User approved successfully', 'success');
-                // TODO:
+                // TODO: Call API to approve user
+            }
+        }
+        
+        function showMessage(msg, type) {
+            const el = document.getElementById('message');
+            el.textContent = msg;
+            el.className = 'message ' + type;
+            el.style.display = 'block';
+            setTimeout(() => el.style.display = 'none', 3000);
+        }
+        
+        // Search functionality
+        document.getElementById('searchInput').addEventListener('input', function(e) {
+            const searchTerm = e.target.value.toLowerCase();
+            // TODO: Implement search
+        });
+        
+        // Filter functionality
+        document.getElementById('filterRole').addEventListener('change', function(e) {
+            const role = e.target.value;
+            // TODO: Implement filter
+        });
+    </script>
+</body>
+</html>

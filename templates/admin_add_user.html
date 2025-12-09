@@ -11,7 +11,7 @@
         <aside class="sidebar">
             <div class="sidebar-header">
                 <h2>👑 Admin Panel</h2>
-                <div class="user-info"><div>Administrator</div><div><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="e687828b8f88a68589888289c885898b">[email&#160;protected]</a></div></div>
+                <div class="user-info"><div>Administrator</div><div><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="6b0a0f0602052b0804050f0445080406">[email&#160;protected]</a></div></div>
             </div>
             <nav>
                 <ul class="nav-menu">
@@ -133,8 +133,7 @@
                         </div>
                         
                         <div style="display:flex;gap:10px;margin-top:30px;">
-                            <button type="submit" class="btn btn-primary" style="flex:1;">➕ Create User</button>
-                            <a href="admin_users.html" class="btn btn-secondary" style="flex:1;text-align:center;">Cancel</a>
+                            <button type=sers.html" class="btn btn-secondary" style="flex:1;text-align:center;">Cancel</a>
                         </div>
                     </form>
                     <div id="message" class="message"></div>
@@ -142,7 +141,7 @@
             </div>
         </main>
     </div>
-    <script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+    <script>
         function toggleFields() {
             const role = document.getElementById('role').value;
             document.getElementById('residentFields').style.display = role === 'resident' ? 'block' : 'none';
@@ -177,4 +176,12 @@
         });
         
         function showMessage(msg, type) {
-            const el = document.getElementById('message'
+            const el = document.getElementById('message');
+            el.textContent = msg;
+            el.className = 'message ' + type;
+            el.style.display = 'block';
+            setTimeout(() => el.style.display = 'none', 3000);
+        }
+    </script>
+</body>
+</html>

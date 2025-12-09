@@ -11,7 +11,7 @@
         <aside class="sidebar">
             <div class="sidebar-header">
                 <h2>👑 Admin Panel</h2>
-                <div class="user-info"><div>Administrator</div><div><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="046560696d6a44676b6a606b2a676b69">[email&#160;protected]</a></div></div>
+                <div class="user-info"><div>Administrator</div><div><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="fd9c99909493bd9e92939992d39e9290">[email&#160;protected]</a></div></div>
             </div>
             <nav>
                 <ul class="nav-menu">
@@ -151,8 +151,7 @@
                                     <td>#10231</td>
                                     <td>2024-12-08 14:10:33</td>
                                     <td>Lobby</td>
-                                    <td>David Wong</td>
-                                    <td><span class="badge" style="background:#fef3c7;color:#92400e;">Security</span></td>
+                            r:#92400e;">Security</span></td>
                                     <td>-</td>
                                     <td><span class="badge" style="background:#dbeafe;color:#1e40af;">OVERRIDE</span></td>
                                     <td><button class="btn btn-sm btn-secondary" onclick="viewDetail(10231)">View</button></td>
@@ -206,7 +205,7 @@
             <div id="message" class="message"></div>
         </main>
     </div>
-    <script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+    <script>
         function applyFilter() {
             showMessage('Filters applied. Refreshing logs...', 'success');
             // TODO: Implement filter logic
@@ -232,4 +231,12 @@
         }
         
         function showMessage(msg, type) {
-            const el = document.getElementById('message'
+            const el = document.getElementById('message');
+            el.textContent = msg;
+            el.className = 'message ' + type;
+            el.style.display = 'block';
+            setTimeout(() => el.style.display = 'none', 3000);
+        }
+    </script>
+</body>
+</html>

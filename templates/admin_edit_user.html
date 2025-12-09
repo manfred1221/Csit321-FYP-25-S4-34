@@ -11,14 +11,14 @@
         <aside class="sidebar">
             <div class="sidebar-header">
                 <h2>👑 Admin Panel</h2>
-                <div class="user-info"><div>Administrator</div><div><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="4d2c292024230d2e22232922632e2220">[email&#160;protected]</a></div></div>
+                <div class="user-info"><div>Administrator</div><div>admin@condo.com</div></div>
             </div>
             <nav>
                 <ul class="nav-menu">
                     <li class="nav-item"><a href="admin_users.html" class="nav-link active">👥 Manage Users</a></li>
                     <li class="nav-item"><a href="admin_add_user.html" class="nav-link">➕ Add User</a></li>
                     <li class="nav-item"><a href="admin_logs.html" class="nav-link">📋 Access Logs</a></li>
-                    <li class="nav-item"><a href="camera.html" class="nav-link">📹 Cameras</a></li>
+                    <li class="nav-item"><a href="camera.html" class="nav-link">📸 Face Registration</a></li>
                     <li class="nav-item"><a href="admin_profile.html" class="nav-link">👤 My Profile</a></li>
                     <li class="nav-item"><a href="admin_login.html" class="nav-link" style="margin-top:20px;border-top:1px solid rgba(255,255,255,0.1);padding-top:20px;">🚪 Logout</a></li>
                 </ul>
@@ -126,7 +126,7 @@
             </div>
         </main>
     </div>
-    <script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+    <script>
         document.getElementById('editUserForm').addEventListener('submit', function(e) {
             e.preventDefault();
             
@@ -155,4 +155,14 @@
         }
         
         function showMessage(msg, type) {
-            const el = document.getElementById('message'
+            const el = document.getElementById('message');
+            el.textContent = msg;
+            el.className = 'message ' + type;
+            el.style.display = 'block';
+            setTimeout(() => {
+                el.style.display = 'none';
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
