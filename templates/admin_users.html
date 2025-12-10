@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Management</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f1f5f9;
+        }
+
+        .navbar {
+            background: #1e293b;
+            color: #fff;
+            padding: 18px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .navbar h1 {
+            font-size: 20px;
+        }
+
+        .navbar-links a {
+            color: #fff;
+            text-decoration: none;
+            margin-left: 25px;
+            padding: 10px 18px;
+            border-radius: 6px;
+            font-weight: 500;
+        }
+
+        .navbar-links a:hover {
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .navbar-links a.active {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 30px;
+        }
+
+        .card {
+            background: #fff;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .card-header {
+            padding: 20px 25px;
+            border-bottom: 1px solid #e2e8f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .card-header h2 {
+            font-size: 18px;
+            color: #1e293b;
+        }
+
+        .card-body {
+            padding: 0;
+            overflow-x: auto;
+        }
+
+        .filters {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .filters input,
+        .filters select {
+            padding: 10px 14px;
+            border: 2px solid #e2e8f0;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        .filters input:focus,
+        .filters select:focus {
+            outline: none;
+            border-color: #3b82f6;
+        }
+
+        .filters input {
+            width: 200px;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th,
+        td {
+            padding: 14px 16px;
+            text-align: left;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        th {
+            background: #f8fafc;
+            font-weight: 600;
+            color: #64748b;
+            font-size: 12px;
+            text-transform: uppercase;
+        }
+
+        .badge {
+            padding: 5px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .badge-success {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .badge-danger {
+            background: #fee2e2;
+            color: #dc2626;
+        }
+
+        .badge-info {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        .badge-warning {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .badge-purple {
+            background: #f3e8ff;
+            color: #7c3aed;
+        }
+
+        .badge-gray {
+            background: #f1f5f9;
+            color: #64748b;
+        }
+
+        .btn {
+            padding: 10px 18px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            font-weight: 500;
+            font-size: 14px;
+        }
+
+        .btn-sm {
+            padding: 7px 14px;
+            font-size: 13px;
+        }
+
+        .btn-primary {
+            background: #3b82f6;
+            color: #fff;
+        }
+
+        .btn-danger {
+            background: #ef4444;
+            color: #fff;
+        }
+
+        .btn-success {
+            background: #10b981;
+            color: #fff;
+        }
+
+        .btn-warning {
+            background: #f59e0b;
+            color: #fff;
+        }
+
+        .btn-secondary {
+            background: #64748b;
+            color: #fff;
+        }
+
+        .btn-primary:hover {
+            background: #2563eb;
+        }
+
+        .btn-danger:hover {
+            background: #dc2626;
+        }
+
+        .btn-success:hover {
+            background: #059669;
+        }
+
+        .checkbox-cell {
+            width: 40px;
+        }
+
+        .checkbox-cell input {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+
+        .bulk-actions {
+            display: none;
+            padding: 15px 25px;
+            background: #fef3c7;
+            border-bottom: 1px solid #e2e8f0;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .bulk-actions.show {
+            display: flex;
+        }
+
+        .bulk-actions span {
+            font-weight: 600;
+            color: #92400e;
+        }
+
+        .empty {
+            text-align: center;
+            color: #94a3b8;
+            padding: 50px;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 5px;
+            flex-wrap: wrap;
+        }
+
+        .user-info {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .user-info small {
+            color: #64748b;
+            font-size: 12px;
+        }
+
+        .access-badge {
+            font-size: 11px;
+            padding: 3px 8px;
+        }
+    </style>
+</head>
+
+<body>
+    <nav class="navbar">
+        <h1>Admin Panel</h1>
+        <div class="navbar-links">
+            <a href="/admin/profile">Profile</a>
+            <a href="/admin/users" class="active">Users</a>
+            <a href="/admin/temp-workers">Temp Workers</a>
+            <a href="/admin/logs">Logs</a>
+            <a href="/admin/logout">Logout</a>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="card">
+            <div class="card-header">
+                <h2>User Management</h2>
+                <div class="filters">
+                    <form id="filterForm" method="GET" style="display: flex; gap: 10px; align-items: center;">
+                        <input type="text" name="search" placeholder="Search users..." value="{{ search_query }}">
+                        <select name="role" onchange="this.form.submit()">
+                            <option value="">All Roles</option>
+                            <option value="Admin" {% if role_filter=='Admin' %}selected{% endif %}>Admin</option>
+                            <option value="Resident" {% if role_filter=='Resident' %}selected{% endif %}>Resident
+                            </option>
+                            <option value="Security" {% if role_filter=='Security' %}selected{% endif %}>Security
+                            </option>
+                            <option value="Guest" {% if role_filter=='Guest' %}selected{% endif %}>Guest</option>
+                            <option value="TEMP_WORKER" {% if role_filter=='TEMP_WORKER' %}selected{% endif %}>Temp
+                                Worker</option>
+                        </select>
+                        <select name="status" onchange="this.form.submit()">
+                            <option value="">All Status</option>
+                            <option value="active" {% if status_filter=='active' %}selected{% endif %}>Active</option>
+                            <option value="inactive" {% if status_filter=='inactive' %}selected{% endif %}>Inactive
+                            </option>
+                        </select>
+                        <button type="submit" class="btn btn-secondary btn-sm">Search</button>
+                        {% if search_query or role_filter or status_filter %}
+                        <a href="/admin/users" class="btn btn-sm" style="background:#e2e8f0;color:#334155;">Clear</a>
+                        {% endif %}
+                    </form>
+                </div>
+                <div class="header-actions">
+                    <a href="/admin/users/add" class="btn btn-primary">+ Add User</a>
+                </div>
+            </div>
+
+            <div class="bulk-actions" id="bulkActions">
+                <span id="selectedCount">0 selected</span>
+                <button class="btn btn-danger btn-sm" onclick="bulkDelete()">Delete Selected</button>
+                <button class="btn btn-sm" style="background:#e2e8f0;color:#334155;"
+                    onclick="clearSelection()">Cancel</button>
+            </div>
+
+            <div class="card-body">
+                <table>
+                    <thead>
+                        <tr>
+                            <th class="checkbox-cell">
+                                <input type="checkbox" id="selectAll" onchange="toggleSelectAll()">
+                            </th>
+                            <th>ID</th>
+                            <th>User</th>
+                            <th>Contact</th>
+                            <th>Role</th>
+                            <th>Access Level</th>
+                            <th>Status</th>
+                            <th>Face</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for user in users %}
+                        <tr>
+                            <td class="checkbox-cell">
+                                <input type="checkbox" class="user-checkbox" value="{{ user.id }}"
+                                    onchange="updateBulkActions()">
+                            </td>
+                            <td>{{ user.id }}</td>
+                            <td>
+                                <div class="user-info">
+                                    <strong>{{ user.full_name or user.username }}</strong>
+                                    <small>@{{ user.username }}</small>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="user-info">
+                                    <span>{{ user.email }}</span>
+                                    <small>{{ user.phone or '-' }}</small>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="badge 
+                                    {% if user.role == 'Admin' %}badge-danger
+                                    {% elif user.role == 'Security' %}badge-warning
+                                    {% elif user.role == 'TEMP_WORKER' %}badge-purple
+                                    {% elif user.role == 'Guest' %}badge-gray
+                                    {% else %}badge-info{% endif %}">
+                                    {{ user.role }}
+                                </span>
+                            </td>
+                            <td>
+                                <span class="badge access-badge 
+                                    {% if user.access_level == 'vip' %}badge-purple
+                                    {% elif user.access_level == 'level_3' %}badge-warning
+                                    {% elif user.access_level == 'level_2' %}badge-info
+                                    {% elif user.access_level == 'level_1' %}badge-success
+                                    {% else %}badge-gray{% endif %}">
+                                    {{ user.access_level or 'standard' }}
+                                </span>
+                            </td>
+                            <td>
+                                <span
+                                    class="badge {{ 'badge-success' if user.status == 'active' else 'badge-danger' }}">
+                                    {{ user.status or 'active' }}
+                                </span>
+                            </td>
+                            <td>
+                                {% if user.face_encoding_path %}
+                                <span class="badge badge-success">Yes</span>
+                                {% else %}
+                                <span class="badge badge-gray">No</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="action-buttons">
+                                    <a href="/admin/users/{{ user.id }}/edit" class="btn btn-sm btn-primary">Edit</a>
+                                    {% if user.status == 'active' %}
+                                    <button class="btn btn-sm btn-warning"
+                                        onclick="deactivateUser({{ user.id }})">Deactivate</button>
+                                    {% else %}
+                                    <button class="btn btn-sm btn-success"
+                                        onclick="activateUser({{ user.id }})">Activate</button>
+                                    {% endif %}
+                                    <button class="btn btn-sm btn-danger"
+                                        onclick="deleteUser({{ user.id }})">Delete</button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="9" class="empty">No users found</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <div id="message" class="message"></div>
+        </main>
+    </div>
+
+    <script>
+        function editUser(id) {
+            window.location.href = 'admin_edit_user.html?id=' + id;
+        }
+
+        function updateBulkActions() {
+            const checkboxes = document.querySelectorAll('.user-checkbox:checked');
+            const bulkActions = document.getElementById('bulkActions');
+            const selectedCount = document.getElementById('selectedCount');
+
+            if (checkboxes.length > 0) {
+                bulkActions.classList.add('show');
+                selectedCount.textContent = checkboxes.length + ' selected';
+            } else {
+                bulkActions.classList.remove('show');
+            }
+        }
+
+        function clearSelection() {
+            document.getElementById('selectAll').checked = false;
+            document.querySelectorAll('.user-checkbox').forEach(cb => cb.checked = false);
+            updateBulkActions();
+        }
+
+        async function bulkDelete() {
+            const checkboxes = document.querySelectorAll('.user-checkbox:checked');
+            const userIds = Array.from(checkboxes).map(cb => parseInt(cb.value));
+
+            if (userIds.length === 0) return;
+
+            if (!confirm('Delete ' + userIds.length + ' users? This action cannot be undone.')) return;
+
+            try {
+                const response = await fetch('/admin/users/bulk-delete', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ user_ids: userIds })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    location.reload();
+                } else {
+                    alert(data.message || 'Delete failed');
+                }
+            } catch (err) {
+                alert('Network error');
+            }
+        }
+
+        async function deleteUser(id) {
+            if (!confirm('Delete this user? This action cannot be undone.')) return;
+
+            const response = await fetch('/admin/users/' + id + '/delete', { method: 'POST' });
+            const data = await response.json();
+
+            if (data.success) {
+                location.reload();
+            } else {
+                alert(data.message || 'Delete failed');
+            }
+        }
+
+        async function deactivateUser(id) {
+            if (!confirm('Deactivate this user? They will not be able to access the system until reactivated.')) return;
+
+            const response = await fetch('/admin/users/' + id + '/deactivate', { method: 'POST' });
+            const data = await response.json();
+
+            if (data.success) {
+                location.reload();
+            } else {
+                alert(data.message || 'Deactivation failed');
+            }
+        }
+
+        async function activateUser(id) {
+            const response = await fetch('/admin/users/' + id + '/activate', { method: 'POST' });
+            const data = await response.json();
+
+            if (data.success) {
+                location.reload();
+            } else {
+                alert(data.message || 'Activation failed');
+            }
+        }
+    </script>
+</body>
+
+</html>

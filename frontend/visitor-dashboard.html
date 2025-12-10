@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visitor Dashboard - Condo Access</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <div class="login-container" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+        <div style="max-width: 800px; width: 100%; background: white; border-radius: 12px; padding: 40px; box-shadow: var(--shadow-lg);">
+            <!-- Header -->
+            <div style="text-align: center; margin-bottom: 30px;">
+                <h1 style="font-size: 32px; color: var(--primary-color); margin-bottom: 10px;">🏢 Visitor Access</h1>
+                <p style="color: var(--text-secondary);">Welcome! Here are your visit details</p>
+                <button onclick="logout()" class="btn btn-sm btn-secondary" style="margin-top: 10px;">Logout</button>
+            </div>
+
+            <!-- Visit Status Card -->
+            <div class="card" style="margin-bottom: 20px;">
+                <div class="card-header">
+                    <h2>Visit Status</h2>
+                </div>
+                <div class="card-body text-center">
+                    <div id="visitStatus">
+                        <div class="loading" style="margin: 20px auto;"></div>
+                        <p>Loading visit information...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Face Recognition Status Card -->
+            <div class="card" style="margin-bottom: 20px;">
+                <div class="card-header">
+                    <h2>📸 Face Recognition Access</h2>
+                </div>
+                <div class="card-body text-center">
+                    <div id="faceRecognitionStatus" style="padding: 30px 20px;">
+                        <!-- Face recognition status will be displayed here -->
+                        <div class="loading" style="margin: 20px auto;"></div>
+                        <p>Checking facial recognition status...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Visit Details Card -->
+            <div class="card" style="margin-bottom: 20px;">
+                <div class="card-header">
+                    <h2>Visit Details</h2>
+                </div>
+                <div class="card-body">
+                    <table style="width: 100%;">
+                        <tr>
+                            <td style="padding: 12px; font-weight: 500; color: var(--text-secondary);">Visitor Name:</td>
+                            <td style="padding: 12px;" id="visitorName">-</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 12px; font-weight: 500; color: var(--text-secondary);">Unit Visiting:</td>
+                            <td style="padding: 12px;" id="visitingUnit">-</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 12px; font-weight: 500; color: var(--text-secondary);">Visit Window:</td>
+                            <td style="padding: 12px;" id="visitWindow">-</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 12px; font-weight: 500; color: var(--text-secondary);">Contact:</td>
+                            <td style="padding: 12px;" id="contactNumber">-</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Instructions Card -->
+            <div class="alert alert-info">
+                <strong>📌 Facial Recognition Access Instructions:</strong>
+                <ul style="margin-top: 10px; padding-left: 20px; margin-bottom: 0;">
+                    <li>Ensure you arrive within your scheduled visit window</li>
+                    <li>Your face has been registered by the resident for access</li>
+                    <li>Look directly at the camera at the entrance</li>
+                    <li>Remove glasses, hats, or face coverings for better recognition</li>
+                    <li>Ensure good lighting on your face</li>
+                    <li>Contact your host if you encounter any access issues</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/config.js"></script>
+    <script src="js/visitor-dashboard.js"></script>
+</body>
+</html>

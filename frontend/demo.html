@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Condo Face Recognition System - Demo</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <style>
+        .demo-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+        .hero {
+            text-align: center;
+            padding: 60px 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 12px;
+            margin-bottom: 40px;
+        }
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            margin: 40px 0;
+        }
+        .feature-card {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: var(--shadow-lg);
+            transition: transform 0.3s;
+        }
+        .feature-card:hover {
+            transform: translateY(-5px);
+        }
+        .feature-icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+        }
+        .demo-links {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-top: 30px;
+        }
+        .demo-btn {
+            padding: 15px 30px;
+            font-size: 16px;
+            text-decoration: none;
+            border-radius: 8px;
+            transition: all 0.3s;
+        }
+        .screenshot {
+            width: 100%;
+            border-radius: 8px;
+            border: 2px solid var(--border-color);
+            margin-top: 15px;
+        }
+    </style>
+</head>
+<body>
+    <div class="demo-container">
+        <!-- Hero Section -->
+        <div class="hero">
+            <h1 style="font-size: 48px; margin-bottom: 20px;">🏢 Condo Access System</h1>
+            <p style="font-size: 20px; margin-bottom: 10px;">Next-Generation Facial Recognition for Condominiums</p>
+            <p style="font-size: 16px; opacity: 0.9;">Secure. Smart. Simple.</p>
+        </div>
+
+        <!-- Quick Start -->
+        <div class="card">
+            <div class="card-header">
+                <h2>🚀 Quick Start</h2>
+            </div>
+            <div class="card-body">
+                <div class="demo-links">
+                    <a href="index.html" class="btn btn-primary demo-btn">Login to System</a>
+                    <a href="QUICKSTART.md" class="btn btn-secondary demo-btn" download>Download Quick Start Guide</a>
+                    <a href="README.md" class="btn btn-secondary demo-btn" download>Download Full Documentation</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Features -->
+        <h2 style="margin: 50px 0 30px; text-align: center; font-size: 32px;">✨ Key Features</h2>
+        
+        <div class="feature-grid">
+            <div class="feature-card">
+                <div class="feature-icon">📸</div>
+                <h3>Face Registration</h3>
+                <p>Capture and register facial data using webcam with real-time preview and validation.</p>
+                <ul style="margin-top: 15px; padding-left: 20px;">
+                    <li>Live camera feed</li>
+                    <li>Photo capture & review</li>
+                    <li>Instant upload to backend</li>
+                </ul>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon">👥</div>
+                <h3>Visitor Management</h3>
+                <p>Complete visitor lifecycle management with time-based access control.</p>
+                <ul style="margin-top: 15px; padding-left: 20px;">
+                    <li>Create/edit/delete visitors</li>
+                    <li>Time window restrictions</li>
+                    <li>Visitor face photo upload</li>
+                    <li>Access history tracking</li>
+                </ul>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon">📊</div>
+                <h3>Dashboard & Analytics</h3>
+                <p>Comprehensive overview of your access control system with real-time statistics.</p>
+                <ul style="margin-top: 15px; padding-left: 20px;">
+                    <li>Active visitor count</li>
+                    <li>Daily access statistics</li>
+                    <li>Recent activities</li>
+                    <li>Visual analytics</li>
+                </ul>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon">📜</div>
+                <h3>Access History</h3>
+                <p>Detailed logging of all access attempts with advanced filtering.</p>
+                <ul style="margin-top: 15px; padding-left: 20px;">
+                    <li>Complete access logs</li>
+                    <li>Date range filtering</li>
+                    <li>Export to CSV</li>
+                    <li>Success/failure tracking</li>
+                </ul>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon">🔔</div>
+                <h3>Security Alerts</h3>
+                <p>Real-time notifications for unauthorized access attempts.</p>
+                <ul style="margin-top: 15px; padding-left: 20px;">
+                    <li>Instant alerts</li>
+                    <li>Auto-refresh</li>
+                    <li>Read/unread status</li>
+                    <li>Alert management</li>
+                </ul>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon">👤</div>
+                <h3>Profile Management</h3>
+                <p>Easy management of personal information and security settings.</p>
+                <ul style="margin-top: 15px; padding-left: 20px;">
+                    <li>Edit personal details</li>
+                    <li>Toggle face access</li>
+                    <li>Security controls</li>
+                    <li>Account deletion</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Technical Details -->
+        <div class="card" style="margin-top: 50px;">
+            <div class="card-header">
+                <h2>🔧 Technical Stack</h2>
+            </div>
+            <div class="card-body">
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px;">
+                    <div>
+                        <h4>Frontend</h4>
+                        <ul style="padding-left: 20px; margin-top: 10px;">
+                            <li>HTML5</li>
+                            <li>CSS3 (Custom Styles)</li>
+                            <li>Vanilla JavaScript</li>
+                            <li>MediaDevices API</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h4>Backend Integration</h4>
+                        <ul style="padding-left: 20px; margin-top: 10px;">
+                            <li>RESTful API</li>
+                            <li>Flask Python</li>
+                            <li>JSON data exchange</li>
+                            <li>CORS enabled</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h4>Features</h4>
+                        <ul style="padding-left: 20px; margin-top: 10px;">
+                            <li>Responsive design</li>
+                            <li>Camera integration</li>
+                            <li>Real-time updates</li>
+                            <li>Export functionality</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- User Roles -->
+        <div class="card" style="margin-top: 30px;">
+            <div class="card-header">
+                <h2>👥 User Roles</h2>
+            </div>
+            <div class="card-body">
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 30px;">
+                    <div>
+                        <h3 style="color: var(--primary-color);">🏠 Resident</h3>
+                        <p style="margin: 10px 0;">Full access to:</p>
+                        <ul style="padding-left: 20px;">
+                            <li>Face registration</li>
+                            <li>Visitor management</li>
+                            <li>Access history</li>
+                            <li>Security alerts</li>
+                            <li>Profile settings</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h3 style="color: var(--success-color);">🚶 Visitor</h3>
+                        <p style="margin: 10px 0;">Can view:</p>
+                        <ul style="padding-left: 20px;">
+                            <li>Visit status</li>
+                            <li>Face registration status</li>
+                            <li>Visit time window</li>
+                            <li>Access instructions</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h3 style="color: var(--danger-color);">👨‍💼 Admin</h3>
+                        <p style="margin: 10px 0;">System management:</p>
+                        <ul style="padding-left: 20px;">
+                            <li>User management</li>
+                            <li>System monitoring</li>
+                            <li>Reports & analytics</li>
+                            <li>Configuration</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Demo Credentials -->
+        <div class="card" style="margin-top: 30px;">
+            <div class="card-header">
+                <h2>🔑 Demo Login Credentials</h2>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info">
+                    <strong>Note:</strong> This is a development version with mock authentication. 
+                    Use any username/password combination to login.
+                </div>
+                <table style="width: 100%; margin-top: 20px;">
+                    <thead>
+                        <tr>
+                            <th style="text-align: left; padding: 12px;">Role</th>
+                            <th style="text-align: left; padding: 12px;">Username</th>
+                            <th style="text-align: left; padding: 12px;">Password</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td style="padding: 12px;">Resident</td>
+                            <td style="padding: 12px;"><code>john</code></td>
+                            <td style="padding: 12px;"><code>any password</code></td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 12px;">Visitor</td>
+                            <td style="padding: 12px;"><code>visitor1</code></td>
+                            <td style="padding: 12px;"><code>any password</code></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Call to Action -->
+        <div style="text-align: center; margin: 60px 0 40px;">
+            <h2 style="margin-bottom: 20px;">Ready to Get Started?</h2>
+            <div class="demo-links">
+                <a href="index.html" class="btn btn-primary demo-btn" style="font-size: 18px;">
+                    Launch Application →
+                </a>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div style="text-align: center; padding: 40px 20px; border-top: 1px solid var(--border-color);">
+            <p style="color: var(--text-secondary);">
+                Final Year Project - Facial Recognition Condominium Access System
+            </p>
+            <p style="color: var(--text-secondary); margin-top: 10px;">
+                Built with HTML, CSS, JavaScript & Flask
+            </p>
+        </div>
+    </div>
+</body>
+</html>

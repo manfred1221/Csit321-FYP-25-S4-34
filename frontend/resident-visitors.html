@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Visitors - Condo Access</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <div class="dashboard">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h2>🏢 Condo Access</h2>
+                <div class="user-info">
+                    <strong id="userName">Loading...</strong>
+                    <p id="userEmail"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="374552445e5352594377524f565a475b521954585a">[email&#160;protected]</a></p>
+                </div>
+            </div>
+            
+            <nav>
+                <ul class="nav-menu">
+                    <li class="nav-item">
+                        <a href="resident-dashboard.html" class="nav-link">📊 Dashboard</a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="resident-profile.html" class="nav-link">👤 My Profile</a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="resident-face-registration.html" class="nav-link">📸 Face Registration</a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="resident-visitors.html" class="nav-link active">👥 Manage Visitors</a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="resident-access-history.html" class="nav-link">📜 Access History</a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="resident-alerts.html" class="nav-link">🔔 Alerts</a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="#" class="nav-link" onclick="logout()">🚪 Logout</a>
+                    </li>
+                </ul>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="page-header">
+                <h1>Manage Visitors</h1>
+                <p>Register and manage visitors for your unit</p>
+            </div>
+
+            <!-- Action Bar -->
+            <div class="card">
+                <div class="card-body">
+                    <div class="flex justify-between items-center">
+                        <button onclick="openAddVisitorModal()" class="btn btn-primary">
+                            + Add New Visitor
+                        </button>
+                        <div>
+                            <input type="text" id="searchInput" placeholder="Search visitors..." 
+                                   style="padding: 8px; border: 1px solid #e5e7eb; border-radius: 6px;">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Visitors List -->
+            <div class="card">
+                <div class="card-header">
+                    <h2>Registered Visitors</h2>
+                </div>
+                <div class="card-body">
+                    <div class="table-container">
+                        <table id="visitorsTable">
+                            <thead>
+                                <tr>
+                                    <th>Visitor Name</th>
+                                    <th>Contact</th>
+                                    <th>Status</th>
+                                    <th>Visit Window</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td colspan="5" class="text-center">Loading...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Add/Edit Visitor Modal -->
+    <div id="visitorModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalTitle">Add New Visitor</h2>
+                <button class="modal-close" onclick="closeVisitorModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="visitorForm">
+                    <input type="hidden" id="visitorId">
+                    
+                    <div class="form-group">
+                        <label for="visitorName">Visitor Name *</label>
+                        <input type="text" id="visitorName" name="visitor_name" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="contactNumber">Contact Number *</label>
+                        <input type="tel" id="contactNumber" name="contact_number" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="visitingUnit">Visiting Unit *</label>
+                        <input type="text" id="visitingUnit" name="visiting_unit" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="startTime">Start Time *</label>
+                        <input type="datetime-local" id="startTime" name="start_time" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="endTime">End Time *</label>
+                        <input type="datetime-local" id="endTime" name="end_time" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="visitorNotes">Notes (Optional)</label>
+                        <textarea id="visitorNotes" name="notes" rows="3"></textarea>
+                    </div>
+                </form>
+                <div id="modalMessage" class="message"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeVisitorModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="saveVisitor()">Save Visitor</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Upload Face Image Modal -->
+    <div id="faceUploadModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Upload Visitor Face Image</h2>
+                <button class="modal-close" onclick="closeFaceUploadModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="faceVisitorId">
+                
+                <p id="faceStatus" style="padding: 10px; background: #f3f4f6; border-radius: 6px; margin-bottom: 15px; text-align: center;">
+                    Ready to capture visitor's face
+                </p>
+                
+                <div class="camera-container">
+                    <video id="video" autoplay playsinline width="320" height="240" 
+                           style="border-radius: 8px; background: #111; display: none; margin: 0 auto;"></video>
+                    <canvas id="canvas" width="320" height="240" style="display: none;"></canvas>
+                    <img id="capturedImage" class="preview-image" 
+                         style="display: none; max-width: 320px; border-radius: 8px; margin: 0 auto;">
+                </div>
+                
+                <div class="camera-controls">
+                    <button id="startCameraBtn" class="btn btn-primary">Start Camera</button>
+                    <button id="capturePhotoBtn" class="btn btn-success" disabled>📸 Capture Photo</button>
+                    <button id="uploadPhotoBtn" class="btn btn-primary" disabled>Upload Image</button>
+                </div>
+                
+                <div id="faceModalMessage" class="message"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeFaceUploadModal()">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- View Visitor Access History Modal -->
+    <div id="accessHistoryModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Visitor Access History</h2>
+                <button class="modal-close" onclick="closeAccessHistoryModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <h3 id="historyVisitorName"></h3>
+                <div class="table-container">
+                    <table id="visitorAccessHistoryTable">
+                        <thead>
+                            <tr>
+                                <th>Timestamp</th>
+                                <th>Location</th>
+                                <th>Result</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td colspan="3" class="text-center">Loading...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeAccessHistoryModal()">Close</button>
+            </div>
+        </div    </div>
+
+    <script src="js/config.js"></script>
+    <script src="js/resident-visitors.js"></script>
+</body>
+</html>
