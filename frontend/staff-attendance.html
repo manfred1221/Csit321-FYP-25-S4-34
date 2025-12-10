@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Attendance History - Staff Portal</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <div class="dashboard">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h2>🏢 Condo Access</h2>
+                <div class="user-info">
+                    <strong id="staffName">Loading...</strong>
+                    <p id="staffPosition">Staff Member</p>
+                </div>
+            </div>
+            
+            <nav>
+                <ul class="nav-menu">
+                    <li class="nav-item">
+                        <a href="staff-dashboard.html" class="nav-link">📊 Dashboard</a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="staff-schedule.html" class="nav-link">📅 Schedule</a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="staff-attendance.html" class="nav-link active">⏰ Attendance</a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="staff-profile.html" class="nav-link">👤 Profile</a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="#" class="nav-link" id="logoutBtn">🚪 Logout</a>
+                    </li>
+                </ul>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="page-header">
+                <h1>⏰ Attendance History</h1>
+                <p>View your attendance records</p>
+            </div>
+
+            <!-- Summary Stats -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <h3>This Week</h3>
+                    <div class="stat-value" id="weekHours">-- hrs</div>
+                </div>
+                <div class="stat-card">
+                    <h3>This Month</h3>
+                    <div class="stat-value" id="monthHours">-- hrs</div>
+                </div>
+                <div class="stat-card">
+                    <h3>Total Days</h3>
+                    <div class="stat-value" id="totalDays">--</div>
+                </div>
+            </div>
+
+            <!-- Filter Options -->
+            <div class="card">
+                <div class="card-header">
+                    <h2>Filter Records</h2>
+                </div>
+                <div class="card-body">
+                    <div class="flex gap-10">
+                        <div class="form-group" style="flex: 1;">
+                            <label for="startDate">Start Date</label>
+                            <input type="date" id="startDate" class="form-control">
+                        </div>
+                        <div class="form-group" style="flex: 1;">
+                            <label for="endDate">End Date</label>
+                            <input type="date" id="endDate" class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <label style="visibility: hidden;">Filter</label>
+                            <button class="btn btn-primary" id="filterBtn">🔍 Filter</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Attendance Table -->
+            <div class="card">
+                <div class="card-header">
+                    <h2>Attendance Records</h2>
+                </div>
+                <div class="card-body">
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Clock In</th>
+                                    <th>Clock Out</th>
+                                    <th>Duration</th>
+                                    <th>Location</th>
+                                    <th>Method</th>
+                                </tr>
+                            </thead>
+                            <tbody id="attendanceTableBody">
+                                <tr>
+                                    <td colspan="6" style="text-align:center;">Loading...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="js/config.js"></script>
+    <script src="js/staff-attendance.js"></script>
+</body>
+</html>

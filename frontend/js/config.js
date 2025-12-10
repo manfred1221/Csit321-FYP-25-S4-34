@@ -1,6 +1,7 @@
 // API Configuration
 const API_CONFIG = {
     BASE_URL: 'http://localhost:5001',
+    STAFF_BASE_URL: 'http://localhost:5003', 
     ENDPOINTS: {
         // Auth endpoints (you'll need to add these to your backend)
         LOGIN: '/api/auth/login',
@@ -34,14 +35,29 @@ const API_CONFIG = {
             GET_STATUS: (visitorId) => `/api/visitor/${visitorId}/status`,
         },
         
+        // Staff endpoints
+        STAFF: {
+            LOGIN: '/api/staff/login',
+            LOGOUT: '/api/staff/logout',
+            GET_PROFILE: (staffId) => `/api/staff/${staffId}/profile`,
+            UPDATE_PROFILE: (staffId) => `/api/staff/${staffId}/profile`,
+            DELETE_ACCOUNT: (staffId) => `/api/staff/${staffId}`,
+            GET_SCHEDULE: (staffId) => `/api/staff/${staffId}/schedule`,
+            RECORD_ATTENDANCE: '/api/staff/attendance/record',
+            GET_ATTENDANCE: (staffId) => `/api/staff/${staffId}/attendance`,
+            GET_TOTAL_HOURS: (staffId) => `/api/staff/${staffId}/total-hours`,
+        },
+
         // Offline recognition
         OFFLINE_RECOGNIZE: '/api/resident/offline/recognize',
     }
 };
 
 // Helper function to make API calls
-async function apiCall(endpoint, options = {}) {
-    const url = `${API_CONFIG.BASE_URL}${endpoint}`;
+async function apiCall(endpoint, options = {}, useStaffBackend = false) {
+    // Use staff backend if specified 
+    const baseUrl = useStaffBackend ? API_CONFIG.STAFF_BASE_URL : API_CONFIG.BASE_URL;
+    const url = `${baseUrl}${endpoint}`;
     
     const defaultOptions = {
         headers: {
@@ -79,6 +95,7 @@ async function apiCall(endpoint, options = {}) {
     }
 }
 
+
 // Helper function to show messages
 function showMessage(elementId, message, type = 'success') {
     const messageEl = document.getElementById(elementId);
@@ -93,7 +110,10 @@ function showMessage(elementId, message, type = 'success') {
         }, 5000);
     }
 }
-
+// Helper function for staff API calls 
+async function staffApiCall(endpoint, options = {}) {
+    return apiCall(endpoint, options, true); // Use staff backend
+}
 // Helper function to format date/time
 function formatDateTime(dateString) {
     const date = new Date(dateString);
@@ -115,7 +135,7 @@ function formatDateForInput(dateString) {
 function checkAuth() {
     const user = JSON.parse(localStorage.getItem('user') || 'null');
     if (!user) {
-        window.location.href = '/index.html';
+        window.location.href = 'index.html';
         return null;
     }
     return user;
@@ -125,5 +145,5 @@ function checkAuth() {
 function logout() {
     localStorage.removeItem('user');
     localStorage.removeItem('auth_token');
-    window.location.href = '/index.html';
+    window.location.href = 'index.html';
 }

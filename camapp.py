@@ -4,10 +4,9 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 from flask import Flask, request, jsonify, render_template
 from flask_cors import CORS
 import logging
-from datetime import date
 
 from config import Config
-from database import create_database, init_pool, init_schema
+from db import get_db_connection
 from user import User
 from access_log import AccessLog
 
@@ -17,10 +16,6 @@ logger = logging.getLogger(__name__)
 app = Flask(__name__)
 app.config['SECRET_KEY'] = Config.SECRET_KEY
 CORS(app)
-
-@app.before_request
-def check_expired_workers():
-    User.check_expired_temp_workers()
 
 @app.route('/')
 def camera_page():
@@ -34,45 +29,39 @@ def api_recognize():
         return jsonify({'success': False, 'message': 'No image provided'}), 400
     
     try:
-        from model import extract_embedding_from_base64, recognize_face
+        from model import extract_embedding_from_base64, recognize_face, recognize_face_with_users
         
         embedding, error = extract_embedding_from_base64(data['image'])
         
         if error:
-            AccessLog.create(None, 'denied', None)
+            AccessLog.create(None, 'denied', None, 'unknown')
             return jsonify({
                 'success': True,
                 'recognized': False,
                 'message': error
             })
         
+        # Get users with face embeddings
         users = User.get_with_face()
         
         if not users:
-            AccessLog.create(None, 'denied', None)
-            return jsonify({
-                'success': True,
-                'recognized': False,
-                'message': 'No registered users in system'
-            })
-        
-        threshold = Config.FACE_RECOGNITION['threshold']
-        user_id, username, full_name, distance = recognize_face(embedding, users, threshold)
+            # Try direct recognition from database
+            threshold = Config.FACE_RECOGNITION['threshold']
+            user_id, username, full_name, distance = recognize_face(embedding, threshold)
+        else:
+            threshold = Config.FACE_RECOGNITION['threshold']
+            user_id, username, full_name, distance = recognize_face_with_users(embedding, users, threshold)
         
         if user_id:
-            user = User.get_by_id(user_id)
-            
-            if user.get('role') == 'TEMP_WORKER':
-                if not User.is_temp_worker_valid(user):
-                    AccessLog.create(user_id, 'denied', None)
-                    return jsonify({
-                        'success': True,
-                        'recognized': False,
-                        'message': 'Access period expired or not started'
-                    })
-            
             confidence = max(0, min(100, int((1 - distance / 2) * 100)))
-            AccessLog.create(user_id, 'granted', confidence / 100)
+            
+            # Create access log
+            AccessLog.create(
+                recognized_person=full_name,
+                access_result='granted',
+                confidence=confidence / 100,
+                person_type='resident'
+            )
             
             return jsonify({
                 'success': True,
@@ -84,7 +73,12 @@ def api_recognize():
                 'message': f'Welcome, {full_name}!'
             })
         else:
-            AccessLog.create(None, 'denied', None)
+            AccessLog.create(
+                recognized_person=None,
+                access_result='denied',
+                confidence=None,
+                person_type='unknown'
+            )
             return jsonify({
                 'success': True,
                 'recognized': False,
@@ -95,10 +89,48 @@ def api_recognize():
         logger.error(f"Recognition error: {e}")
         return jsonify({'success': False, 'message': str(e)}), 500
 
+@app.route('/api/stats')
+def api_stats():
+    """Get access statistics"""
+    try:
+        stats = AccessLog.get_stats(days=30)
+        return jsonify({'success': True, 'stats': stats})
+    except Exception as e:
+        logger.error(f"Stats error: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+@app.route('/api/recent-logs')
+def api_recent_logs():
+    """Get recent access logs"""
+    try:
+        limit = request.args.get('limit', 10, type=int)
+        logs = AccessLog.get_recent(limit=limit)
+        return jsonify({'success': True, 'logs': logs})
+    except Exception as e:
+        logger.error(f"Recent logs error: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+@app.route('/api/today-logs')
+def api_today_logs():
+    """Get today's access logs"""
+    try:
+        logs = AccessLog.get_today()
+        return jsonify({'success': True, 'logs': logs})
+    except Exception as e:
+        logger.error(f"Today logs error: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
 def init_app():
-    create_database()
-    init_pool()
-    init_schema()
+    """Initialize camera application"""
+    # Test database connection
+    try:
+        conn = get_db_connection()
+        conn.close()
+        logger.info("Database connection successful")
+    except Exception as e:
+        logger.error(f"Database connection failed: {e}")
+        raise e
+    
     logger.info("Camera application initialized")
 
 if __name__ == '__main__':

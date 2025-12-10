@@ -6,14 +6,15 @@ class Config:
     SESSION_LIFETIME = timedelta(hours=24)
     
     HOST = '0.0.0.0'
-    PORT = 5001
+    PORT = 5420
     CAM_PORT = 5002
-    DEBUG = True
+    DEBUG = False
     
+    # Database config - matches db.py
     DATABASE_CONFIG = {
-        'dbname': os.environ.get('DB_NAME', 'face_access'),
+        'dbname': os.environ.get('DB_NAME', 'csit321_db'),
         'user': os.environ.get('DB_USER', 'postgres'),
-        'password': os.environ.get('DB_PASSWORD', 'postgres'),
+        'password': os.environ.get('DB_PASSWORD', 'manfred@12'),
         'host': os.environ.get('DB_HOST', 'localhost'),
         'port': os.environ.get('DB_PORT', '5432')
     }
@@ -23,4 +24,12 @@ class Config:
         'upload_dir': os.path.join(os.path.dirname(__file__), 'uploads'),
         'encoding_dir': os.path.join(os.path.dirname(__file__), 'face_encodings'),
         'id_doc_dir': os.path.join(os.path.dirname(__file__), 'id_documents')
+    }
+    
+    # Role IDs from database
+    ROLES = {
+        'ADMIN': 1,
+        'RESIDENT': 2,
+        'VISITOR': 3,
+        'SECURITY': 4
     }
