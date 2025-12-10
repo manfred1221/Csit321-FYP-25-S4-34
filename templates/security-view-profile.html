@@ -4,24 +4,24 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>View Profile - Security</title>
-    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
 </head>
 <body>
     <div class="dashboard">
         <aside class="sidebar">
             <div class="sidebar-header">
                 <h2>🔐 Condo Access</h2>
-                <div class="user-info"><div>Security Officer</div><div>officer@example.com</div></div>
+                <div class="user-info"><div>{{officer.full_name}}</div><div>{{officer.contact_number}}</div>
             </div>
             <nav>
                 <ul class="nav-menu">
-                    <li class="nav-item"><a href="security-dashboard.html" class="nav-link">📹 Monitor Cameras</a></li>
-                    <li class="nav-item"><a href="security-override.html" class="nav-link">🚪 Manual Override</a></li>
-                    <li class="nav-item"><a href="security-view-profile.html" class="nav-link active">👤 View Profile</a></li>
-                    <li class="nav-item"><a href="security-update-profile.html" class="nav-link">✏️ Update Profile</a></li>
-                    <li class="nav-item"><a href="security-deactivate.html" class="nav-link">⚠️ Deactivate Account</a></li>
-                    <li class="nav-item"><a href="security-face-verification.html" class="nav-link">🔍 Face Verification</a></li>
-                    <li class="nav-item"><a href="index.html" class="nav-link" style="margin-top:20px;border-top:1px solid rgba(255,255,255,0.1);padding-top:20px;">🚪 Logout</a></li>
+                    <li class="nav-item"><a href="/?officer_id={{ officer.officer_id }}" class="nav-link">📹 Monitor Cameras</a></li>
+                    <li class="nav-item"><a href="/security-override?officer_id={{ officer.officer_id }}" class="nav-link">🚪 Manual Override</a></li>
+                    <li class="nav-item"><a href="/security-view-profile?officer_id={{ officer.officer_id }}" class="nav-link active">👤 View Profile</a></li>
+                    <li class="nav-item"><a href="/security-update-profile?officer_id={{ officer.officer_id }}" class="nav-link">✏️ Update Profile</a></li>
+                    <li class="nav-item"><a href="/security-deactivate?officer_id={{ officer.officer_id }}" class="nav-link">⚠️ Deactivate Account</a></li>
+                    <li class="nav-item"><a href="/security-face-verification?officer_id={{ officer.officer_id }}" class="nav-link">🔍 Face Verification</a></li>
+                    <li class="nav-item"><a href="/" class="nav-link" style="margin-top:20px;border-top:1px solid rgba(255,255,255,0.1);padding-top:20px;">🚪 Logout</a></li>
                 </ul>
             </nav>
         </aside>
@@ -33,27 +33,27 @@
                     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:20px;">
                         <div>
                             <div style="font-weight:500;color:#6b7280;margin-bottom:5px;">Full Name</div>
-                            <div style="font-size:16px;" id="fullName">David Wong</div>
+                            <div style="font-size:16px;" id="fullName">{{officer.full_name}}</div>
                         </div>
                         <div>
                             <div style="font-weight:500;color:#6b7280;margin-bottom:5px;">Officer ID</div>
-                            <div style="font-size:16px;" id="officerId">SEC-2024-001</div>
+                            <div style="font-size:16px;" id="officerId">{{officer.officer_id}}</div>
                         </div>
                         <div>
-                            <div style="font-weight:500;color:#6b7280;margin-bottom:5px;">Email</div>
-                            <div style="font-size:16px;" id="email">david.wong@security.com</div>
+                            <div style="font-weight:500;color:#6b7280;margin-bottom:5px;">Joined</div>
+                            <div style="font-size:16px;" id="email">{{officer.registered_at}}</div>
                         </div>
                         <div>
                             <div style="font-weight:500;color:#6b7280;margin-bottom:5px;">Contact Number</div>
-                            <div style="font-size:16px;" id="phone">+65 9876 5432</div>
+                            <div style="font-size:16px;" id="phone">{{officer.contact_number}}</div>
                         </div>
                         <div>
                             <div style="font-weight:500;color:#6b7280;margin-bottom:5px;">Shift</div>
-                            <div style="font-size:16px;" id="shift">Day Shift (8AM - 4PM)</div>
+                            <div style="font-size:16px;" id="shift">{{officer.shift}}</div>
                         </div>
                         <div>
                             <div style="font-weight:500;color:#6b7280;margin-bottom:5px;">Status</div>
-                            <div style="font-size:16px;"><span class="badge badge-success">Active</span></div>
+                            <div style="font-size:16px;"><span class="badge badge-success">{{officer.active}}</span></div>
                         </div>
                     </div>
                 </div>
@@ -97,7 +97,7 @@
                 </div>
             </div>
             <div style="margin-top:20px;display:flex;gap:10px;">
-                <a href="security-update-profile.html" class="btn btn-primary">✏️ Edit Profile</a>
+                <a href="/security-update-profile?officer_id={{ officer.officer_id }}" class="btn btn-primary">✏️ Edit Profile</a>
                 <button class="btn btn-secondary" onclick="printProfile()">🖨️ Print</button>
             </div>
         </main>
