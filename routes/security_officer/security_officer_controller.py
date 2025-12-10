@@ -12,8 +12,6 @@ import torch
 
 resnet = InceptionResnetV1(pretrained='vggface2').eval()
 
-def monitor_camera():
-    return jsonify({"message": "Streaming live camera feeds (placeholder)"}), 200
 
 def manual_override(officer_id=None):
     """
@@ -79,12 +77,35 @@ def deactivate_account(officer_id):
         return jsonify({"message": "Account deactivated"}), 200
     return jsonify({"error": "Officer not found"}), 404
 
+# def image_to_embedding(image_base64):
+#     """Convert base64 image to FaceNet embedding"""
+#     # Decode base64
+#     header, encoded = image_base64.split(",", 1)
+#     img_bytes = base64.b64decode(encoded)
+#     img = Image.open(BytesIO(img_bytes)).convert("RGB")
+#     # Preprocess
+#     import torchvision.transforms as transforms
+#     transform = transforms.Compose([
+#         transforms.Resize((160, 160)),
+#         transforms.ToTensor(),
+#         transforms.Normalize([0.5,0.5,0.5],[0.5,0.5,0.5])
+#     ])
+#     img_tensor = transform(img).unsqueeze(0)  # add batch
+#     with torch.no_grad():
+#         embedding = resnet(img_tensor)
+#     return embedding[0].numpy()  # 512-d vector
+
 def image_to_embedding(image_base64):
     """Convert base64 image to FaceNet embedding"""
-    # Decode base64
-    header, encoded = image_base64.split(",", 1)
+    # Handle both full data URLs and raw base64
+    if "," in image_base64:
+        _, encoded = image_base64.split(",", 1)
+    else:
+        encoded = image_base64
+
     img_bytes = base64.b64decode(encoded)
     img = Image.open(BytesIO(img_bytes)).convert("RGB")
+
     # Preprocess
     import torchvision.transforms as transforms
     transform = transforms.Compose([
@@ -93,9 +114,12 @@ def image_to_embedding(image_base64):
         transforms.Normalize([0.5,0.5,0.5],[0.5,0.5,0.5])
     ])
     img_tensor = transform(img).unsqueeze(0)  # add batch
+
     with torch.no_grad():
         embedding = resnet(img_tensor)
+
     return embedding[0].numpy()  # 512-d vector
+
 
 def verify_face():
     """
