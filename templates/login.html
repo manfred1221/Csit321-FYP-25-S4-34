@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Login</title>
+    <style>
+        body { font-family: Arial; background: #f2f2f2; display: flex; justify-content: center; padding-top: 80px; }
+        .card { background: white; padding: 25px; border-radius: 10px; box-shadow: 0 0 15px rgba(0,0,0,0.1); width: 380px; }
+        select, input { width: 100%; padding: 12px; margin-top: 10px; border: 1px solid #ccc; border-radius: 6px; }
+        button { width: 100%; padding: 12px; background: #007BFF; color: white; border: none; border-radius: 6px; cursor: pointer; margin-top: 15px; }
+        button:hover { background: #0056c1; }
+    </style>
+</head>
+
+<body>
+<div class="card">
+    <h2>Login</h2>
+
+    <select id="user_type">
+        <option value="security_officer">Security Officer</option>
+        <option value="resident">Resident</option>
+        <option value="visitor">Visitor</option>
+    </select>
+
+    <input type="number" id="user_id" placeholder="Enter ID">
+
+    <!-- <input type="password" id="password" placeholder="Password (Officers only)"> -->
+
+    <button onclick="login()">Login</button>
+
+    <p id="msg" style="color:red; margin-top:10px;"></p>
+</div>
+
+<script>
+function login() {
+    const user_type = document.getElementById("user_type").value;
+    const user_id = document.getElementById("user_id").value;
+
+    fetch("http://127.0.0.1:5001/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ user_type, user_id})
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (!data.success) {
+            document.getElementById("msg").innerHTML = data.message;
+            return;
+        }
+
+        window.location.href = data.redirect;
+    });
+
+}
+</script>
+
+</body>
+</html>
