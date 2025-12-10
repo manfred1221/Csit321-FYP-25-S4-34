@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>View Profile - Security</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+<body>
+    <div class="dashboard">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h2>🔐 Condo Access</h2>
+                <div class="user-info"><div>{{officer.full_name}}</div><div>{{officer.contact_number}}</div>
+            </div>
+            <nav>
+                <ul class="nav-menu">
+                    <li class="nav-item"><a href="/?officer_id={{ officer.officer_id }}" class="nav-link">📹 Monitor Cameras</a></li>
+                    <li class="nav-item"><a href="/security-override?officer_id={{ officer.officer_id }}" class="nav-link">🚪 Manual Override</a></li>
+                    <li class="nav-item"><a href="/security-view-profile?officer_id={{ officer.officer_id }}" class="nav-link active">👤 View Profile</a></li>
+                    <li class="nav-item"><a href="/security-update-profile?officer_id={{ officer.officer_id }}" class="nav-link">✏️ Update Profile</a></li>
+                    <li class="nav-item"><a href="/security-deactivate?officer_id={{ officer.officer_id }}" class="nav-link">⚠️ Deactivate Account</a></li>
+                    <li class="nav-item"><a href="/security-face-verification?officer_id={{ officer.officer_id }}" class="nav-link">🔍 Face Verification</a></li>
+                    <li class="nav-item"><a href="/" class="nav-link" style="margin-top:20px;border-top:1px solid rgba(255,255,255,0.1);padding-top:20px;">🚪 Logout</a></li>
+                </ul>
+            </nav>
+        </aside>
+        <main class="main-content">
+            <div class="page-header"><h1>View Profile</h1><p>View your security officer information</p></div>
+            <div class="card">
+                <div class="card-header"><h2>👤 Personal Information</h2></div>
+                <div class="card-body">
+                    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:20px;">
+                        <div>
+                            <div style="font-weight:500;color:#6b7280;margin-bottom:5px;">Full Name</div>
+                            <div style="font-size:16px;" id="fullName">{{officer.full_name}}</div>
+                        </div>
+                        <div>
+                            <div style="font-weight:500;color:#6b7280;margin-bottom:5px;">Officer ID</div>
+                            <div style="font-size:16px;" id="officerId">{{officer.officer_id}}</div>
+                        </div>
+                        <div>
+                            <div style="font-weight:500;color:#6b7280;margin-bottom:5px;">Joined</div>
+                            <div style="font-size:16px;" id="email">{{officer.registered_at}}</div>
+                        </div>
+                        <div>
+                            <div style="font-weight:500;color:#6b7280;margin-bottom:5px;">Contact Number</div>
+                            <div style="font-size:16px;" id="phone">{{officer.contact_number}}</div>
+                        </div>
+                        <div>
+                            <div style="font-weight:500;color:#6b7280;margin-bottom:5px;">Shift</div>
+                            <div style="font-size:16px;" id="shift">{{officer.shift}}</div>
+                        </div>
+                        <div>
+                            <div style="font-weight:500;color:#6b7280;margin-bottom:5px;">Status</div>
+                            <div style="font-size:16px;"><span class="badge badge-success">{{officer.active}}</span></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-header"><h2>📊 Work Statistics</h2></div>
+                <div class="card-body">
+                    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:20px;">
+                        <div style="text-align:center;padding:20px;background:#f9fafb;border-radius:8px;">
+                            <div style="font-size:32px;font-weight:bold;color:#2563eb;">156</div>
+                            <div style="color:#6b7280;">Shifts Completed</div>
+                        </div>
+                        <div style="text-align:center;padding:20px;background:#f9fafb;border-radius:8px;">
+                            <div style="font-size:32px;font-weight:bold;color:#10b981;">42</div>
+                            <div style="color:#6b7280;">Manual Overrides</div>
+                        </div>
+                        <div style="text-align:center;padding:20px;background:#f9fafb;border-radius:8px;">
+                            <div style="font-size:32px;font-weight:bold;color:#f59e0b;">8</div>
+                            <div style="color:#6b7280;">Incidents Reported</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-header"><h2>🎖️ Certifications & Training</h2></div>
+                <div class="card-body">
+                    <div style="display:flex;flex-direction:column;gap:15px;">
+                        <div style="padding:15px;border-left:4px solid #10b981;background:#f9fafb;border-radius:4px;">
+                            <div style="font-weight:600;">Security Officer Level 2 Certification</div>
+                            <div style="font-size:14px;color:#6b7280;">Valid until: Dec 2026</div>
+                        </div>
+                        <div style="padding:15px;border-left:4px solid #10b981;background:#f9fafb;border-radius:4px;">
+                            <div style="font-weight:600;">First Aid & CPR Certified</div>
+                            <div style="font-size:14px;color:#6b7280;">Valid until: Jun 2025</div>
+                        </div>
+                        <div style="padding:15px;border-left:4px solid #2563eb;background:#f9fafb;border-radius:4px;">
+                            <div style="font-weight:600;">Fire Safety Training</div>
+                            <div style="font-size:14px;color:#6b7280;">Completed: Jan 2024</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div style="margin-top:20px;display:flex;gap:10px;">
+                <a href="/security-update-profile?officer_id={{ officer.officer_id }}" class="btn btn-primary">✏️ Edit Profile</a>
+                <button class="btn btn-secondary" onclick="printProfile()">🖨️ Print</button>
+            </div>
+        </main>
+    </div>
+    <script>
+        function printProfile() {
+            window.print();
+        }
+    </script>
+</body>
+</html>

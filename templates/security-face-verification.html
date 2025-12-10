@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Face Verification - Security</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+<body>
+    <div class="dashboard">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h2>🔐 Condo Access</h2>
+                <div class="user-info"><div>Security Officer</div><div>officer@example.com</div></div>
+            </div>
+            <nav>
+                <ul class="nav-menu">
+                    <li class="nav-item"><a href="/?officer_id={{ officer.officer_id }}" class="nav-link">📹 Monitor Cameras</a></li>
+                    <li class="nav-item"><a href="/security-override?officer_id={{ officer.officer_id }}" class="nav-link">🚪 Manual Override</a></li>
+                    <li class="nav-item"><a href="/security-view-profile?officer_id={{ officer.officer_id }}" class="nav-link">👤 View Profile</a></li>
+                    <li class="nav-item"><a href="/security-update-profile?officer_id={{ officer.officer_id }}" class="nav-link">✏️ Update Profile</a></li>
+                    <li class="nav-item"><a href="/security-deactivate?officer_id={{ officer.officer_id }}" class="nav-link">⚠️ Deactivate Account</a></li>
+                    <li class="nav-item"><a href="/security-face-verification?officer_id={{ officer.officer_id }}" class="nav-link active">🔍 Face Verification</a></li>
+                    <li class="nav-item"><a href="/" class="nav-link" style="margin-top:20px;border-top:1px solid rgba(255,255,255,0.1);padding-top:20px;">🚪 Logout</a></li>
+                </ul>
+            </nav>
+        </aside>
+        <main class="main-content">
+            <div class="page-header">
+                <h1>Face Verification</h1>
+                <p>Verify identity for access control using facial recognition</p>
+            </div>
+            
+            <div class="card">
+                <div class="card-header"><h2>🔍 Live Face Verification</h2></div>
+                <div class="card-body">
+                    <div class="alert alert-info" style="margin-bottom:20px;">
+                        <strong>ℹ️ How to use:</strong><br>
+                        1. Click "Start Camera" to activate the webcam<br>
+                        2. Position the person's face in the center of the camera view<br>
+                        3. Click "Verify Face" to perform recognition<br>
+                        4. System will match against registered residents/visitors
+                    </div>
+                    
+                    <div class="camera-container" style="max-width:640px;margin:0 auto 20px;">
+                        <video id="video" autoplay playsinline style="width:100%;height:480px;background:#1f2937;border-radius:8px;display:none;"></video>
+                        <div id="placeholder" style="width:100%;height:480px;background:#1f2937;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#9ca3af;font-size:18px;">
+                            📹 Camera Inactive - Click "Start Camera" to Begin
+                        </div>
+                        <canvas id="canvas" style="display:none;"></canvas>
+                    </div>
+                    
+                    <div class="camera-controls" style="display:flex;gap:10px;justify-content:center;margin-bottom:20px;">
+                        <button class="btn btn-primary" onclick="startCamera()">📹 Start Camera</button>
+                        <button class="btn btn-secondary" onclick="stopCamera()">⏹️ Stop Camera</button>
+                        <button class="btn btn-success" onclick="verifyFace()">🔍 Verify Face</button>
+                    </div>
+                    
+                    <div id="verificationResult" style="display:none;padding:20px;border-radius:8px;margin-top:20px;"></div>
+                    <div id="message" class="message"></div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-header"><h2>📊 Verification Statistics</h2></div>
+                <div class="card-body">
+                    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:20px;">
+                        <div style="text-align:center;padding:20px;background:#f9fafb;border-radius:8px;">
+                            <div style="font-size:32px;font-weight:bold;color:#10b981;" id="successCount">45</div>
+                            <div style="color:#6b7280;">Successful Verifications Today</div>
+                        </div>
+                        <div style="text-align:center;padding:20px;background:#f9fafb;border-radius:8px;">
+                            <div style="font-size:32px;font-weight:bold;color:#ef4444;" id="failCount">3</div>
+                            <div style="color:#6b7280;">Failed Verifications Today</div>
+                        </div>
+                        <div style="text-align:center;padding:20px;background:#f9fafb;border-radius:8px;">
+                            <div style="font-size:32px;font-weight:bold;color:#2563eb;" id="avgTime">1.2s</div>
+                            <div style="color:#6b7280;">Average Verification Time</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-header"><h2>📋 Recent Verifications</h2></div>
+                <div class="card-body">
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Time</th>
+                                    <th>Person</th>
+                                    <th>Type</th>
+                                    <th>Confidence</th>
+                                    <th>Result</th>
+                                    <th>Officer</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>14:32:15</td>
+                                    <td>John Tan</td>
+                                    <td><span class="badge badge-info">Resident</span></td>
+                                    <td>98.5%</td>
+                                    <td><span class="badge badge-success">VERIFIED</span></td>
+                                    <td>Officer Wong</td>
+                                </tr>
+                                <tr>
+                                    <td>14:28:42</td>
+                                    <td>Mary Lee</td>
+                                    <td><span class="badge badge-warning">Visitor</span></td>
+                                    <td>95.2%</td>
+                                    <td><span class="badge badge-success">VERIFIED</span></td>
+                                    <td>Officer Wong</td>
+                                </tr>
+                                <tr>
+                                    <td>14:25:01</td>
+                                    <td>Unknown Person</td>
+                                    <td><span class="badge badge-danger">Unknown</span></td>
+                                    <td>42.1%</td>
+                                    <td><span class="badge badge-danger">FAILED</span></td>
+                                    <td>Officer Wong</td>
+                                </tr>
+                                <tr>
+                                    <td>14:20:33</td>
+                                    <td>Sarah Kim</td>
+                                    <td><span class="badge badge-info">Resident</span></td>
+                                    <td>97.8%</td>
+                                    <td><span class="badge badge-success">VERIFIED</span></td>
+                                    <td>Officer Wong</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        let stream = null;
+        let videoElement = null;
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            videoElement = document.getElementById('video');
+        });
+
+        async function startCamera() {
+            try {
+                const placeholder = document.getElementById('placeholder');
+                stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { 
+                        facingMode: "user",
+                        width: { ideal: 640 },
+                        height: { ideal: 480 }
+                    }, 
+                    audio: false 
+                });
+                
+                videoElement.srcObject = stream;
+                videoElement.style.display = 'block';
+                placeholder.style.display = 'none';
+                
+                showMessage('Camera started successfully', 'success');
+            } catch (error) {
+                showMessage('Error accessing camera: ' + error.message, 'error');
+            }
+        }
+
+        function stopCamera() {
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+                videoElement.srcObject = null;
+                videoElement.style.display = 'none';
+                document.getElementById('placeholder').style.display = 'flex';
+                document.getElementById('verificationResult').style.display = 'none';
+                stream = null;
+                showMessage('Camera stopped', 'success');
+            }
+        }
+
+        // function verifyFace() {
+        //     if (!stream) {
+        //         showMessage('Please start the camera first', 'error');
+        //         return;
+        //     }
+
+        //     // Capture frame
+        //     const canvas = document.getElementById('canvas');
+        //     const context = canvas.getContext('2d');
+        //     canvas.width = videoElement.videoWidth;
+        //     canvas.height = videoElement.videoHeight;
+        //     context.drawImage(videoElement, 0, 0);
+
+        //     // Show processing message
+        //     showMessage('Processing face verification...', 'success');
+
+        //     // Simulate verification (in real app, this would call the backend API)
+        //     setTimeout(() => {
+        //         const random = Math.random();
+        //         const resultDiv = document.getElementById('verificationResult');
+                
+        //         if (random > 0.3) {
+        //             // Success
+        //             const confidence = (90 + Math.random() * 9).toFixed(1);
+        //             const names = ['John Tan', 'Mary Lee', 'Sarah Kim', 'David Lim', 'Lisa Wong'];
+        //             const name = names[Math.floor(Math.random() * names.length)];
+        //             const units = ['12-05', '08-03', '15-12', '03-08', '20-01'];
+        //             const unit = units[Math.floor(Math.random() * units.length)];
+                    
+        //             resultDiv.innerHTML = `
+        //                 <div style="background:#d1fae5;border-left:4px solid #10b981;padding:20px;">
+        //                     <h3 style="margin:0 0 15px 0;color:#065f46;">✅ Verification Successful</h3>
+        //                     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:15px;color:#065f46;">
+        //                         <div>
+        //                             <div style="font-weight:500;font-size:14px;opacity:0.8;">Name</div>
+        //                             <div style="font-size:18px;font-weight:600;">${name}</div>
+        //                         </div>
+        //                         <div>
+        //                             <div style="font-weight:500;font-size:14px;opacity:0.8;">Unit Number</div>
+        //                             <div style="font-size:18px;font-weight:600;">${unit}</div>
+        //                         </div>
+        //                         <div>
+        //                             <div style="font-weight:500;font-size:14px;opacity:0.8;">Type</div>
+        //                             <div style="font-size:18px;font-weight:600;">Resident</div>
+        //                         </div>
+        //                         <div>
+        //                             <div style="font-weight:500;font-size:14px;opacity:0.8;">Confidence</div>
+        //                             <div style="font-size:18px;font-weight:600;">${confidence}%</div>
+        //                         </div>
+        //                     </div>
+        //                     <div style="margin-top:15px;display:flex;gap:10px;">
+        //                         <button class="btn btn-success" onclick="grantAccess('${name}')">✅ Grant Access</button>
+        //                         <button class="btn btn-secondary" onclick="clearResult()">Clear</button>
+        //                     </div>
+        //                 </div>
+        //             `;
+                    
+        //             // Update stats
+        //             const successCount = document.getElementById('successCount');
+        //             successCount.textContent = parseInt(successCount.textContent) + 1;
+        //         } else {
+        //             // Failed
+        //             const confidence = (10 + Math.random() * 40).toFixed(1);
+                    
+        //             resultDiv.innerHTML = `
+        //                 <div style="background:#fee2e2;border-left:4px solid #ef4444;padding:20px;">
+        //                     <h3 style="margin:0 0 15px 0;color:#991b1b;">❌ Verification Failed</h3>
+        //                     <div style="color:#991b1b;">
+        //                         <p style="margin:0 0 10px 0;">No matching face found in the database.</p>
+        //                         <div style="font-weight:500;">Confidence: ${confidence}%</div>
+        //                     </div>
+        //                     <div style="margin-top:15px;display:flex;gap:10px;">
+        //                         <a href="security-override.html" class="btn btn-primary">🚪 Manual Override</a>
+        //                         <button class="btn btn-secondary" onclick="clearResult()">Try Again</button>
+        //                     </div>
+        //                 </div>
+        //             `;
+                    
+        //             // Update stats
+        //             const failCount = document.getElementById('failCount');
+        //             failCount.textContent = parseInt(failCount.textContent) + 1;
+        //         }
+                
+        //         resultDiv.style.display = 'block';
+        //         showMessage('Verification complete', 'success');
+        //     }, 1500);
+        // }
+        async function verifyFace() {
+            if (!stream) {
+                showMessage('Please start the camera first', 'error');
+                return;
+            }
+
+            const canvas = document.getElementById('canvas');
+            const context = canvas.getContext('2d');
+            canvas.width = videoElement.videoWidth;
+            canvas.height = videoElement.videoHeight;
+            context.drawImage(videoElement, 0, 0);
+
+        //    const imageBase64 = canvas.toDataURL("image/jpeg").split(",")[1]; // Remove prefix
+            const imageBase64 = canvas.toDataURL("image/jpeg"); // includes "data:image/jpeg;base64,"
+
+            try {
+                const res = await fetch("/api/security_officer/verify_face", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ image: imageBase64 })
+                });
+                const data = await res.json();
+                console.log(data);
+                showMessage(data.message, data.status === "success" ? "success" : "error");
+            } catch (err) {
+                showMessage("Error verifying face: " + err.message, "error");
+            }
+        }
+
+
+        function grantAccess(name) {
+            showMessage(`Access granted to ${name}`, 'success');
+            setTimeout(() => {
+                clearResult();
+            }, 2000);
+        }
+
+        function clearResult() {
+            document.getElementById('verificationResult').style.display = 'none';
+        }
+
+        function showMessage(msg, type) {
+            const messageBox = document.getElementById('message');
+            messageBox.textContent = msg;
+            messageBox.className = 'message ' + type;
+            messageBox.style.display = 'block';
+            setTimeout(() => messageBox.style.display = 'none', 3000);
+        }
+
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', function() {
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+            }
+        });
+    </script>
+</body>
+</html>
