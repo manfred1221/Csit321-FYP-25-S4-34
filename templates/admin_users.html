@@ -424,15 +424,13 @@
                     </tbody>
                 </table>
             </div>
-        </div>
+            <div id="message" class="message"></div>
+        </main>
     </div>
 
     <script>
-        function toggleSelectAll() {
-            const selectAll = document.getElementById('selectAll');
-            const checkboxes = document.querySelectorAll('.user-checkbox');
-            checkboxes.forEach(cb => cb.checked = selectAll.checked);
-            updateBulkActions();
+        function editUser(id) {
+            window.location.href = 'admin_edit_user.html?id=' + id;
         }
 
         function updateBulkActions() {

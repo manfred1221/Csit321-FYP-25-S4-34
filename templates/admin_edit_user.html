@@ -428,6 +428,7 @@
                                 <p class="help-text">Access will be automatically revoked after this date</p>
                             </div>
                         </div>
+                        
                         <div class="form-group">
                             <label>Work Schedule</label>
                             <input type="text" id="work_schedule" value="{{ user.work_schedule or '' }}"
@@ -492,8 +493,7 @@
                 <button class="btn btn-primary btn-block" id="uploadDocBtn" onclick="uploadDoc()" disabled
                     style="margin-top:15px;">Upload Document</button>
             </div>
-        </div>
-        {% endif %}
+        </main>
     </div>
 
     <script>
