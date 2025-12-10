@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Face Verification - Security</title>
-    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
 </head>
 <body>
     <div class="dashboard">
@@ -15,13 +15,13 @@
             </div>
             <nav>
                 <ul class="nav-menu">
-                    <li class="nav-item"><a href="security-dashboard.html" class="nav-link">📹 Monitor Cameras</a></li>
-                    <li class="nav-item"><a href="security-override.html" class="nav-link">🚪 Manual Override</a></li>
-                    <li class="nav-item"><a href="security-view-profile.html" class="nav-link">👤 View Profile</a></li>
-                    <li class="nav-item"><a href="security-update-profile.html" class="nav-link">✏️ Update Profile</a></li>
-                    <li class="nav-item"><a href="security-deactivate.html" class="nav-link">⚠️ Deactivate Account</a></li>
-                    <li class="nav-item"><a href="security-face-verification.html" class="nav-link active">🔍 Face Verification</a></li>
-                    <li class="nav-item"><a href="index.html" class="nav-link" style="margin-top:20px;border-top:1px solid rgba(255,255,255,0.1);padding-top:20px;">🚪 Logout</a></li>
+                    <li class="nav-item"><a href="/?officer_id={{ officer.officer_id }}" class="nav-link">📹 Monitor Cameras</a></li>
+                    <li class="nav-item"><a href="/security-override?officer_id={{ officer.officer_id }}" class="nav-link">🚪 Manual Override</a></li>
+                    <li class="nav-item"><a href="/security-view-profile?officer_id={{ officer.officer_id }}" class="nav-link">👤 View Profile</a></li>
+                    <li class="nav-item"><a href="/security-update-profile?officer_id={{ officer.officer_id }}" class="nav-link">✏️ Update Profile</a></li>
+                    <li class="nav-item"><a href="/security-deactivate?officer_id={{ officer.officer_id }}" class="nav-link">⚠️ Deactivate Account</a></li>
+                    <li class="nav-item"><a href="/security-face-verification?officer_id={{ officer.officer_id }}" class="nav-link active">🔍 Face Verification</a></li>
+                    <li class="nav-item"><a href="/" class="nav-link" style="margin-top:20px;border-top:1px solid rgba(255,255,255,0.1);padding-top:20px;">🚪 Logout</a></li>
                 </ul>
             </nav>
         </aside>
@@ -179,93 +179,122 @@
             }
         }
 
-        function verifyFace() {
+        // function verifyFace() {
+        //     if (!stream) {
+        //         showMessage('Please start the camera first', 'error');
+        //         return;
+        //     }
+
+        //     // Capture frame
+        //     const canvas = document.getElementById('canvas');
+        //     const context = canvas.getContext('2d');
+        //     canvas.width = videoElement.videoWidth;
+        //     canvas.height = videoElement.videoHeight;
+        //     context.drawImage(videoElement, 0, 0);
+
+        //     // Show processing message
+        //     showMessage('Processing face verification...', 'success');
+
+        //     // Simulate verification (in real app, this would call the backend API)
+        //     setTimeout(() => {
+        //         const random = Math.random();
+        //         const resultDiv = document.getElementById('verificationResult');
+                
+        //         if (random > 0.3) {
+        //             // Success
+        //             const confidence = (90 + Math.random() * 9).toFixed(1);
+        //             const names = ['John Tan', 'Mary Lee', 'Sarah Kim', 'David Lim', 'Lisa Wong'];
+        //             const name = names[Math.floor(Math.random() * names.length)];
+        //             const units = ['12-05', '08-03', '15-12', '03-08', '20-01'];
+        //             const unit = units[Math.floor(Math.random() * units.length)];
+                    
+        //             resultDiv.innerHTML = `
+        //                 <div style="background:#d1fae5;border-left:4px solid #10b981;padding:20px;">
+        //                     <h3 style="margin:0 0 15px 0;color:#065f46;">✅ Verification Successful</h3>
+        //                     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:15px;color:#065f46;">
+        //                         <div>
+        //                             <div style="font-weight:500;font-size:14px;opacity:0.8;">Name</div>
+        //                             <div style="font-size:18px;font-weight:600;">${name}</div>
+        //                         </div>
+        //                         <div>
+        //                             <div style="font-weight:500;font-size:14px;opacity:0.8;">Unit Number</div>
+        //                             <div style="font-size:18px;font-weight:600;">${unit}</div>
+        //                         </div>
+        //                         <div>
+        //                             <div style="font-weight:500;font-size:14px;opacity:0.8;">Type</div>
+        //                             <div style="font-size:18px;font-weight:600;">Resident</div>
+        //                         </div>
+        //                         <div>
+        //                             <div style="font-weight:500;font-size:14px;opacity:0.8;">Confidence</div>
+        //                             <div style="font-size:18px;font-weight:600;">${confidence}%</div>
+        //                         </div>
+        //                     </div>
+        //                     <div style="margin-top:15px;display:flex;gap:10px;">
+        //                         <button class="btn btn-success" onclick="grantAccess('${name}')">✅ Grant Access</button>
+        //                         <button class="btn btn-secondary" onclick="clearResult()">Clear</button>
+        //                     </div>
+        //                 </div>
+        //             `;
+                    
+        //             // Update stats
+        //             const successCount = document.getElementById('successCount');
+        //             successCount.textContent = parseInt(successCount.textContent) + 1;
+        //         } else {
+        //             // Failed
+        //             const confidence = (10 + Math.random() * 40).toFixed(1);
+                    
+        //             resultDiv.innerHTML = `
+        //                 <div style="background:#fee2e2;border-left:4px solid #ef4444;padding:20px;">
+        //                     <h3 style="margin:0 0 15px 0;color:#991b1b;">❌ Verification Failed</h3>
+        //                     <div style="color:#991b1b;">
+        //                         <p style="margin:0 0 10px 0;">No matching face found in the database.</p>
+        //                         <div style="font-weight:500;">Confidence: ${confidence}%</div>
+        //                     </div>
+        //                     <div style="margin-top:15px;display:flex;gap:10px;">
+        //                         <a href="security-override.html" class="btn btn-primary">🚪 Manual Override</a>
+        //                         <button class="btn btn-secondary" onclick="clearResult()">Try Again</button>
+        //                     </div>
+        //                 </div>
+        //             `;
+                    
+        //             // Update stats
+        //             const failCount = document.getElementById('failCount');
+        //             failCount.textContent = parseInt(failCount.textContent) + 1;
+        //         }
+                
+        //         resultDiv.style.display = 'block';
+        //         showMessage('Verification complete', 'success');
+        //     }, 1500);
+        // }
+        async function verifyFace() {
             if (!stream) {
                 showMessage('Please start the camera first', 'error');
                 return;
             }
 
-            // Capture frame
             const canvas = document.getElementById('canvas');
             const context = canvas.getContext('2d');
             canvas.width = videoElement.videoWidth;
             canvas.height = videoElement.videoHeight;
             context.drawImage(videoElement, 0, 0);
 
-            // Show processing message
-            showMessage('Processing face verification...', 'success');
+        //    const imageBase64 = canvas.toDataURL("image/jpeg").split(",")[1]; // Remove prefix
+            const imageBase64 = canvas.toDataURL("image/jpeg"); // includes "data:image/jpeg;base64,"
 
-            // Simulate verification (in real app, this would call the backend API)
-            setTimeout(() => {
-                const random = Math.random();
-                const resultDiv = document.getElementById('verificationResult');
-                
-                if (random > 0.3) {
-                    // Success
-                    const confidence = (90 + Math.random() * 9).toFixed(1);
-                    const names = ['John Tan', 'Mary Lee', 'Sarah Kim', 'David Lim', 'Lisa Wong'];
-                    const name = names[Math.floor(Math.random() * names.length)];
-                    const units = ['12-05', '08-03', '15-12', '03-08', '20-01'];
-                    const unit = units[Math.floor(Math.random() * units.length)];
-                    
-                    resultDiv.innerHTML = `
-                        <div style="background:#d1fae5;border-left:4px solid #10b981;padding:20px;">
-                            <h3 style="margin:0 0 15px 0;color:#065f46;">✅ Verification Successful</h3>
-                            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:15px;color:#065f46;">
-                                <div>
-                                    <div style="font-weight:500;font-size:14px;opacity:0.8;">Name</div>
-                                    <div style="font-size:18px;font-weight:600;">${name}</div>
-                                </div>
-                                <div>
-                                    <div style="font-weight:500;font-size:14px;opacity:0.8;">Unit Number</div>
-                                    <div style="font-size:18px;font-weight:600;">${unit}</div>
-                                </div>
-                                <div>
-                                    <div style="font-weight:500;font-size:14px;opacity:0.8;">Type</div>
-                                    <div style="font-size:18px;font-weight:600;">Resident</div>
-                                </div>
-                                <div>
-                                    <div style="font-weight:500;font-size:14px;opacity:0.8;">Confidence</div>
-                                    <div style="font-size:18px;font-weight:600;">${confidence}%</div>
-                                </div>
-                            </div>
-                            <div style="margin-top:15px;display:flex;gap:10px;">
-                                <button class="btn btn-success" onclick="grantAccess('${name}')">✅ Grant Access</button>
-                                <button class="btn btn-secondary" onclick="clearResult()">Clear</button>
-                            </div>
-                        </div>
-                    `;
-                    
-                    // Update stats
-                    const successCount = document.getElementById('successCount');
-                    successCount.textContent = parseInt(successCount.textContent) + 1;
-                } else {
-                    // Failed
-                    const confidence = (10 + Math.random() * 40).toFixed(1);
-                    
-                    resultDiv.innerHTML = `
-                        <div style="background:#fee2e2;border-left:4px solid #ef4444;padding:20px;">
-                            <h3 style="margin:0 0 15px 0;color:#991b1b;">❌ Verification Failed</h3>
-                            <div style="color:#991b1b;">
-                                <p style="margin:0 0 10px 0;">No matching face found in the database.</p>
-                                <div style="font-weight:500;">Confidence: ${confidence}%</div>
-                            </div>
-                            <div style="margin-top:15px;display:flex;gap:10px;">
-                                <a href="security-override.html" class="btn btn-primary">🚪 Manual Override</a>
-                                <button class="btn btn-secondary" onclick="clearResult()">Try Again</button>
-                            </div>
-                        </div>
-                    `;
-                    
-                    // Update stats
-                    const failCount = document.getElementById('failCount');
-                    failCount.textContent = parseInt(failCount.textContent) + 1;
-                }
-                
-                resultDiv.style.display = 'block';
-                showMessage('Verification complete', 'success');
-            }, 1500);
+            try {
+                const res = await fetch("/api/security_officer/verify_face", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ image: imageBase64 })
+                });
+                const data = await res.json();
+                console.log(data);
+                showMessage(data.message, data.status === "success" ? "success" : "error");
+            } catch (err) {
+                showMessage("Error verifying face: " + err.message, "error");
+            }
         }
+
 
         function grantAccess(name) {
             showMessage(`Access granted to ${name}`, 'success');
