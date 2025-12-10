@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Manual Override - Security</title>
-    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
 </head>
 <body>
     <div class="dashboard">
@@ -12,19 +12,19 @@
             <div class="sidebar-header">
                 <h2>🔐 Condo Access</h2>
                 <div class="user-info">
-                    <div>Security Officer</div>
-                    <div>officer@example.com</div>
+                    <div>{{officer.full_name}}</div>
+                    <div>{{officer.contact_number}}</div>
                 </div>
             </div>
             <nav>
                 <ul class="nav-menu">
-                    <li class="nav-item"><a href="security-dashboard.html" class="nav-link">📹 Monitor Cameras</a></li>
-                    <li class="nav-item"><a href="security-override.html" class="nav-link active">🚪 Manual Override</a></li>
-                    <li class="nav-item"><a href="security-view-profile.html" class="nav-link">👤 View Profile</a></li>
-                    <li class="nav-item"><a href="security-update-profile.html" class="nav-link">✏️ Update Profile</a></li>
-                    <li class="nav-item"><a href="security-deactivate.html" class="nav-link">⚠️ Deactivate Account</a></li>
-                    <li class="nav-item"><a href="security-face-verification.html" class="nav-link">🔍 Face Verification</a></li>
-                    <li class="nav-item"><a href="index.html" class="nav-link" style="margin-top:20px;border-top:1px solid rgba(255,255,255,0.1);padding-top:20px;">🚪 Logout</a></li>
+                    <li class="nav-item"><a href="/?officer_id={{ officer.officer_id }}" class="nav-link">📹 Monitor Cameras</a></li>
+                    <li class="nav-item"><a href="/security-override?officer_id={{ officer.officer_id }}" class="nav-link active">🚪 Manual Override</a></li>
+                    <li class="nav-item"><a href="/security-view-profile?officer_id={{ officer.officer_id }}" class="nav-link">👤 View Profile</a></li>
+                    <li class="nav-item"><a href="/security-update-profile?officer_id={{ officer.officer_id }}" class="nav-link">✏️ Update Profile</a></li>
+                    <li class="nav-item"><a href="/security-deactivate?officer_id={{ officer.officer_id }}" class="nav-link">⚠️ Deactivate Account</a></li>
+                    <li class="nav-item"><a href="/security-face-verification?officer_id={{ officer.officer_id }}" class="nav-link">🔍 Face Verification</a></li>
+                    <li class="nav-item"><a href="/" class="nav-link" style="margin-top:20px;border-top:1px solid rgba(255,255,255,0.1);padding-top:20px;">🚪 Logout</a></li>
                 </ul>
             </nav>
         </aside>
@@ -102,7 +102,6 @@
                             </thead>
                             <tbody>
                                 <tr><td>14:05:23</td><td>Officer Wong</td><td><span class="badge badge-success">Granted</span></td><td>Main Entrance</td><td>Visitor pass expired</td></tr>
-                                <tr><td>13:42:11</td><td>Officer Smith</td><td><span class="badge badge-info">Opened</span></td><td>Parking A</td><td>System malfunction</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -111,35 +110,68 @@
         </main>
     </div>
     <script>
-        function openGate() {
-            const door = document.getElementById('doorSelect').value;
-            const officerId = document.getElementById('officerId').value;
-            const reason = document.getElementById('reason').value;
-            if (!reason) {
-                showMsg('message1', 'Please provide a reason', 'error');
-                return;
-            }
-            showMsg('message1', `${door} opened successfully`, 'success');
-            document.getElementById('reason').value = '';
+    function openGate() {
+        const door = document.getElementById('doorSelect').value;
+        const officerId = "{{ officer.full_name }}";   // always the logged-in officer
+        const reason = document.getElementById('reason').value;
+
+        if (!reason) {
+            showMsg('message1', 'Please provide a reason', 'error');
+            return;
         }
-        function grantAccess() {
-            const name = document.getElementById('personName').value;
-            if (!name) {
-                showMsg('message2', 'Please enter person name', 'error');
-                return;
-            }
-            showMsg('message2', `Access granted to ${name}`, 'success');
-            document.getElementById('personName').value = '';
-            document.getElementById('unitNumber').value = '';
-            document.getElementById('notes').value = '';
+
+        addLogRow('Opened', door, reason, officerId);
+        showMsg('message1', `${door} opened successfully`, 'success');
+        document.getElementById('reason').value = '';
+    }
+
+    function grantAccess() {
+        const name = document.getElementById('personName').value;
+
+        if (!name) {
+            showMsg('message2', 'Please enter person name', 'error');
+            return;
         }
-        function showMsg(id, msg, type) {
-            const el = document.getElementById(id);
-            el.textContent = msg;
-            el.className = 'message ' + type;
-            el.style.display = 'block';
-            setTimeout(() => el.style.display = 'none', 3000);
-        }
+
+        addLogRow('Granted', 'Manual Access', `Access to ${name}`, "{{ officer.full_name }}");
+        showMsg('message2', `Access granted to ${name}`, 'success');
+
+        document.getElementById('personName').value = '';
+        document.getElementById('unitNumber').value = '';
+        document.getElementById('notes').value = '';
+    }
+
+    // 🔥 APPEND ROW TO TABLE
+    function addLogRow(action, door, reason, officer) {
+        const tableBody = document.querySelector("table tbody");
+
+        const now = new Date();
+        const time = now.toLocaleTimeString('en-SG', { hour12: false });
+
+        let badgeClass = "badge-info";
+        if (action === "Granted") badgeClass = "badge-success";
+
+        const newRow = document.createElement("tr");
+        newRow.innerHTML = `
+            <td>${time}</td>
+            <td>${officer}</td>
+            <td><span class="badge ${badgeClass}">${action}</span></td>
+            <td>${door}</td>
+            <td>${reason}</td>
+        `;
+
+        tableBody.prepend(newRow);   // add to TOP of table
+    }
+
+    function showMsg(id, msg, type) {
+        const el = document.getElementById(id);
+        el.textContent = msg;
+        el.className = 'message ' + type;
+        el.style.display = 'block';
+        setTimeout(() => el.style.display = 'none', 3000);
+    }
+</script>
+
     </script>
 </body>
 </html>
