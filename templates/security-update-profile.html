@@ -101,7 +101,11 @@
             }
 
             try {
-                const response = await fetch("/api/update-officer", {
+                const urlParams = new URLSearchParams(window.location.search);
+                const officer_id = urlParams.get("officer_id");
+                console.log("Officer ID from URL:", officer_id);
+                
+                const response = await fetch( `/api/update-officer?officer_id=${officer_id}`, {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json"
