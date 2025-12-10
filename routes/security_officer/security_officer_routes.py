@@ -1,5 +1,7 @@
-from flask import Blueprint, request, jsonify, Response
-from .security_officer_model import SecurityOfficer, db, FaceEmbedding, log_access
+from flask import Blueprint, request, jsonify, Response, current_app
+import os
+from werkzeug.utils import secure_filename
+from .security_officer_model import SecurityOfficer, db, FaceEmbedding, log_access, Resident, Visitor, AccessLog
 import numpy as np
 from .security_officer_controller import image_to_embedding
 from .security_officer_controller import (
@@ -187,3 +189,106 @@ def verify_face():
         "message": f"New officer registered: {new_officer.full_name}",
         "officer_id": officer_id
     })
+
+@security_officer_bp.route("/upload_face_embedding", methods=["POST"])
+def upload_face_embedding():
+    try:
+        image_file = request.files['image']
+        user_type = request.form['user_type']
+        reference_id = int(request.form['reference_id'])
+
+        # Save image to disk (optional)
+        filename = secure_filename(image_file.filename)
+        save_path = os.path.join("static/uploads", filename)
+        os.makedirs(os.path.dirname(save_path), exist_ok=True)
+        image_file.save(save_path)
+
+        # TODO: Generate face embedding using your ML model
+        embedding_vector = [0.0]*512  # placeholder for actual vector
+
+        # Insert into database
+        new_embedding = FaceEmbedding(
+            user_type=user_type,
+            reference_id=reference_id,
+            embedding=embedding_vector,
+            image_filename=filename
+        )
+        db.session.add(new_embedding)
+        db.session.commit()
+
+        return jsonify({"status": "success", "message": "Face embedding stored", "embedding_id": new_embedding.embedding_id})
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"status": "error", "message": str(e)}), 500
+    
+@security_officer_bp.route("/login", methods=["POST"])
+def login():
+    data = request.get_json()
+    user_type = data.get("user_type")
+    user_id = data.get("user_id")
+    # password = data.get("password")  # optional
+
+    if not user_type or not user_id:
+        return jsonify({"success": False, "message": "Missing login data"}), 400
+
+    # ------------------------
+    # SECURITY OFFICER LOGIN
+    # ------------------------
+    if user_type == "security_officer":
+        user = SecurityOfficer.query.get(user_id)
+        if not user:
+            return jsonify({"success": False, "message": "Officer ID not found"}), 404
+
+        # # If password exists in DB:
+        # if user.password_hash:
+        #     from werkzeug.security import check_password_hash
+        #     if not check_password_hash(user.password_hash, password):
+        #         return jsonify({"success": False, "message": "Invalid password"}), 401
+
+        return jsonify({
+            "success": True,
+            "message": "Login successful",
+            "user_type": "security_officer",
+            "id": user.officer_id,
+            "name": user.full_name
+        }), 200
+
+    # ------------------------
+    # RESIDENT LOGIN
+    # ------------------------
+    elif user_type == "resident":
+        user = Resident.query.get(user_id)
+        if not user:
+            return jsonify({"success": False, "message": "Resident ID not found"}), 404
+
+        return jsonify({
+            "success": True,
+            "message": "Login successful",
+            "user_type": "resident",
+            "id": user.resident_id,
+            "name": user.full_name
+        }), 200
+
+    # ------------------------
+    # VISITOR LOGIN
+    # ------------------------
+    elif user_type == "visitor":
+        user = Visitor.query.get(user_id)
+        if not user:
+            return jsonify({"success": False, "message": "Visitor ID not found"}), 404
+
+        return jsonify({
+            "success": True,
+            "message": "Login successful",
+            "user_type": "visitor",
+            "id": user.visitor_id,
+            "name": user.full_name
+        }), 200
+
+    # ------------------------
+    # INVALID
+    # ------------------------
+    else:
+        return jsonify({"success": False, "message": "Invalid user type"}), 400
+
