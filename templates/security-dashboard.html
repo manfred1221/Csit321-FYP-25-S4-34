@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Security Dashboard - Condo Access</title>
-    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
 </head>
 <body>
     <div class="dashboard">
@@ -13,45 +13,45 @@
             <div class="sidebar-header">
                 <h2>🔐 Condo Access</h2>
                 <div class="user-info">
-                    <div id="officerName">Security Officer</div>
-                    <div id="officerEmail">officer@example.com</div>
+                    <div id="officerName">{{officer.full_name}}</div>
+                    <div id="officerEmail">{{officer.contact_number}}</div>
                 </div>
             </div>
 
             <nav>
                 <ul class="nav-menu">
                     <li class="nav-item">
-                        <a href="security-dashboard.html" class="nav-link active">
+                        <a href="/?officer_id={{ officer.officer_id }}" class="nav-link active">
                             📹 Monitor Cameras
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a href="security-override.html" class="nav-link">
+                        <a href="/security-override?officer_id={{ officer.officer_id }}" class="nav-link">
                             🚪 Manual Override
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a href="security-view-profile.html" class="nav-link">
+                        <a href="/security-view-profile?officer_id={{ officer.officer_id }}" class="nav-link">
                             👤 View Profile
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a href="security-update-profile.html" class="nav-link">
+                        <a href="/security-update-profile?officer_id={{ officer.officer_id }}" class="nav-link">
                             ✏️ Update Profile
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a href="security-deactivate.html" class="nav-link">
+                        <a href="/security-deactivate?officer_id={{ officer.officer_id }}" class="nav-link">
                             ⚠️ Deactivate Account
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a href="security-face-verification.html" class="nav-link">
+                        <a href="/security-face-verification?officer_id={{ officer.officer_id }}" class="nav-link">
                             🔍 Face Verification
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a href="index.html" class="nav-link" style="margin-top: 20px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 20px;">
+                        <a href="/" class="nav-link" style="margin-top: 20px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 20px;">
                             🚪 Logout
                         </a>
                     </li>
@@ -207,40 +207,38 @@
                         <table>
                             <thead>
                                 <tr>
+                                    <th>Log ID #</th>
                                     <th>Time</th>
                                     <th>Location</th>
                                     <th>Person</th>
                                     <th>Type</th>
+                                    <th>Confidence</th>
                                     <th>Result</th>
-                                    <th>Actions</th>
                                 </tr>
                             </thead>
                             <tbody id="accessLogBody">
-                                <tr>
-                                    <td>14:23:15</td>
-                                    <td>Main Entrance</td>
-                                    <td>John Tan</td>
-                                    <td><span class="badge badge-info">Resident</span></td>
+                            {% for log in logs %}
+                            <tr>
+                                <td>{{log.log_id}}</td>
+                                <td>{{ log.access_time.strftime('%H:%M:%S') }}</td>
+                                <td>Main Entrance</td>  <!-- optional: remove if your DB has a location column later -->
+                                <td>{{ officer.full_name }}</td>  <!-- because recognized_person = officer 1 -->
+                                <td><span class="badge badge-info">{{ log.user_type }}</span></td>
+                                <td>{{ "%.2f"|format(log.confidence) }}</td>
+                                {% if log.access_result == "granted" %}
                                     <td><span class="badge badge-success">GRANTED</span></td>
-                                    <td><button class="btn btn-sm btn-secondary" onclick="viewDetails(1)">Details</button></td>
-                                </tr>
-                                <tr>
-                                    <td>14:18:42</td>
-                                    <td>Parking Lot A</td>
-                                    <td>Mary Lee</td>
-                                    <td><span class="badge badge-warning">Visitor</span></td>
-                                    <td><span class="badge badge-success">GRANTED</span></td>
-                                    <td><button class="btn btn-sm btn-secondary" onclick="viewDetails(2)">Details</button></td>
-                                </tr>
-                                <tr>
-                                    <td>14:15:01</td>
-                                    <td>Main Entrance</td>
-                                    <td>Unknown</td>
-                                    <td><span class="badge badge-danger">Unknown</span></td>
+                                {% else %}
                                     <td><span class="badge badge-danger">DENIED</span></td>
-                                    <td><button class="btn btn-sm btn-secondary" onclick="viewDetails(3)">Details</button></td>
-                                </tr>
-                            </tbody>
+                                {% endif %}
+
+                                <td>
+                                    <!-- <button class="btn btn-sm btn-secondary" onclick="viewDetails({{ log.log_id }})"> -->
+                                    </button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+
                         </table>
                     </div>
                 </div>
@@ -253,14 +251,9 @@
     <script>
         const cameraStreams = {};
 
-        document.addEventListener('DOMContentLoaded', function() {
-            loadOfficerInfo();
-        });
-
-        function loadOfficerInfo() {
-            document.getElementById('officerName').textContent = 'Officer David Wong';
-            document.getElementById('officerEmail').textContent = 'david.wong@security.com';
-        }
+            // document.addEventListener('DOMContentLoaded', function() {
+            //     loadOfficerInfo();
+            // });
 
         async function startCamera(cameraId) {
             try {
@@ -317,17 +310,46 @@
             canvas.width = video.videoWidth;
             canvas.height = video.videoHeight;
             canvas.getContext('2d').drawImage(video, 0, 0);
-            
-            canvas.toBlob(blob => {
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `snapshot-${cameraId}-${Date.now()}.jpg`;
-                a.click();
-                URL.revokeObjectURL(url);
-                showMessage('Snapshot saved', 'success');
-            }, 'image/jpeg');
+
+            // Convert canvas to base64
+            const imageBase64 = canvas.toDataURL('image/jpeg');
+
+            // Prompt for name and user type
+            const name = prompt("Enter person's full name:");
+            if (!name) return;
+            const userType = prompt("Enter user type (resident/visitor):").toLowerCase();
+            if (!userType || (userType !== 'resident' && userType !== 'visitor')) {
+                showMessage('Invalid user type', 'error');
+                return;
+            }
+
+            // Send POST request to register_face
+            fetch('/register_face', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    name: name,
+                    user_type: userType,
+                    image: imageBase64
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    showMessage(data.message, 'success');
+                } else {
+                    showMessage(data.message || 'Error registering face', 'error');
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                showMessage('Failed to register face', 'error');
+            });
         }
+
+
 
         function refreshCameras() {
             showMessage('Refreshing all camera feeds...', 'success');
