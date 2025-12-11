@@ -1,460 +1,273 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Face Registration - Admin</title>
-    <link rel="stylesheet" href="css/styles.css">
-</head>
-<body>
-    <div class="dashboard">
-        <aside class="sidebar">
-            <div class="sidebar-header">
-                <h2>👑 Admin Panel</h2>
-                <div class="user-info"><div>Administrator</div><div><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="7c1d181115123c1f13121813521f1311">[email&#160;protected]</a></div></div>
-            </div>
-            <nav>
-                <ul class="nav-menu">
-                    <li class="nav-item"><a href="admin_users.html" class="nav-link">👥 Manage Users</a></li>
-                    <li class="nav-item"><a href="admin_add_user.html" class="nav-link">➕ Add User</a></li>
-                    <li class="nav-item"><a href="admin_logs.html" class="nav-link">📋 Access Logs</a></li>
-                    <li class="nav-item"><a href="camera.html" class="nav-link active">📸 Face Registration</a></li>
-                    <li class="nav-item"><a href="admin_profile.html" class="nav-link">👤 My Profile</a></li>
-                    <li class="nav-item"><a href="admin_login.html" class="nav-link" style="margin-top:20px;border-top:1px solid rgba(255,255,255,0.1);padding-top:20px;">🚪 Logout</a></li>
-                </ul>
-            </nav>
-        </aside>
-        <main class="main-content">
-            <div class="page-header">
-                <h1>Face Registration System</h1>
-                <p>Register facial recognition data for visitors and residents</p>
-            </div>
-            
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <h3>Total Faces Registered</h3>
-                    <div class="stat-value">143</div>
-                </div>
-                <div class="stat-card">
-                    <h3>Residents</h3>
-                    <div class="stat-value" style="color:#10b981;">98</div>
-                </div>
-                <div class="stat-card">
-                    <h3>Visitors</h3>
-                    <div class="stat-value" style="color:#2563eb;">42</div>
-                </div>
-                <div class="stat-card">
-                    <h3>Pending Registration</h3>
-                    <div class="stat-value" style="color:#f59e0b;">3</div>
-                </div>
-            </div>
-            
-            <div class="card">
-                <div class="card-header"><h2>📸 Register New Face</h2></div>
-                <div class="card-body">
-                    <div class="alert alert-info" style="margin-bottom:20px;">
-                        <strong>ℹ️ How to Register:</strong><br>
-                        1. Select the person type (Visitor or Resident)<br>
-                        2. Enter their details<br>
-                        3. Start the camera and position their face in the center<br>
-                        4. Click "Capture Face" when ready<br>
-                        5. Click "Register" to save the face data
-                    </div>
-                    
-                    <form id="registrationForm">
-                        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:20px;margin-bottom:30px;">
-                            <div class="form-group">
-                                <label>Person Type *</label>
-                                <select id="personType" required onchange="toggleFields()">
-                                    <option value="">Select type...</option>
-                                    <option value="visitor">Visitor</option>
-                                    <option value="resident">Resident</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label>Full Name *</label>
-                                <input type="text" id="fullName" placeholder="John Tan" required>
-                            </div>
-                            <div class="form-group">
-                                <label>Contact Number *</label>
-                                <input type="tel" id="phone" placeholder="+65 9876 5432" required>
-                            </div>
-                        </div>
-                        
-                        <!-- Visitor-specific fields -->
-                        <div id="visitorFields" style="display:none;margin-bottom:30px;">
-                            <h3 style="font-size:18px;color:#1f2937;margin-bottom:15px;">Visitor Information</h3>
-                            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:20px;">
-                                <div class="form-group">
-                                    <label>Visiting Unit *</label>
-                                    <input type="text" id="visitingUnit" placeholder="12-05">
-                                </div>
-                                <div class="form-group">
-                                    <label>Host Name</label>
-                                    <input type="text" id="hostName" placeholder="Resident name">
-                                </div>
-                                <div class="form-group">
-                                    <label>Visit Start Date</label>
-                                    <input type="datetime-local" id="visitStart">
-                                </div>
-                                <div class="form-group">
-                                    <label>Visit End Date</label>
-                                    <input type="datetime-local" id="visitEnd">
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <!-- Resident-specific fields -->
-                        <div id="residentFields" style="display:none;margin-bottom:30px;">
-                            <h3 style="font-size:18px;color:#1f2937;margin-bottom:15px;">Resident Information</h3>
-                            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:20px;">
-                                <div class="form-group">
-                                    <label>Unit Number *</label>
-                                    <input type="text" id="unitNumber" placeholder="12-05">
-                                </div>
-                                <div class="form-group">
-                                    <label>Block</label>
-                                    <input type="text" id="block" placeholder="A">
-                                </div>
-                                <div class="form-group">
-                                    <label>Email</label>
-                                    <input type="email" id="email" placeholder="john.tan@email.com">
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <!-- Camera Section -->
-                        <h3 style="font-size:18px;color:#1f2937;margin-bottom:15px;">📸 Capture Face Photo</h3>
-                        <div class="camera-container" style="max-width:640px;margin:0 auto 20px;">
-                            <video id="video" autoplay playsinline style="width:100%;height:480px;background:#1f2937;border-radius:8px;display:none;"></video>
-                            <canvas id="canvas" style="display:none;"></canvas>
-                            <img id="capturedImage" style="width:100%;height:480px;background:#1f2937;border-radius:8px;object-fit:cover;display:none;">
-                            <div id="placeholder" style="width:100%;height:480px;background:#1f2937;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#9ca3af;font-size:18px;flex-direction:column;gap:10px;">
-                                <div style="font-size:48px;">📹</div>
-                                <div>Camera Inactive</div>
-                                <div style="font-size:14px;">Click "Start Camera" to begin</div>
-                            </div>
-                        </div>
-                        
-                        <div class="camera-controls" style="display:flex;gap:10px;justify-content:center;margin-bottom:30px;flex-wrap:wrap;">
-                            <button type="button" class="btn btn-primary" onclick="startCamera()">📹 Start Camera</button>
-                            <button type="button" class="btn btn-secondary" onclick="stopCamera()">⏹️ Stop Camera</button>
-                            <button type="button" class="btn btn-success" onclick="captureFace()" id="captureBtn" disabled>📸 Capture Face</button>
-                            <button type="button" class="btn btn-secondary" onclick="retakeFace()" id="retakeBtn" style="display:none;">🔄 Retake</button>
-                        </div>
-                        
-                        <div id="captureStatus" style="padding:15px;background:#f9fafb;border-radius:8px;text-align:center;margin-bottom:20px;display:none;">
-                            <div style="font-weight:600;margin-bottom:5px;">✅ Face Captured Successfully</div>
-                            <div style="font-size:14px;color:#6b7280;">Face detected with high confidence. Ready to register.</div>
-                        </div>
-                        
-                        <div style="display:flex;gap:10px;">
-                            <button type="submit" class="btn btn-primary" style="flex:1;" id="registerBtn" disabled>✅ Register Face Data</button>
-                            <button type="button" class="btn btn-secondary" style="flex:1;" onclick="resetForm()">Clear Form</button>
-                        </div>
-                    </form>
-                    <div id="message" class="message"></div>
-                </div>
-            </div>
-            
-            <div class="card">
-                <div class="card-header">
-                    <h2>📋 Recent Face Registrations</h2>
-                    <div style="display:flex;gap:10px;">
-                        <select id="filterType" style="padding:8px 12px;border:1px solid #e5e7eb;border-radius:6px;">
-                            <option value="">All Types</option>
-                            <option value="visitor">Visitors</option>
-                            <option value="resident">Residents</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="card-body">
-                    <div class="table-container">
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>ID</th>
-                                    <th>Name</th>
-                                    <th>Type</th>
-                                    <th>Unit/Host</th>
-                                    <th>Contact</th>
-                                    <th>Registered Date</th>
-                                    <th>Status</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td>#FR-001</td>
-                                    <td>John Tan</td>
-                                    <td><span class="badge badge-info">Resident</span></td>
-                                    <td>12-05</td>
-                                    <td>+65 9876 5432</td>
-                                    <td>2024-12-08 10:30</td>
-                                    <td><span class="badge badge-success">Active</span></td>
-                                    <td>
-                                        <div class="actions">
-                                            <button class="btn btn-sm btn-secondary" onclick="viewFace(1)">👁️ View</button>
-                                            <button class="btn btn-sm btn-danger" onclick="deleteFace(1)">🗑️ Delete</button>
-                                        </div>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>#FR-002</td>
-                                    <td>Mary Lee</td>
-                                    <td><span class="badge badge-warning">Visitor</span></td>
-                                    <td>Host: Sarah Kim</td>
-                                    <td>+65 8765 4321</td>
-                                    <td>2024-12-08 11:15</td>
-                                    <td><span class="badge badge-success">Active</span></td>
-                                    <td>
-                                        <div class="actions">
-                                            <button class="btn btn-sm btn-secondary" onclick="viewFace(2)">👁️ View</button>
-                                            <button class="btn btn-sm btn-danger" onclick="deleteFace(2)">🗑️ Delete</button>
-                                        </div>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>#FR-003</td>
-                                    <td>David Lim</td>
-                                    <td><span class="badge badge-info">Resident</span></td>
-                                    <td>08-03</td>
-                                    <td>+65 9234 5678</td>
-                                    <td>2024-12-08 12:45</td>
-                                    <td><span class="badge badge-success">Active</span></td>
-                                    <td>
-                                        <div class="actions">
-                                            <button class="btn btn-sm btn-secondary" onclick="viewFace(3)">👁️ View</button>
-                                            <button class="btn btn-sm btn-danger" onclick="deleteFace(3)">🗑️ Delete</button>
-                                        </div>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>#FR-004</td>
-                                    <td>Lisa Wong</td>
-                                    <td><span class="badge badge-warning">Visitor</span></td>
-                                    <td>Host: John Tan</td>
-                                    <td>+65 8123 4567</td>
-                                    <td>2024-12-08 13:20</td>
-                                    <td><span class="badge badge-warning">Pending</span></td>
-                                    <td>
-                                        <div class="actions">
-                                            <button class="btn btn-sm btn-success" onclick="approveFace(4)">✅ Approve</button>
-                                            <button class="btn btn-sm btn-danger" onclick="deleteFace(4)">❌ Reject</button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                    <div style="margin-top:20px;display:flex;justify-content:space-between;align-items:center;">
-                        <div style="color:#6b7280;">Showing 4 of 143 registrations</div>
-                        <div style="display:flex;gap:5px;">
-                            <button class="btn btn-sm btn-secondary">Previous</button>
-                            <button class="btn btn-sm btn-primary">1</button>
-                            <button class="btn btn-sm btn-secondary">2</button>
-                            <button class="btn btn-sm btn-secondary">3</button>
-                            <button class="btn btn-sm btn-secondary">Next</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </main>
-    </div>
-    <script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-ument.getElementById('visitorFields').style.display = type === 'visitor' ? 'block' : 'none';
-            document.getElementById('residentFields').style.display = type === 'resident' ? 'block' : 'none';
+    <title>Camera Verification</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
-        
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #2563eb;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            padding: 20px;
+        }
+
+        .container {
+            text-align: center;
+            max-width: 600px;
+            width: 100%;
+        }
+
+        h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: #64748b;
+            margin-bottom: 30px;
+            font-size: 16px;
+        }
+
+        .camera-box {
+            position: relative;
+            width: 100%;
+            max-width: 480px;
+            height: 360px;
+            background: #000;
+            border-radius: 8px;
+            overflow: hidden;
+            margin: 0 auto 20px;
+            border: 2px solid #334155;
+        }
+
+        #video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transform: scaleX(-1);
+        }
+
+        #canvas {
+            display: none;
+        }
+
+        .overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            pointer-events: none;
+        }
+
+        .face-guide {
+            width: 180px;
+            height: 240px;
+            border: 2px dashed rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+        }
+
+        .status-bar {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 12px;
+            background: rgba(0, 0, 0, 0.8);
+            font-size: 14px;
+        }
+
+        .status-bar.granted {
+            background: #166534;
+        }
+
+        .status-bar.denied {
+            background: #dc2626;
+        }
+
+        .status-bar.processing {
+            background: #1e40af;
+        }
+
+        .btn {
+            padding: 16px 40px;
+            font-size: 18px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            background: #166534;
+            color: #fff;
+        }
+
+        .btn:hover {
+            background: #15803d;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .result-box {
+            margin-top: 25px;
+            padding: 20px;
+            border-radius: 8px;
+            display: none;
+        }
+
+        .result-box.show {
+            display: block;
+        }
+
+        .result-box.granted {
+            background: rgba(22, 101, 52, 0.3);
+            border: 2px solid #166534;
+        }
+
+        .result-box.denied {
+            background: rgba(220, 38, 38, 0.3);
+            border: 2px solid #dc2626;
+        }
+
+        .result-box h2 {
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+
+        .result-box p {
+            color: #94a3b8;
+            font-size: 14px;
+        }
+
+        .instructions {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 12px 20px;
+            border-radius: 6px;
+            margin-bottom: 25px;
+            font-size: 14px;
+            color: #94a3b8;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>Camera Verification</h1>
+        <p class="subtitle">Face Recognition Access Control</p>
+
+        <div class="instructions">
+            Position your face in the oval and click Verify Access
+        </div>
+
+        <div class="camera-box">
+            <video id="video" autoplay playsinline></video>
+            <canvas id="canvas" width="480" height="360"></canvas>
+            <div class="overlay">
+                <div class="face-guide"></div>
+            </div>
+            <div class="status-bar" id="statusBar">Starting camera...</div>
+        </div>
+
+        <button class="btn" id="verifyBtn" onclick="verify()" disabled>Verify Access</button>
+
+        <div class="result-box" id="resultBox">
+            <h2 id="resultTitle"></h2>
+            <p id="resultMessage"></p>
+        </div>
+    </div>
+
+    <script>
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const statusBar = document.getElementById('statusBar');
+        const verifyBtn = document.getElementById('verifyBtn');
+        const resultBox = document.getElementById('resultBox');
+
         async function startCamera() {
             try {
-                const video = document.getElementById('video');
-                const placeholder = document.getElementById('placeholder');
-                const captureBtn = document.getElementById('captureBtn');
-                
-                stream = await navigator.mediaDevices.getUserMedia({ 
-                    video: { 
-                        facingMode: "user",
-                        width: { ideal: 640 },
-                        height: { ideal: 480 }
-                    }, 
-                    audio: false 
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: { width: 640, height: 480, facingMode: 'user' }
                 });
-                
                 video.srcObject = stream;
-                video.style.display = 'block';
-                placeholder.style.display = 'none';
-                captureBtn.disabled = false;
-                
-                showMessage('Camera started. Position face in center and click Capture.', 'success');
+                verifyBtn.disabled = false;
+                statusBar.textContent = 'Camera ready';
             } catch (error) {
-                showMessage('Error accessing camera: ' + error.message, 'error');
+                statusBar.textContent = 'Camera access denied - Please allow camera';
+                statusBar.className = 'status-bar denied';
             }
         }
-        
-        function stopCamera() {
-            if (stream) {
-                stream.getTracks().forEach(track => track.stop());
-                const video = document.getElementById('video');
-                video.srcObject = null;
-                video.style.display = 'none';
-                document.getElementById('placeholder').style.display = 'flex';
-                document.getElementById('captureBtn').disabled = true;
-                stream = null;
-                showMessage('Camera stopped', 'success');
+
+        async function verify() {
+            verifyBtn.disabled = true;
+            statusBar.textContent = 'Verifying face...';
+            statusBar.className = 'status-bar processing';
+            resultBox.className = 'result-box';
+
+            ctx.translate(canvas.width, 0);
+            ctx.scale(-1, 1);
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            ctx.setTransform(1, 0, 0, 1, 0, 0);
+
+            const imageData = canvas.toDataURL('image/jpeg', 0.9);
+
+            try {
+                const response = await fetch('/api/recognize', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ image: imageData })
+                });
+
+                const data = await response.json();
+
+                if (data.recognized) {
+                    statusBar.textContent = 'ACCESS GRANTED';
+                    statusBar.className = 'status-bar granted';
+
+                    resultBox.className = 'result-box granted show';
+                    document.getElementById('resultTitle').textContent = 'Welcome!';
+                    document.getElementById('resultMessage').textContent =
+                        data.full_name + ' - Confidence: ' + data.confidence + '%';
+                } else {
+                    statusBar.textContent = 'ACCESS DENIED';
+                    statusBar.className = 'status-bar denied';
+
+                    resultBox.className = 'result-box denied show';
+                    document.getElementById('resultTitle').textContent = 'Access Denied';
+                    document.getElementById('resultMessage').textContent =
+                        data.message || 'Face not recognized';
+                }
+            } catch (error) {
+                statusBar.textContent = 'Error - Try again';
+                statusBar.className = 'status-bar denied';
             }
-        }
-        
-        function captureFace() {
-            const video = document.getElementById('video');
-            const canvas = document.getElementById('canvas');
-            const capturedImage = document.getElementById('capturedImage');
-            const captureStatus = document.getElementById('captureStatus');
-            const registerBtn = document.getElementById('registerBtn');
-            const captureBtn = document.getElementById('captureBtn');
-            const retakeBtn = document.getElementById('retakeBtn');
-            
-            // Set canvas size
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
-            
-            // Draw video frame to canvas
-            const context = canvas.getContext('2d');
-            context.drawImage(video, 0, 0);
-            
-            // Convert to image
-            capturedImageData = canvas.toDataURL('image/jpeg');
-            capturedImage.src = capturedImageData;
-            
-            // Hide video, show captured image
-            video.style.display = 'none';
-            capturedImage.style.display = 'block';
-            captureStatus.style.display = 'block';
-            
-            // Update buttons
-            captureBtn.style.display = 'none';
-            retakeBtn.style.display = 'inline-block';
-            registerBtn.disabled = false;
-            
-            // Stop camera
-            if (stream) {
-                stream.getTracks().forEach(track => track.stop());
-                stream = null;
-            }
-            
-            showMessage('Face captured! Review and click Register to save.', 'success');
-        }
-        
-        function retakeFace() {
-            const video = document.getElementById('video');
-            const capturedImage = document.getElementById('capturedImage');
-            const captureStatus = document.getElementById('captureStatus');
-            const captureBtn = document.getElementById('captureBtn');
-            const retakeBtn = document.getElementById('retakeBtn');
-            const registerBtn = document.getElementById('registerBtn');
-            
-            capturedImage.style.display = 'none';
-            captureStatus.style.display = 'none';
-            captureBtn.style.display = 'inline-block';
-            retakeBtn.style.display = 'none';
-            registerBtn.disabled = true;
-            capturedImageData = null;
-            
-            startCamera();
-        }
-        
-        document.getElementById('registrationForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-            
-            const personType = document.getElementById('personType').value;
-            const fullName = document.getElementById('fullName').value;
-            const phone = document.getElementById('phone').value;
-            
-            if (!personType || !fullName || !phone) {
-                showMessage('Please fill in all required fields', 'error');
-                return;
-            }
-            
-            if (!capturedImageData) {
-                showMessage('Please capture a face photo first', 'error');
-                return;
-            }
-            
-            // TODO: Send to backend API
-            // const formData = {
-            //     personType, fullName, phone,
-            //     faceImage: capturedImageData,
-            //     ... other fields
-            // };
-            
-            showMessage('Face registered successfully! Person can now use face recognition for access.', 'success');
-            
+
             setTimeout(() => {
-                resetForm();
-            }, 2000);
-        });
-        
-        function resetForm() {
-            document.getElementById('registrationForm').reset();
-            document.getElementById('visitorFields').style.display = 'none';
-            document.getElementById('residentFields').style.display = 'none';
-            
-            const video = document.getElementById('video');
-            const capturedImage = document.getElementById('capturedImage');
-            const placeholder = document.getElementById('placeholder');
-            const captureStatus = document.getElementById('captureStatus');
-            
-            if (stream) {
-                stream.getTracks().forEach(track => track.stop());
-                stream = null;
-            }
-            
-            video.style.display = 'none';
-            video.srcObject = null;
-            capturedImage.style.display = 'none';
-            placeholder.style.display = 'flex';
-            captureStatus.style.display = 'none';
-            
-            document.getElementById('captureBtn').disabled = true;
-            document.getElementById('captureBtn').style.display = 'inline-block';
-            document.getElementById('retakeBtn').style.display = 'none';
-            document.getElementById('registerBtn').disabled = true;
-            
-            capturedImageData = null;
+                verifyBtn.disabled = false;
+                statusBar.textContent = 'Ready';
+                statusBar.className = 'status-bar';
+            }, 3000);
         }
-        
-        function viewFace(id) {
-            showMessage('Viewing face registration #' + id, 'success');
-            // TODO: Show modal with face image and details
-        }
-        
-        function deleteFace(id) {
-            if (confirm('Are you sure you want to delete this face registration?')) {
-                showMessage('Face registration deleted', 'success');
-                // TODO: Call API to delete
-            }
-        }
-        
-        function approveFace(id) {
-            if (confirm('Approve this face registration?')) {
-                showMessage('Face registration approved', 'success');
-                // TODO: Call API to approve
-            }
-        }
-        
-        function showMessage(msg, type) {
-            const el = document.getElementById('message');
-            el.textContent = msg;
-            el.className = 'message ' + type;
-            el.style.display = 'block';
-            setTimeout(() => el.style.display = 'none', 4000);
-        }
-        
-        // Cleanup on page unload
-        window.addEventListener('beforeunload', function() {
-            if (stream) {
-                stream.getTracks().forEach(track => track.stop());
-            }
-        });
+
+        window.onload = startCamera;
     </script>
 </body>
+
 </html>

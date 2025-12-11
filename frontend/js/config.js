@@ -1,7 +1,7 @@
 // API Configuration
 const API_CONFIG = {
     BASE_URL: 'http://localhost:5001',
-    STAFF_BASE_URL: 'http://localhost:5003', 
+    STAFF_BASE_URL: 'http://localhost:5001', 
     ENDPOINTS: {
         // Auth endpoints (you'll need to add these to your backend)
         LOGIN: '/api/auth/login',

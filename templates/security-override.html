@@ -1,16 +1,18 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Manual Override - Security</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <link rel="stylesheet" href="/frontend/css/styles.css">
 </head>
+
 <body>
     <div class="dashboard">
         <aside class="sidebar">
             <div class="sidebar-header">
-                <h2>🔐 Condo Access</h2>
+                <h2> Condo Access</h2>
                 <div class="user-info">
                     <div>{{officer.full_name}}</div>
                     <div>{{officer.contact_number}}</div>
@@ -18,13 +20,21 @@
             </div>
             <nav>
                 <ul class="nav-menu">
-                    <li class="nav-item"><a href="/?officer_id={{ officer.officer_id }}" class="nav-link">📹 Monitor Cameras</a></li>
-                    <li class="nav-item"><a href="/security-override?officer_id={{ officer.officer_id }}" class="nav-link active">🚪 Manual Override</a></li>
-                    <li class="nav-item"><a href="/security-view-profile?officer_id={{ officer.officer_id }}" class="nav-link">👤 View Profile</a></li>
-                    <li class="nav-item"><a href="/security-update-profile?officer_id={{ officer.officer_id }}" class="nav-link">✏️ Update Profile</a></li>
-                    <li class="nav-item"><a href="/security-deactivate?officer_id={{ officer.officer_id }}" class="nav-link">⚠️ Deactivate Account</a></li>
-                    <li class="nav-item"><a href="/security-face-verification?officer_id={{ officer.officer_id }}" class="nav-link">🔍 Face Verification</a></li>
-                    <li class="nav-item"><a href="/" class="nav-link" style="margin-top:20px;border-top:1px solid rgba(255,255,255,0.1);padding-top:20px;">🚪 Logout</a></li>
+                    <li class="nav-item"><a href="/security-dashboard?officer_id={{ officer.id }}" class="nav-link">📹
+                            Monitor Cameras</a></li>
+                    <li class="nav-item"><a href="/security-override?officer_id={{ officer.id }}"
+                            class="nav-link active">🚪 Manual Override</a></li>
+                    <li class="nav-item"><a href="/security-view-profile?officer_id={{ officer.id }}"
+                            class="nav-link">👤 View Profile</a></li>
+                    <li class="nav-item"><a href="/security-update-profile?officer_id={{ officer.id }}"
+                            class="nav-link">✏️ Update Profile</a></li>
+                    <li class="nav-item"><a href="/security-deactivate?officer_id={{ officer.id }}" class="nav-link">⚠️
+                            Deactivate Account</a></li>
+                    <li class="nav-item"><a href="/security-face-verification?officer_id={{ officer.id }}"
+                            class="nav-link">🔍 Face Verification</a></li>
+                    <li class="nav-item"><a href="/security/logout?officer_id={{ officer.id }}" class="nav-link"
+                            style="margin-top:20px;border-top:1px solid rgba(255,255,255,0.1);padding-top:20px;">🚪
+                            Logout</a></li>
                 </ul>
             </nav>
         </aside>
@@ -34,7 +44,9 @@
                 <p>Bypass face recognition and manually control access</p>
             </div>
             <div class="card">
-                <div class="card-header"><h2>🚪 Emergency Door Control</h2></div>
+                <div class="card-header">
+                    <h2>🚪 Emergency Door Control</h2>
+                </div>
                 <div class="card-body">
                     <div class="alert alert-warning">
                         <strong>⚠️ Use with Caution</strong><br>
@@ -56,16 +68,20 @@
                     </div>
                     <div class="form-group">
                         <label>Reason for Override</label>
-                        <textarea id="reason" rows="3" placeholder="Emergency situation, system malfunction, etc." class="form-control"></textarea>
+                        <textarea id="reason" rows="3" placeholder="Emergency situation, system malfunction, etc."
+                            class="form-control"></textarea>
                     </div>
                     <button class="btn btn-primary" onclick="openGate()" style="width:100%;">🚪 Open Gate</button>
                     <div id="message1" class="message"></div>
                 </div>
             </div>
             <div class="card">
-                <div class="card-header"><h2>👤 Grant Access to Person</h2></div>
+                <div class="card-header">
+                    <h2>👤 Grant Access to Person</h2>
+                </div>
                 <div class="card-body">
-                    <p style="color: #6b7280; margin-bottom: 20px;">Allow entry for someone whose face recognition failed</p>
+                    <p style="color: #6b7280; margin-bottom: 20px;">Allow entry for someone whose face recognition
+                        failed</p>
                     <div class="form-group">
                         <label>Person Name</label>
                         <input type="text" id="personName" placeholder="Full name" class="form-control">
@@ -86,22 +102,37 @@
                     </div>
                     <div class="form-group">
                         <label>Notes</label>
-                        <textarea id="notes" rows="2" placeholder="Additional information..." class="form-control"></textarea>
+                        <textarea id="notes" rows="2" placeholder="Additional information..."
+                            class="form-control"></textarea>
                     </div>
                     <button class="btn btn-success" onclick="grantAccess()" style="width:100%;">✅ Grant Access</button>
                     <div id="message2" class="message"></div>
                 </div>
             </div>
             <div class="card">
-                <div class="card-header"><h2>📋 Recent Manual Overrides</h2></div>
+                <div class="card-header">
+                    <h2>📋 Recent Manual Overrides</h2>
+                </div>
                 <div class="card-body">
                     <div class="table-container">
                         <table>
                             <thead>
-                                <tr><th>Time</th><th>Officer</th><th>Action</th><th>Door</th><th>Reason</th></tr>
+                                <tr>
+                                    <th>Time</th>
+                                    <th>Officer</th>
+                                    <th>Action</th>
+                                    <th>Door</th>
+                                    <th>Reason</th>
+                                </tr>
                             </thead>
                             <tbody>
-                                <tr><td>14:05:23</td><td>Officer Wong</td><td><span class="badge badge-success">Granted</span></td><td>Main Entrance</td><td>Visitor pass expired</td></tr>
+                                <tr>
+                                    <td>14:05:23</td>
+                                    <td>Officer Wong</td>
+                                    <td><span class="badge badge-success">Granted</span></td>
+                                    <td>Main Entrance</td>
+                                    <td>Visitor pass expired</td>
+                                </tr>
                             </tbody>
                         </table>
                     </div>
@@ -110,49 +141,49 @@
         </main>
     </div>
     <script>
-    function openGate() {
-        const door = document.getElementById('doorSelect').value;
-        const officerId = "{{ officer.full_name }}";   // always the logged-in officer
-        const reason = document.getElementById('reason').value;
+        function openGate() {
+            const door = document.getElementById('doorSelect').value;
+            const officerId = "{{ officer.full_name }}";   // always the logged-in officer
+            const reason = document.getElementById('reason').value;
 
-        if (!reason) {
-            showMsg('message1', 'Please provide a reason', 'error');
-            return;
+            if (!reason) {
+                showMsg('message1', 'Please provide a reason', 'error');
+                return;
+            }
+
+            addLogRow('Opened', door, reason, officerId);
+            showMsg('message1', `${door} opened successfully`, 'success');
+            document.getElementById('reason').value = '';
         }
 
-        addLogRow('Opened', door, reason, officerId);
-        showMsg('message1', `${door} opened successfully`, 'success');
-        document.getElementById('reason').value = '';
-    }
+        function grantAccess() {
+            const name = document.getElementById('personName').value;
 
-    function grantAccess() {
-        const name = document.getElementById('personName').value;
+            if (!name) {
+                showMsg('message2', 'Please enter person name', 'error');
+                return;
+            }
 
-        if (!name) {
-            showMsg('message2', 'Please enter person name', 'error');
-            return;
+            addLogRow('Granted', 'Manual Access', `Access to ${name}`, "{{ officer.full_name }}");
+            showMsg('message2', `Access granted to ${name}`, 'success');
+
+            document.getElementById('personName').value = '';
+            document.getElementById('unitNumber').value = '';
+            document.getElementById('notes').value = '';
         }
 
-        addLogRow('Granted', 'Manual Access', `Access to ${name}`, "{{ officer.full_name }}");
-        showMsg('message2', `Access granted to ${name}`, 'success');
+        // 🔥 APPEND ROW TO TABLE
+        function addLogRow(action, door, reason, officer) {
+            const tableBody = document.querySelector("table tbody");
 
-        document.getElementById('personName').value = '';
-        document.getElementById('unitNumber').value = '';
-        document.getElementById('notes').value = '';
-    }
+            const now = new Date();
+            const time = now.toLocaleTimeString('en-SG', { hour12: false });
 
-    // 🔥 APPEND ROW TO TABLE
-    function addLogRow(action, door, reason, officer) {
-        const tableBody = document.querySelector("table tbody");
+            let badgeClass = "badge-info";
+            if (action === "Granted") badgeClass = "badge-success";
 
-        const now = new Date();
-        const time = now.toLocaleTimeString('en-SG', { hour12: false });
-
-        let badgeClass = "badge-info";
-        if (action === "Granted") badgeClass = "badge-success";
-
-        const newRow = document.createElement("tr");
-        newRow.innerHTML = `
+            const newRow = document.createElement("tr");
+            newRow.innerHTML = `
             <td>${time}</td>
             <td>${officer}</td>
             <td><span class="badge ${badgeClass}">${action}</span></td>
@@ -160,18 +191,19 @@
             <td>${reason}</td>
         `;
 
-        tableBody.prepend(newRow);   // add to TOP of table
-    }
+            tableBody.prepend(newRow);   // add to TOP of table
+        }
 
-    function showMsg(id, msg, type) {
-        const el = document.getElementById(id);
-        el.textContent = msg;
-        el.className = 'message ' + type;
-        el.style.display = 'block';
-        setTimeout(() => el.style.display = 'none', 3000);
-    }
-</script>
+        function showMsg(id, msg, type) {
+            const el = document.getElementById(id);
+            el.textContent = msg;
+            el.className = 'message ' + type;
+            el.style.display = 'block';
+            setTimeout(() => el.style.display = 'none', 3000);
+        }
+    </script>
 
     </script>
 </body>
+
 </html>

@@ -1,17 +1,20 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Security Dashboard - Condo Access</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <link rel="stylesheet" href="/frontend/css/styles.css">
+
 </head>
+
 <body>
     <div class="dashboard">
         <!-- Sidebar -->
         <aside class="sidebar">
             <div class="sidebar-header">
-                <h2>🔐 Condo Access</h2>
+                <h2> Condo Access</h2>
                 <div class="user-info">
                     <div id="officerName">{{officer.full_name}}</div>
                     <div id="officerEmail">{{officer.contact_number}}</div>
@@ -21,37 +24,38 @@
             <nav>
                 <ul class="nav-menu">
                     <li class="nav-item">
-                        <a href="/?officer_id={{ officer.officer_id }}" class="nav-link active">
+                        <a href="/security-dashboard?officer_id={{ officer.id }}" class="nav-link active">
                             📹 Monitor Cameras
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a href="/security-override?officer_id={{ officer.officer_id }}" class="nav-link">
+                        <a href="/security-override?officer_id={{ officer.id }}" class="nav-link">
                             🚪 Manual Override
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a href="/security-view-profile?officer_id={{ officer.officer_id }}" class="nav-link">
+                        <a href="/security-view-profile?officer_id={{ officer.id }}" class="nav-link">
                             👤 View Profile
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a href="/security-update-profile?officer_id={{ officer.officer_id }}" class="nav-link">
+                        <a href="/security-update-profile?officer_id={{ officer.id }}" class="nav-link">
                             ✏️ Update Profile
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a href="/security-deactivate?officer_id={{ officer.officer_id }}" class="nav-link">
+                        <a href="/security-deactivate?officer_id={{ officer.id }}" class="nav-link">
                             ⚠️ Deactivate Account
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a href="/security-face-verification?officer_id={{ officer.officer_id }}" class="nav-link">
+                        <a href="/security-face-verification?officer_id={{ officer.id }}" class="nav-link">
                             🔍 Face Verification
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a href="/" class="nav-link" style="margin-top: 20px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 20px;">
+                        <a href="/security/logout" class="nav-link"
+                            style="margin-top: 20px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 20px;">
                             🚪 Logout
                         </a>
                     </li>
@@ -117,79 +121,116 @@
                 </div>
                 <div class="card-body">
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 20px;">
-                        <!-- Camera 1 -->
+                        <!-- Camera 1 - Live Entrance Camera -->
                         <div class="camera-feed">
                             <div style="background: #000; border-radius: 8px; overflow: hidden; position: relative;">
-                                <video id="camera1" autoplay playsinline style="width: 100%; height: 300px; object-fit: cover; background: #1f2937; display: none;"></video>
-                                <div id="placeholder1" style="width: 100%; height: 300px; background: #1f2937; display: flex; align-items: center; justify-content: center; color: #9ca3af;">
-                                    📹 Camera Feed Inactive
+                                <img id="camera1"
+                                    style="width: 100%; height: 300px; object-fit: cover; background: #1f2937; display: none;"
+                                    alt="Camera 1 Feed">
+                                <div id="placeholder1"
+                                    style="width: 100%; height: 300px; background: #1f2937; display: flex; align-items: center; justify-content: center; color: #9ca3af;">
+                                    📹 Click "Start Feed" to view live entrance camera
                                 </div>
-                                <div style="position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(to top, rgba(0,0,0,0.8), transparent); padding: 15px; color: white;">
-                                    <div style="font-weight: bold;">Main Entrance</div>
-                                    <div style="font-size: 12px; opacity: 0.8;">Camera 1 • <span id="status1" class="badge-danger" style="background: #6b7280; color: white; padding: 2px 6px; border-radius: 4px;">● OFFLINE</span></div>
+                                <div
+                                    style="position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(to top, rgba(0,0,0,0.8), transparent); padding: 15px; color: white;">
+                                    <div style="font-weight: bold;">Main Entrance - Live Camera</div>
+                                    <div style="font-size: 12px; opacity: 0.8;">Camera 1 • <span id="status1"
+                                            class="badge-danger"
+                                            style="background: #6b7280; color: white; padding: 2px 6px; border-radius: 4px;">●
+                                            OFFLINE</span></div>
                                 </div>
                             </div>
                             <div style="margin-top: 10px; display: flex; gap: 8px;">
-                                <button class="btn btn-sm btn-primary" onclick="startCamera('camera1')">Start Feed</button>
-                                <button class="btn btn-sm btn-secondary" onclick="stopCamera('camera1')">Stop Feed</button>
-                                <button class="btn btn-sm btn-success" onclick="captureSnapshot('camera1')">📸 Snapshot</button>
+                                <button class="btn btn-sm btn-primary" onclick="startLiveCamera('camera1')">Start
+                                    Feed</button>
+                                <button class="btn btn-sm btn-secondary" onclick="stopLiveCamera('camera1')">Stop
+                                    Feed</button>
+                                <button class="btn btn-sm btn-info" onclick="window.open('http://localhost:5002', '_blank')">
+                                    📹 Open Full Camera View</button>
                             </div>
                         </div>
 
                         <!-- Camera 2 -->
                         <div class="camera-feed">
                             <div style="background: #000; border-radius: 8px; overflow: hidden; position: relative;">
-                                <video id="camera2" autoplay playsinline style="width: 100%; height: 300px; object-fit: cover; background: #1f2937; display: none;"></video>
-                                <div id="placeholder2" style="width: 100%; height: 300px; background: #1f2937; display: flex; align-items: center; justify-content: center; color: #9ca3af;">
+                                <video id="camera2" autoplay playsinline
+                                    style="width: 100%; height: 300px; object-fit: cover; background: #1f2937; display: none;"></video>
+                                <div id="placeholder2"
+                                    style="width: 100%; height: 300px; background: #1f2937; display: flex; align-items: center; justify-content: center; color: #9ca3af;">
                                     📹 Camera Feed Inactive
                                 </div>
-                                <div style="position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(to top, rgba(0,0,0,0.8), transparent); padding: 15px; color: white;">
+                                <div
+                                    style="position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(to top, rgba(0,0,0,0.8), transparent); padding: 15px; color: white;">
                                     <div style="font-weight: bold;">Parking Lot A</div>
-                                    <div style="font-size: 12px; opacity: 0.8;">Camera 2 • <span id="status2" class="badge-danger" style="background: #6b7280; color: white; padding: 2px 6px; border-radius: 4px;">● OFFLINE</span></div>
+                                    <div style="font-size: 12px; opacity: 0.8;">Camera 2 • <span id="status2"
+                                            class="badge-danger"
+                                            style="background: #6b7280; color: white; padding: 2px 6px; border-radius: 4px;">●
+                                            OFFLINE</span></div>
                                 </div>
                             </div>
                             <div style="margin-top: 10px; display: flex; gap: 8px;">
-                                <button class="btn btn-sm btn-primary" onclick="startCamera('camera2')">Start Feed</button>
-                                <button class="btn btn-sm btn-secondary" onclick="stopCamera('camera2')">Stop Feed</button>
-                                <button class="btn btn-sm btn-success" onclick="captureSnapshot('camera2')">📸 Snapshot</button>
+                                <button class="btn btn-sm btn-primary" onclick="startCamera('camera2')">Start
+                                    Feed</button>
+                                <button class="btn btn-sm btn-secondary" onclick="stopCamera('camera2')">Stop
+                                    Feed</button>
+                                <button class="btn btn-sm btn-success" onclick="captureSnapshot('camera2')">📸
+                                    Snapshot</button>
                             </div>
                         </div>
 
                         <!-- Camera 3 -->
                         <div class="camera-feed">
                             <div style="background: #000; border-radius: 8px; overflow: hidden; position: relative;">
-                                <video id="camera3" autoplay playsinline style="width: 100%; height: 300px; object-fit: cover; background: #1f2937; display: none;"></video>
-                                <div id="placeholder3" style="width: 100%; height: 300px; background: #1f2937; display: flex; align-items: center; justify-content: center; color: #9ca3af;">
+                                <video id="camera3" autoplay playsinline
+                                    style="width: 100%; height: 300px; object-fit: cover; background: #1f2937; display: none;"></video>
+                                <div id="placeholder3"
+                                    style="width: 100%; height: 300px; background: #1f2937; display: flex; align-items: center; justify-content: center; color: #9ca3af;">
                                     📹 Camera Feed Inactive
                                 </div>
-                                <div style="position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(to top, rgba(0,0,0,0.8), transparent); padding: 15px; color: white;">
+                                <div
+                                    style="position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(to top, rgba(0,0,0,0.8), transparent); padding: 15px; color: white;">
                                     <div style="font-weight: bold;">Lobby</div>
-                                    <div style="font-size: 12px; opacity: 0.8;">Camera 3 • <span id="status3" class="badge-danger" style="background: #6b7280; color: white; padding: 2px 6px; border-radius: 4px;">● OFFLINE</span></div>
+                                    <div style="font-size: 12px; opacity: 0.8;">Camera 3 • <span id="status3"
+                                            class="badge-danger"
+                                            style="background: #6b7280; color: white; padding: 2px 6px; border-radius: 4px;">●
+                                            OFFLINE</span></div>
                                 </div>
                             </div>
                             <div style="margin-top: 10px; display: flex; gap: 8px;">
-                                <button class="btn btn-sm btn-primary" onclick="startCamera('camera3')">Start Feed</button>
-                                <button class="btn btn-sm btn-secondary" onclick="stopCamera('camera3')">Stop Feed</button>
-                                <button class="btn btn-sm btn-success" onclick="captureSnapshot('camera3')">📸 Snapshot</button>
+                                <button class="btn btn-sm btn-primary" onclick="startCamera('camera3')">Start
+                                    Feed</button>
+                                <button class="btn btn-sm btn-secondary" onclick="stopCamera('camera3')">Stop
+                                    Feed</button>
+                                <button class="btn btn-sm btn-success" onclick="captureSnapshot('camera3')">📸
+                                    Snapshot</button>
                             </div>
                         </div>
 
                         <!-- Camera 4 -->
                         <div class="camera-feed">
                             <div style="background: #000; border-radius: 8px; overflow: hidden; position: relative;">
-                                <video id="camera4" autoplay playsinline style="width: 100%; height: 300px; object-fit: cover; background: #1f2937; display: none;"></video>
-                                <div id="placeholder4" style="width: 100%; height: 300px; background: #1f2937; display: flex; align-items: center; justify-content: center; color: #9ca3af;">
+                                <video id="camera4" autoplay playsinline
+                                    style="width: 100%; height: 300px; object-fit: cover; background: #1f2937; display: none;"></video>
+                                <div id="placeholder4"
+                                    style="width: 100%; height: 300px; background: #1f2937; display: flex; align-items: center; justify-content: center; color: #9ca3af;">
                                     📹 Camera Feed Inactive
                                 </div>
-                                <div style="position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(to top, rgba(0,0,0,0.8), transparent); padding: 15px; color: white;">
+                                <div
+                                    style="position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(to top, rgba(0,0,0,0.8), transparent); padding: 15px; color: white;">
                                     <div style="font-weight: bold;">Back Entrance</div>
-                                    <div style="font-size: 12px; opacity: 0.8;">Camera 4 • <span id="status4" class="badge-danger" style="background: #6b7280; color: white; padding: 2px 6px; border-radius: 4px;">● OFFLINE</span></div>
+                                    <div style="font-size: 12px; opacity: 0.8;">Camera 4 • <span id="status4"
+                                            class="badge-danger"
+                                            style="background: #6b7280; color: white; padding: 2px 6px; border-radius: 4px;">●
+                                            OFFLINE</span></div>
                                 </div>
                             </div>
                             <div style="margin-top: 10px; display: flex; gap: 8px;">
-                                <button class="btn btn-sm btn-primary" onclick="startCamera('camera4')">Start Feed</button>
-                                <button class="btn btn-sm btn-secondary" onclick="stopCamera('camera4')">Stop Feed</button>
-                                <button class="btn btn-sm btn-success" onclick="captureSnapshot('camera4')">📸 Snapshot</button>
+                                <button class="btn btn-sm btn-primary" onclick="startCamera('camera4')">Start
+                                    Feed</button>
+                                <button class="btn btn-sm btn-secondary" onclick="stopCamera('camera4')">Stop
+                                    Feed</button>
+                                <button class="btn btn-sm btn-success" onclick="captureSnapshot('camera4')">📸
+                                    Snapshot</button>
                             </div>
                         </div>
                     </div>
@@ -217,27 +258,28 @@
                                 </tr>
                             </thead>
                             <tbody id="accessLogBody">
-                            {% for log in logs %}
-                            <tr>
-                                <td>{{log.log_id}}</td>
-                                <td>{{ log.access_time.strftime('%H:%M:%S') }}</td>
-                                <td>Main Entrance</td>  <!-- optional: remove if your DB has a location column later -->
-                                <td>{{ officer.full_name }}</td>  <!-- because recognized_person = officer 1 -->
-                                <td><span class="badge badge-info">{{ log.user_type }}</span></td>
-                                <td>{{ "%.2f"|format(log.confidence) }}</td>
-                                {% if log.access_result == "granted" %}
+                                {% for log in logs %}
+                                <tr>
+                                    <td>{{log.log_id}}</td>
+                                    <td>{{ log.access_time.strftime('%H:%M:%S') }}</td>
+                                    <td>Main Entrance</td>
+                                    <!-- optional: remove if your DB has a location column later -->
+                                    <td>{{ officer.full_name }}</td> <!-- because recognized_person = officer 1 -->
+                                    <td><span class="badge badge-info">{{ log.user_type }}</span></td>
+                                    <td>{{ "%.2f"|format(log.confidence) }}</td>
+                                    {% if log.access_result == "granted" %}
                                     <td><span class="badge badge-success">GRANTED</span></td>
-                                {% else %}
+                                    {% else %}
                                     <td><span class="badge badge-danger">DENIED</span></td>
-                                {% endif %}
+                                    {% endif %}
 
-                                <td>
-                                    <!-- <button class="btn btn-sm btn-secondary" onclick="viewDetails({{ log.log_id }})"> -->
-                                    </button>
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
+                                    <td>
+                                        <!-- <button class="btn btn-sm btn-secondary" onclick="viewDetails({{ log.log_id }})"> -->
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
 
                         </table>
                     </div>
@@ -251,27 +293,71 @@
     <script>
         const cameraStreams = {};
 
-            // document.addEventListener('DOMContentLoaded', function() {
-            //     loadOfficerInfo();
-            // });
+        // document.addEventListener('DOMContentLoaded', function() {
+        //     loadOfficerInfo();
+        // });
 
+        // New functions for live camera stream from camapp.py
+        function startLiveCamera(cameraId) {
+            try {
+                const img = document.getElementById(cameraId);
+                const placeholder = document.getElementById('placeholder' + cameraId.slice(-1));
+                const status = document.getElementById('status' + cameraId.slice(-1));
+
+                // Connect to camapp.py video stream on port 5002
+                const streamUrl = 'http://localhost:5002/video_feed';
+
+                // Add timestamp to prevent caching
+                img.src = streamUrl + '?t=' + new Date().getTime();
+                img.style.display = 'block';
+                placeholder.style.display = 'none';
+                status.textContent = '● LIVE';
+                status.style.background = '#10b981';
+
+                // Handle errors
+                img.onerror = function() {
+                    stopLiveCamera(cameraId);
+                    showMessage('Error: Camera service not available. Make sure camapp.py is running on port 5002', 'error');
+                };
+
+                showMessage('Live camera feed started', 'success');
+            } catch (error) {
+                showMessage('Error: ' + error.message, 'error');
+            }
+        }
+
+        function stopLiveCamera(cameraId) {
+            const img = document.getElementById(cameraId);
+            const placeholder = document.getElementById('placeholder' + cameraId.slice(-1));
+            const status = document.getElementById('status' + cameraId.slice(-1));
+
+            img.src = '';
+            img.style.display = 'none';
+            placeholder.style.display = 'flex';
+            status.textContent = '● OFFLINE';
+            status.style.background = '#6b7280';
+
+            showMessage('Camera feed stopped', 'success');
+        }
+
+        // Keep old functions for other cameras
         async function startCamera(cameraId) {
             try {
                 const video = document.getElementById(cameraId);
                 const placeholder = document.getElementById('placeholder' + cameraId.slice(-1));
                 const status = document.getElementById('status' + cameraId.slice(-1));
-                
-                const stream = await navigator.mediaDevices.getUserMedia({ 
-                    video: { facingMode: "user", width: { ideal: 640 }, height: { ideal: 480 }}, 
-                    audio: false 
+
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: "user", width: { ideal: 640 }, height: { ideal: 480 } },
+                    audio: false
                 });
-                
+
                 video.srcObject = stream;
                 video.style.display = 'block';
                 placeholder.style.display = 'none';
                 status.textContent = '● LIVE';
                 status.style.background = '#10b981';
-                
+
                 cameraStreams[cameraId] = stream;
                 showMessage('Camera feed started', 'success');
             } catch (error) {
@@ -284,17 +370,17 @@
             if (stream) {
                 stream.getTracks().forEach(track => track.stop());
                 delete cameraStreams[cameraId];
-                
+
                 const video = document.getElementById(cameraId);
                 const placeholder = document.getElementById('placeholder' + cameraId.slice(-1));
                 const status = document.getElementById('status' + cameraId.slice(-1));
-                
+
                 video.srcObject = null;
                 video.style.display = 'none';
                 placeholder.style.display = 'flex';
                 status.textContent = '● OFFLINE';
                 status.style.background = '#6b7280';
-                
+
                 showMessage('Camera feed stopped', 'success');
             }
         }
@@ -335,18 +421,18 @@
                     image: imageBase64
                 })
             })
-            .then(response => response.json())
-            .then(data => {
-                if (data.status === 'success') {
-                    showMessage(data.message, 'success');
-                } else {
-                    showMessage(data.message || 'Error registering face', 'error');
-                }
-            })
-            .catch(err => {
-                console.error(err);
-                showMessage('Failed to register face', 'error');
-            });
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        showMessage(data.message, 'success');
+                    } else {
+                        showMessage(data.message || 'Error registering face', 'error');
+                    }
+                })
+                .catch(err => {
+                    console.error(err);
+                    showMessage('Failed to register face', 'error');
+                });
         }
 
 
@@ -377,11 +463,12 @@
             setTimeout(() => messageBox.style.display = 'none', 3000);
         }
 
-        window.addEventListener('beforeunload', function() {
+        window.addEventListener('beforeunload', function () {
             Object.values(cameraStreams).forEach(stream => {
                 stream.getTracks().forEach(track => track.stop());
             });
         });
     </script>
 </body>
+
 </html>

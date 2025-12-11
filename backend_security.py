@@ -282,23 +282,49 @@ def api_verify_face():
         if user_type == "security_officer":
             so = SecurityOfficer.query.filter_by(officer_id=reference_id).first()
             name = so.full_name if so else "Unknown Officer"
-        else:
-            # attempt residents / visitors tables if they exist
-            # graceful fallback if model not present
+        elif user_type == "resident":
             try:
                 from routes.security_officer.security_officer_model import Resident
                 res = Resident.query.get(reference_id)
                 if res:
                     name = getattr(res, "full_name", getattr(res, "name", str(reference_id)))
             except Exception:
-                # visitor model
-                try:
-                    from routes.security_officer.security_officer_model import Visitor
-                    vis = Visitor.query.get(reference_id)
-                    if vis:
-                        name = getattr(vis, "full_name", getattr(vis, "name", str(reference_id)))
-                except Exception:
-                    name = f"{user_type}:{reference_id}"
+                name = f"Resident:{reference_id}"
+        elif user_type == "visitor":
+            try:
+                from routes.security_officer.security_officer_model import Visitor
+                vis = Visitor.query.get(reference_id)
+                if vis:
+                    name = getattr(vis, "full_name", getattr(vis, "name", str(reference_id)))
+            except Exception:
+                name = f"Visitor:{reference_id}"
+        elif user_type in ["internal_staff", "temp_staff", "TEMP_STAFF", "Internal_Staff"]:
+            # Try to get staff name from internal_staff table or temp_staff table
+            try:
+                # Try internal_staff table
+                from sqlalchemy import text
+                result = db.session.execute(
+                    text("SELECT full_name FROM internal_staff WHERE staff_id = :ref_id"),
+                    {"ref_id": reference_id}
+                ).fetchone()
+                if result:
+                    name = result[0]
+                else:
+                    # Try temp_staff table
+                    result = db.session.execute(
+                        text("SELECT full_name FROM temp_staff WHERE temp_id = :ref_id"),
+                        {"ref_id": reference_id}
+                    ).fetchone()
+                    if result:
+                        name = result[0]
+                    else:
+                        name = f"Staff:{reference_id}"
+            except Exception as e:
+                name = f"Staff:{reference_id}"
+        elif user_type == "ADMIN":
+            name = "Administrator"
+        else:
+            name = f"{user_type}:{reference_id}"
     except Exception:
         name = f"{user_type}:{reference_id}"
 

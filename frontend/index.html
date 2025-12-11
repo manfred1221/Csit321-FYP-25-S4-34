@@ -1,53 +1,346 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Condo Face Recognition - Login</title>
-    <link rel="stylesheet" href="css/styles.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .login-container {
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .login-box {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            width: 100%;
+            max-width: 440px;
+            padding: 48px 40px;
+        }
+
+        .logo {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .logo h1 {
+            font-size: 28px;
+            color: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin-bottom: 8px;
+            font-weight: 700;
+        }
+
+        .logo p {
+            color: #64748b;
+            font-size: 15px;
+        }
+
+        .form-group {
+            margin-bottom: 24px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #334155;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 14px 16px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 15px;
+            transition: all 0.3s ease;
+            background: #f8fafc;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+            background: white;
+            box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+        }
+
+        .btn {
+            width: 100%;
+            padding: 16px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-primary:disabled {
+            background: #94a3b8;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .form-links {
+            margin-top: 24px;
+            text-align: center;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .form-links a {
+            color: #667eea;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .form-links a:hover {
+            text-decoration: underline;
+        }
+
+        .message {
+            margin-top: 20px;
+            padding: 14px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            display: none;
+        }
+
+        .message.error {
+            background: #fee2e2;
+            color: #dc2626;
+            border: 1px solid #fecaca;
+        }
+
+        .message.success {
+            background: #d1fae5;
+            color: #059669;
+            border: 1px solid #a7f3d0;
+        }
+    </style>
 </head>
+
 <body>
     <div class="login-container">
         <div class="login-box">
             <div class="logo">
-                <h1> Condo Access</h1>
+                <h1>Condo Access</h1>
                 <p>Facial Recognition System</p>
             </div>
-            
+
             <form id="loginForm">
                 <div class="form-group">
-                    <label for="username">Username or Email</label>
+                    <label for="username">Username</label>
                     <input type="text" id="username" name="username" required>
                 </div>
-                
+
                 <div class="form-group">
                     <label for="password">Password</label>
                     <input type="password" id="password" name="password" required>
                 </div>
-                
+
                 <div class="form-group">
                     <label for="userType">Login As</label>
                     <select id="userType" name="userType">
                         <option value="resident">Resident</option>
-                        <option value="visitor">Visitor</option>
+                        <option value="security">Security Officer</option>
                         <option value="admin">Admin</option>
                         <option value="staff">Internal Staff</option>
                     </select>
                 </div>
-                
+
                 <button type="submit" class="btn btn-primary">Login</button>
-                
+
                 <div class="form-links">
                     <a href="#" id="forgotPassword">Forgot Password?</a>
+                    <a href="{{ url_for('portal_choice') }}">Back to Portal</a>
                     <a href="register.html">Register New Account</a>
                 </div>
             </form>
-            
+
             <div id="message" class="message"></div>
         </div>
     </div>
 
-    <script src="js/config.js"></script>
-    <script src="js/login.js"></script>
+    <script>
+        // Configuration for different user types
+        const USER_TYPES = {
+            resident: {
+                apiUrl: 'http://localhost:5001/api/auth/login',
+                dashboard: '/frontend/resident-dashboard.html',
+                storageKey: 'residentAuth'
+            },
+            security: {
+                apiUrl: 'http://localhost:5001/security/login',
+                dashboard: '/security-dashboard',
+                storageKey: 'securityAuth'
+            },
+            admin: {
+                apiUrl: '/admin/login',
+                dashboard: '/admin/profile',
+                storageKey: 'adminAuth'
+            },
+            staff: {
+                apiUrl: 'http://localhost:5001/api/staff/login',
+                dashboard: '/frontend/staff-dashboard.html',
+                storageKey: 'staffAuth'
+            }
+        };
+
+        // Initialize when DOM is loaded
+        document.addEventListener('DOMContentLoaded', function () {
+            initializeLoginForm();
+            initializeForgotPassword();
+        });
+
+        // Login Form Handling
+        function initializeLoginForm() {
+            const form = document.getElementById('loginForm');
+            const loginBtn = form.querySelector('button[type="submit"]');
+
+            form.addEventListener('submit', async function (e) {
+                e.preventDefault();
+
+                const userType = document.getElementById('userType').value;
+                const username = document.getElementById('username').value.trim();
+                const password = document.getElementById('password').value;
+
+                if (!username || !password) {
+                    showMessage('Please enter both username and password', 'error');
+                    return;
+                }
+
+                // Disable button and show loading
+                loginBtn.disabled = true;
+                const originalText = loginBtn.textContent;
+                loginBtn.textContent = 'Logging in...';
+
+                try {
+                    await performLogin(userType, username, password);
+                } catch (error) {
+                    showMessage(error.message || 'Login failed. Please try again.', 'error');
+                } finally {
+                    // Re-enable button
+                    loginBtn.disabled = false;
+                    loginBtn.textContent = originalText;
+                }
+            });
+        }
+
+        // Perform Login
+        async function performLogin(userType, username, password) {
+            const config = USER_TYPES[userType];
+
+            try {
+                const response = await fetch(config.apiUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        username: username,
+                        password: password
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok && (data.success || data.token || data.message?.includes('successful'))) {
+                    // Store authentication data
+                    if (userType !== 'admin') {
+                        // Store user data with standardized format
+                        const userData = {
+                            ...data,
+                            type: userType,
+                            id: data.user_id || data.resident_id || data.visitor_id || data.staff_id,
+                            full_name: data.full_name || data.name || data.username
+                        };
+                        localStorage.setItem(config.storageKey, JSON.stringify(userData));
+                        localStorage.setItem('user', JSON.stringify(userData)); // Also store in 'user' key for checkAuth
+                        if (data.token) {
+                            localStorage.setItem('auth_token', data.token);
+                        }
+                    }
+
+                    // Show success message
+                    showMessage('Login successful! Redirecting...', 'success');
+
+                    // Redirect to appropriate dashboard
+                    setTimeout(() => {
+                        window.location.href = config.dashboard;
+                    }, 1000);
+                } else {
+                    throw new Error(data.error || data.message || 'Invalid credentials');
+                }
+            } catch (error) {
+                if (error.name === 'TypeError' && error.message.includes('fetch')) {
+                    throw new Error('Unable to connect to server. Please check if the backend is running on port 5001.');
+                }
+                throw error;
+            }
+        }
+
+        // Forgot Password
+        function initializeForgotPassword() {
+            const forgotPasswordLink = document.getElementById('forgotPassword');
+            if (forgotPasswordLink) {
+                forgotPasswordLink.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    alert('Password reset functionality will be available soon.\nPlease contact your administrator for assistance.');
+                });
+            }
+        }
+
+        // Show Message
+        function showMessage(text, type) {
+            const messageDiv = document.getElementById('message');
+            if (!messageDiv) return;
+
+            messageDiv.textContent = text;
+            messageDiv.className = 'message ' + type;
+            messageDiv.style.display = 'block';
+
+            // Auto-hide error messages after 5 seconds
+            if (type === 'error') {
+                setTimeout(() => {
+                    messageDiv.style.display = 'none';
+                }, 5000);
+            }
+        }
+    </script>
 </body>
+
 </html>

@@ -64,7 +64,7 @@
 </head>
 <body>
     <div class="container">
-        <h1>🎥 Camera Diagnostic Test</h1>
+        <h1> Camera Diagnostic Test</h1>
         
         <div id="status" class="status">
             Ready to test camera...
@@ -107,8 +107,8 @@
         // Update browser info
         document.getElementById('userAgent').textContent = navigator.userAgent;
         document.getElementById('platform').textContent = navigator.platform;
-        document.getElementById('https').textContent = window.location.protocol === 'https:' ? '✅ Yes' : '❌ No (required for production)';
-        document.getElementById('mediaDevices').textContent = navigator.mediaDevices ? '✅ Available' : '❌ Not available';
+        document.getElementById('https').textContent = window.location.protocol === 'https:' ? 'Yes' : 'No (required for production)';
+        document.getElementById('mediaDevices').textContent = navigator.mediaDevices ? 'Available' : 'Not available';
 
         log('Page loaded. Click "Test Camera" to begin.');
 
@@ -118,14 +118,14 @@
             // Check if mediaDevices is available
             if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
                 statusDiv.className = 'status error';
-                statusDiv.innerHTML = '❌ ERROR: MediaDevices API not available in this browser!<br>Try using Chrome, Firefox, or Edge.';
+                statusDiv.innerHTML = 'ERROR: MediaDevices API not available in this browser!<br>Try using Chrome, Firefox, or Edge.';
                 log('ERROR: MediaDevices API not available');
                 return;
             }
 
             log('MediaDevices API is available');
             statusDiv.className = 'status info';
-            statusDiv.textContent = '⏳ Requesting camera access...';
+            statusDiv.textContent = 'Requesting camera access...';
 
             try {
                 log('Calling getUserMedia...');
@@ -140,14 +140,14 @@
                     audio: false
                 });
 
-                log('✅ Camera access granted!');
+                log('Camera access granted!');
                 log('Stream tracks: ' + stream.getTracks().length);
                 
                 // Set video source
                 video.srcObject = stream;
                 
                 statusDiv.className = 'status success';
-                statusDiv.textContent = '✅ SUCCESS! Camera is working!';
+                statusDiv.textContent = 'SUCCESS! Camera is working!';
                 log('Video element updated with stream');
 
                 // Log stream details
@@ -157,13 +157,13 @@
                 });
 
             } catch (error) {
-                log('❌ ERROR: ' + error.name + ' - ' + error.message);
+                log('ERROR: ' + error.name + ' - ' + error.message);
                 
                 statusDiv.className = 'status error';
                 
                 if (error.name === 'NotAllowedError') {
                     statusDiv.innerHTML = `
-                        ❌ Camera Permission Denied!<br><br>
+                        Camera Permission Denied!<br><br>
                         <strong>How to fix:</strong><br>
                         1. Click the camera icon in your browser's address bar<br>
                         2. Allow camera access<br>
@@ -171,7 +171,7 @@
                     `;
                 } else if (error.name === 'NotFoundError') {
                     statusDiv.innerHTML = `
-                        ❌ No Camera Found!<br><br>
+                        No Camera Found!<br><br>
                         <strong>Possible reasons:</strong><br>
                         - Camera is not connected<br>
                         - Camera is being used by another application<br>
@@ -179,7 +179,7 @@
                     `;
                 } else if (error.name === 'NotReadableError') {
                     statusDiv.innerHTML = `
-                        ❌ Camera is Already in Use!<br><br>
+                        Camera is Already in Use!<br><br>
                         <strong>How to fix:</strong><br>
                         - Close other applications using the camera<br>
                         - Close other browser tabs with camera access<br>
@@ -187,7 +187,7 @@
                     `;
                 } else {
                     statusDiv.innerHTML = `
-                        ❌ Camera Error: ${error.name}<br><br>
+                        Camera Error: ${error.name}<br><br>
                         ${error.message}
                     `;
                 }

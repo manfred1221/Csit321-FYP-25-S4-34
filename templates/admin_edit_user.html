@@ -18,7 +18,7 @@
         }
 
         .navbar {
-            background: #1e293b;
+            background: #2563eb;
             color: #fff;
             padding: 18px 30px;
             display: flex;
@@ -79,7 +79,7 @@
 
         .card-header h2 {
             font-size: 18px;
-            color: #1e293b;
+            color: #2563eb;
         }
 
         .card-body {
@@ -308,192 +308,180 @@
     </nav>
 
     <div class="container">
-        <a href="/admin/users" class="back-link">← Back to Users</a>
+        <a href="/admin/users" class="back-link">
+            < Back to Users</a>
 
-        <div class="card">
-            <div class="card-header">
-                <h2>Edit: {{ user.username }}</h2>
-            </div>
-            <div class="card-body">
-                {% if user.face_encoding_path %}
-                <div class="face-status registered">
-                    <div class="text">
-                        <h4>✓ Face Registered</h4>
-                        <p>User can access the gate via face recognition</p>
+                <div class="card">
+                    <div class="card-header">
+                        <h2>Edit: {{ user.username }}</h2>
                     </div>
-                </div>
-                {% else %}
-                <div class="face-status not-registered">
-                    <div class="text">
-                        <h4>⚠ Face Not Registered</h4>
-                        <p>Upload photo below to enable face recognition access</p>
-                    </div>
-                </div>
-                {% endif %}
-
-                <div class="error" id="error"></div>
-                <div class="success" id="success"></div>
-
-                <form id="userForm">
-                    <div class="form-group">
-                        <label>Username</label>
-                        <input type="text" value="{{ user.username }}" disabled>
-                        <p class="help-text">Username cannot be changed</p>
-                    </div>
-
-                    <div class="form-group">
-                        <label>Full Name</label>
-                        <input type="text" id="full_name" value="{{ user.full_name or '' }}">
-                    </div>
-
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Email</label>
-                            <input type="email" id="email" value="{{ user.email or '' }}">
-                        </div>
-                        <div class="form-group">
-                            <label>Phone</label>
-                            <input type="text" id="phone" value="{{ user.phone or '' }}">
-                        </div>
-                    </div>
-
-                    <div class="form-group">
-                        <label>New Password</label>
-                        <input type="password" id="password" placeholder="Leave blank to keep current">
-                        <p class="help-text">Only fill this if you want to change the password</p>
-                    </div>
-
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Role</label>
-                            <select id="role" onchange="toggleTempWorkerFields()">
-                                <option value="Resident" {% if user.role=='Resident' %}selected{% endif %}>Resident
-                                </option>
-                                <option value="Admin" {% if user.role=='Admin' %}selected{% endif %}>Admin</option>
-                                <option value="Security" {% if user.role=='Security' %}selected{% endif %}>Security
-                                </option>
-                                <option value="Guest" {% if user.role=='Guest' %}selected{% endif %}>Guest</option>
-                                <option value="TEMP_WORKER" {% if user.role=='TEMP_WORKER' %}selected{% endif %}>
-                                    Temporary Worker</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label>Status</label>
-                            <select id="status">
-                                <option value="active" {% if user.status=='active' %}selected{% endif %}>Active</option>
-                                <option value="inactive" {% if user.status=='inactive' %}selected{% endif %}>Inactive
-                                </option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Access Level</label>
-                            <select id="access_level">
-                                <option value="standard" {% if user.access_level=='standard' %}selected{% endif %}>
-                                    Standard (Common Areas)</option>
-                                <option value="level_1" {% if user.access_level=='level_1' %}selected{% endif %}>Level 1
-                                    (Floor 1-5)</option>
-                                <option value="level_2" {% if user.access_level=='level_2' %}selected{% endif %}>Level 2
-                                    (Floor 6-10)</option>
-                                <option value="level_3" {% if user.access_level=='level_3' %}selected{% endif %}>Level 3
-                                    (Floor 11-15)</option>
-                                <option value="vip" {% if user.access_level=='vip' %}selected{% endif %}>VIP (Full
-                                    Access)</option>
-                            </select>
-                            <p class="help-text">Determines which areas/floors the user can access</p>
-                        </div>
-                        <div class="form-group">
-                            <label>Unit Number</label>
-                            <input type="text" id="unit_number" value="{{ user.unit_number or '' }}"
-                                placeholder="e.g., A-101">
-                        </div>
-                    </div>
-
-                    <!-- Temporary Worker Fields -->
-                    <div class="temp-worker-fields {% if user.role == 'TEMP_WORKER' %}show{% endif %}"
-                        id="tempWorkerFields">
-                        <h4>🔧 Temporary Worker Details</h4>
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label>Work Start Date</label>
-                                <input type="date" id="work_start_date"
-                                    value="{{ user.work_start_date.strftime('%Y-%m-%d') if user.work_start_date else '' }}">
-                            </div>
-                            <div class="form-group">
-                                <label>Work End Date</label>
-                                <input type="date" id="work_end_date"
-                                    value="{{ user.work_end_date.strftime('%Y-%m-%d') if user.work_end_date else '' }}">
-                                <p class="help-text">Access will be automatically revoked after this date</p>
+                    <div class="card-body">
+                        {% if user.face_encoding_path %}
+                        <div class="face-status registered">
+                            <div class="text">
+                                <h4>Face Registered</h4>
+                                <p>User can access the gate via face recognition</p>
                             </div>
                         </div>
-                        
-                        <div class="form-group">
-                            <label>Work Schedule</label>
-                            <input type="text" id="work_schedule" value="{{ user.work_schedule or '' }}"
-                                placeholder="e.g., Mon-Fri 8:00-17:00">
+                        {% else %}
+                        <div class="face-status not-registered">
+                            <div class="text">
+                                <h4>Face Not Registered</h4>
+                                <p>Upload photo below to enable face recognition access</p>
+                            </div>
                         </div>
-                        <div class="form-group">
-                            <label>Work Details</label>
-                            <textarea id="work_details"
-                                placeholder="Description of work to be performed">{{ user.work_details or '' }}</textarea>
-                        </div>
+                        {% endif %}
+
+                        <div class="error" id="error"></div>
+                        <div class="success" id="success"></div>
+
+                        <form id="userForm">
+                            <div class="form-group">
+                                <label>Username</label>
+                                <input type="text" value="{{ user.username }}" disabled>
+                                <p class="help-text">Username cannot be changed</p>
+                            </div>
+
+                            <div class="form-group">
+                                <label>Full Name</label>
+                                <input type="text" id="full_name" value="{{ user.full_name or '' }}">
+                            </div>
+
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Email</label>
+                                    <input type="email" id="email" value="{{ user.email or '' }}">
+                                </div>
+                                <div class="form-group">
+                                    <label>Phone</label>
+                                    <input type="text" id="phone" value="{{ user.phone or '' }}">
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label>New Password</label>
+                                <input type="password" id="password" placeholder="Leave blank to keep current">
+                                <p class="help-text">Only fill this if you want to change the password</p>
+                            </div>
+
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Role</label>
+                                    <select id="role" onchange="toggleTempWorkerFields()">
+                                        <option value="Resident" {% if user.role=='Resident' %}selected{% endif %}>
+                                            Resident
+                                        </option>
+                                        <option value="Admin" {% if user.role=='Admin' %}selected{% endif %}>Admin
+                                        </option>
+                                        <option value="Security" {% if user.role=='Security' %}selected{% endif %}>
+                                            Security
+                                        </option>
+                                        <option value="Internal Staff" {% if user.role=='Internal Staff' %}selected{%
+                                            endif %}>Internal Staff</option>
+                                        <option value="TEMP_WORKER" {% if user.role=='TEMP_WORKER' %}selected{% endif
+                                            %}>
+                                            Temporary Worker</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Status</label>
+                                    <select id="status">
+                                        <option value="active" {% if user.status=='active' %}selected{% endif %}>Active
+                                        </option>
+                                        <option value="inactive" {% if user.status=='inactive' %}selected{% endif %}>
+                                            Inactive
+                                        </option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Access Level</label>
+                                    <select id="access_level">
+                                        <option value="standard" {% if user.access_level=='standard' %}selected{% endif
+                                            %}>
+                                            Standard (Common Areas)</option>
+                                        <option value="level_1" {% if user.access_level=='level_1' %}selected{% endif
+                                            %}>Level 1
+                                            (Floor 1-5)</option>
+                                        <option value="level_2" {% if user.access_level=='level_2' %}selected{% endif
+                                            %}>Level 2
+                                            (Floor 6-10)</option>
+                                        <option value="level_3" {% if user.access_level=='level_3' %}selected{% endif
+                                            %}>Level 3
+                                            (Floor 11-15)</option>
+                                        <option value="vip" {% if user.access_level=='vip' %}selected{% endif %}>VIP
+                                            (Full
+                                            Access)</option>
+                                    </select>
+                                    <p class="help-text">Determines which areas/floors the user can access</p>
+                                </div>
+                                <div class="form-group">
+                                    <label>Unit Number</label>
+                                    <input type="text" id="unit_number" value="{{ user.unit_number or '' }}"
+                                        placeholder="e.g., A-101">
+                                </div>
+                            </div>
+
+                            <!-- Temporary Worker Fields -->
+                            <div class="temp-worker-fields {% if user.role == 'TEMP_WORKER' %}show{% endif %}"
+                                id="tempWorkerFields">
+                                <h4>Temporary Worker Details</h4>
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label>Work Start Date</label>
+                                        <input type="date" id="work_start_date"
+                                            value="{{ user.work_start_date.strftime('%Y-%m-%d') if user.work_start_date else '' }}">
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Work End Date</label>
+                                        <input type="date" id="work_end_date"
+                                            value="{{ user.work_end_date.strftime('%Y-%m-%d') if user.work_end_date else '' }}">
+                                        <p class="help-text">Access will be automatically revoked after this date</p>
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label>Work Schedule</label>
+                                    <input type="text" id="work_schedule" value="{{ user.work_schedule or '' }}"
+                                        placeholder="e.g., Mon-Fri 8:00-17:00">
+                                </div>
+                                <div class="form-group">
+                                    <label>Work Details</label>
+                                    <textarea id="work_details"
+                                        placeholder="Description of work to be performed">{{ user.work_details or '' }}</textarea>
+                                </div>
+                            </div>
+
+                            <button type="submit" class="btn btn-primary btn-block">Save Changes</button>
+                        </form>
                     </div>
+                </div>
 
-                    <button type="submit" class="btn btn-primary btn-block">Save Changes</button>
-                </form>
-            </div>
-        </div>
+                <!-- ID Document Upload (for temp workers) -->
+                {% if user.role == 'TEMP_WORKER' %}
+                <div class="card">
+                    <div class="card-header">
+                        <h2>Upload ID Document</h2>
+                    </div>
+                    <div class="card-body">
+                        <div id="docAlert"></div>
 
-        <!-- Photo Upload Card -->
-        <div class="card">
-            <div class="card-header">
-                <h2>Upload Face Photo</h2>
-            </div>
-            <div class="card-body">
-                <div id="photoAlert"></div>
+                        {% if user.id_document_path %}
+                        <p style="margin-bottom:15px;color:#166534;">ID document already uploaded - <a
+                                href="/id_documents/{{ user.id_document_path }}" target="_blank">View Document</a></p>
+                        {% endif %}
 
-                {% if user.photo_path %}
-                <div class="current-photo">
-                    <img src="/uploads/{{ user.photo_path.split('/')[-1] }}" alt="Current Photo">
-                    <p>Current photo</p>
+                        <div class="upload-area" id="docArea" onclick="document.getElementById('docInput').click()">
+                            <h4>Click to upload ID document</h4>
+                            <p>JPG, PNG or PDF</p>
+                        </div>
+                        <input type="file" id="docInput" class="file-input" accept="image/*,.pdf">
+                        <button class="btn btn-primary btn-block" id="uploadDocBtn" onclick="uploadDoc()" disabled
+                            style="margin-top:15px;">Upload Document</button>
+                    </div>
                 </div>
                 {% endif %}
-
-                <div class="upload-area" id="photoArea" onclick="document.getElementById('photoInput').click()">
-                    <h4>Click to upload new photo</h4>
-                    <p>JPG or PNG - Clear front-facing photo</p>
-                </div>
-                <input type="file" id="photoInput" class="file-input" accept="image/*">
-                <button class="btn btn-primary btn-block" id="uploadPhotoBtn" onclick="uploadPhoto()" disabled
-                    style="margin-top:15px;">Upload Photo</button>
-            </div>
-        </div>
-
-        <!-- ID Document Upload (for temp workers) -->
-        {% if user.role == 'TEMP_WORKER' %}
-        <div class="card">
-            <div class="card-header">
-                <h2>Upload ID Document</h2>
-            </div>
-            <div class="card-body">
-                <div id="docAlert"></div>
-
-                {% if user.id_document_path %}
-                <p style="margin-bottom:15px;color:#166534;">✓ ID document already uploaded - <a
-                        href="/id_documents/{{ user.id_document_path }}" target="_blank">View Document</a></p>
-                {% endif %}
-
-                <div class="upload-area" id="docArea" onclick="document.getElementById('docInput').click()">
-                    <h4>Click to upload ID document</h4>
-                    <p>JPG, PNG or PDF</p>
-                </div>
-                <input type="file" id="docInput" class="file-input" accept="image/*,.pdf">
-                <button class="btn btn-primary btn-block" id="uploadDocBtn" onclick="uploadDoc()" disabled
-                    style="margin-top:15px;">Upload Document</button>
-            </div>
-        </main>
     </div>
 
     <script>
@@ -508,18 +496,6 @@
             }
         }
 
-        document.getElementById('photoInput').onchange = (e) => {
-            const file = e.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    document.getElementById('photoArea').innerHTML = '<img src="' + e.target.result + '" alt="Preview">';
-                    document.getElementById('uploadPhotoBtn').disabled = false;
-                };
-                reader.readAsDataURL(file);
-            }
-        };
-
         const docInput = document.getElementById('docInput');
         if (docInput) {
             docInput.onchange = (e) => {
@@ -529,38 +505,6 @@
                     document.getElementById('uploadDocBtn').disabled = false;
                 }
             };
-        }
-
-        async function uploadPhoto() {
-            const btn = document.getElementById('uploadPhotoBtn');
-            const alertBox = document.getElementById('photoAlert');
-            btn.disabled = true;
-            btn.textContent = 'Uploading...';
-
-            const formData = new FormData();
-            formData.append('photo', document.getElementById('photoInput').files[0]);
-
-            try {
-                const response = await fetch('/admin/users/{{ user.id }}/upload-photo', {
-                    method: 'POST',
-                    body: formData
-                });
-
-                const data = await response.json();
-
-                if (data.success) {
-                    alertBox.innerHTML = '<div class="success" style="display:block;">' + data.message + '</div>';
-                    setTimeout(() => location.reload(), 1500);
-                } else {
-                    alertBox.innerHTML = '<div class="error" style="display:block;">' + data.message + '</div>';
-                    btn.disabled = false;
-                    btn.textContent = 'Upload Photo';
-                }
-            } catch (err) {
-                alertBox.innerHTML = '<div class="error" style="display:block;">Network error</div>';
-                btn.disabled = false;
-                btn.textContent = 'Upload Photo';
-            }
         }
 
         async function uploadDoc() {
