@@ -1,18 +1,15 @@
 # database.py
 # Infrastructure layer - Database connection management only
 
+import os
 import psycopg2
 from psycopg2.extras import RealDictCursor
 from contextlib import contextmanager
 
-# Database configuration
-DB_CONFIG = {
-    'host': 'localhost',
-    'port': 5432,
-    'database': 'CSIT321',
-    'user': 'postgres',
-    'password': 'Jb150611'  # CHANGE THIS to your actual PostgreSQL password
-}
+# Use the same URL as test_supabase_connection.py
+# (you can also move it to an env var later)
+DATABASE_URL = "postgresql://postgres.hacoojohokviouocuwxx:year3fyp123Ab@aws-1-ap-northeast-2.pooler.supabase.com:5432/postgres"
+
 
 
 def get_db_connection():
@@ -21,7 +18,8 @@ def get_db_connection():
     Returns a psycopg2 connection object.
     """
     try:
-        conn = psycopg2.connect(**DB_CONFIG)
+        # For Supabase, passing the URL string is enough
+        conn = psycopg2.connect(DATABASE_URL)
         return conn
     except psycopg2.Error as e:
         print(f"Database connection error: {e}")
@@ -33,9 +31,6 @@ def get_db_cursor(commit=False):
     """
     Context manager for database operations.
     Automatically handles connection and cursor cleanup.
-    
-    Args:
-        commit (bool): Whether to commit the transaction (for INSERT/UPDATE/DELETE)
     """
     conn = get_db_connection()
     cursor = conn.cursor(cursor_factory=RealDictCursor)
@@ -59,9 +54,9 @@ def test_connection():
     try:
         with get_db_cursor() as cursor:
             cursor.execute("SELECT 1")
-            result = cursor.fetchone()
-            print("✅ Database connection successful!")
-            return True
+            cursor.fetchone()
+        print("✅ Database connection successful!")
+        return True
     except Exception as e:
         print(f"❌ Database connection failed: {e}")
         return False

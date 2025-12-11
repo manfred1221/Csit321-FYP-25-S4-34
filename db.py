@@ -1,22 +1,4 @@
 # db.py
-import os
-import psycopg2
-from psycopg2.extras import RealDictCursor
+# Compatibility wrapper so old code that imports from `db` still works.
 
-
-def get_db_connection():
-
-    dbname = os.getenv("DB_NAME", "csit321_db")
-    user = os.getenv("DB_USER", "postgres")
-    password = os.getenv("DB_PASSWORD", "manfred@12")
-    host = os.getenv("DB_HOST", "localhost")
-    port = os.getenv("DB_PORT", "5432")
-
-    conn = psycopg2.connect(
-        dbname=dbname,
-        user=user,
-        password=password,
-        host=host,
-        port=port,
-    )
-    return conn
+from database import get_db_connection, get_db_cursor, test_connection
