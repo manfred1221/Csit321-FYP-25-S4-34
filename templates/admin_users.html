@@ -18,7 +18,7 @@
         }
 
         .navbar {
-            background: #1e293b;
+            background: #2563eb;
             color: #fff;
             padding: 18px 30px;
             display: flex;
@@ -71,7 +71,7 @@
 
         .card-header h2 {
             font-size: 18px;
-            color: #1e293b;
+            color: #2563eb;
         }
 
         .card-body {
@@ -303,7 +303,8 @@
                             </option>
                             <option value="Security" {% if role_filter=='Security' %}selected{% endif %}>Security
                             </option>
-                            <option value="Guest" {% if role_filter=='Guest' %}selected{% endif %}>Guest</option>
+                            <option value="Internal Staff" {% if role_filter=='Internal Staff' %}selected{% endif %}>
+                                Internal Staff</option>
                             <option value="TEMP_WORKER" {% if role_filter=='TEMP_WORKER' %}selected{% endif %}>Temp
                                 Worker</option>
                         </select>
@@ -373,7 +374,7 @@
                                     {% if user.role == 'Admin' %}badge-danger
                                     {% elif user.role == 'Security' %}badge-warning
                                     {% elif user.role == 'TEMP_WORKER' %}badge-purple
-                                    {% elif user.role == 'Guest' %}badge-gray
+                                    {% elif user.role == 'Internal Staff' %}badge-gray
                                     {% else %}badge-info{% endif %}">
                                     {{ user.role }}
                                 </span>
@@ -424,13 +425,15 @@
                     </tbody>
                 </table>
             </div>
-            <div id="message" class="message"></div>
-        </main>
+        </div>
     </div>
 
     <script>
-        function editUser(id) {
-            window.location.href = 'admin_edit_user.html?id=' + id;
+        function toggleSelectAll() {
+            const selectAll = document.getElementById('selectAll');
+            const checkboxes = document.querySelectorAll('.user-checkbox');
+            checkboxes.forEach(cb => cb.checked = selectAll.checked);
+            updateBulkActions();
         }
 
         function updateBulkActions() {
@@ -482,7 +485,7 @@
         async function deleteUser(id) {
             if (!confirm('Delete this user? This action cannot be undone.')) return;
 
-            const response = await fetch('/admin/users/' + id + '/delete', { method: 'POST' });
+            const response = await fetch('/admin/users/' + id, { method: 'DELETE' });
             const data = await response.json();
 
             if (data.success) {

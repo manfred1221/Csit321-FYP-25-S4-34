@@ -1,59 +1,140 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Login - Condo Access</title>
-    <link rel="stylesheet" href="css/styles.css">
+    <title>Admin Login</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #2563eb;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .login-box {
+            background: #fff;
+            padding: 50px 40px;
+            border-radius: 8px;
+            width: 100%;
+            max-width: 400px;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #2563eb;
+            font-size: 24px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #334155;
+            font-weight: 600;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 14px 16px;
+            border: 2px solid #e2e8f0;
+            border-radius: 6px;
+            font-size: 16px;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #3b82f6;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 16px;
+            background: #2563eb;
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .btn:hover {
+            background: #1e40af;
+        }
+
+        .error {
+            background: #fee2e2;
+            color: #dc2626;
+            padding: 14px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            display: none;
+            text-align: center;
+        }
+    </style>
 </head>
+
 <body>
-    <div class="login-container">
-        <div class="login-box">
-            <div class="logo">
-                <h1>🔐 Condo Access</h1>
-                <p>Administrator Login</p>
+    <div class="login-box">
+        <h1>Admin Login</h1>
+        <div class="error" id="error"></div>
+        <form onsubmit="login(event)">
+            <div class="form-group">
+                <label>Username</label>
+                <input type="text" id="username" required>
             </div>
-            <form id="loginForm">
-                <div class="form-group">
-                    <label>Admin Username</label>
-                    <input type="text" id="username" placeholder="Enter admin username" required>
-                </div>
-                <div class="form-group">
-                    <label>Password</label>
-                    <input type="password" id="password" placeholder="Enter password" required>
-                </div>
-                <button type="submit" class="btn btn-primary">Login as Administrator</button>
-            </form>
-            <div id="message" class="message"></div>
-            <div class="form-links">
-                <a href="index.html">← Back to Main Login</a>
-                <a href="#">Forgot Password?</a>
+            <div class="form-group">
+                <label>Password</label>
+                <input type="password" id="password" required>
             </div>
-        </div>
+            <button type="submit" class="btn">Login</button>
+        </form>
     </div>
+
     <script>
-        document.getElementById('loginForm').addEventListener('submit', function(e) {
+        async function login(e) {
             e.preventDefault();
-            const username = document.getElementById('username').value;
-            const password = document.getElementById('password').value;
-            
-            // TODO: Replace with actual API call
-            if (username && password) {
-                showMessage('Login successful! Redirecting...', 'success');
-                setTimeout(() => {
-                    window.location.href = 'admin_users.html';
-                }, 1500);
-            } else {
-                showMessage('Invalid credentials', 'error');
+            const error = document.getElementById('error');
+            error.style.display = 'none';
+
+            try {
+                const response = await fetch('/admin/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        username: document.getElementById('username').value,
+                        password: document.getElementById('password').value
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    window.location.href = '/admin/profile';
+                } else {
+                    error.textContent = data.message || 'Login failed';
+                    error.style.display = 'block';
+                }
+            } catch (err) {
+                error.textContent = 'Network error';
+                error.style.display = 'block';
             }
-        });
-        
-        function showMessage(msg, type) {
-            const messageEl = document.getElementById('message');
-            messageEl.textContent = msg;
-            messageEl.className = 'message ' + type;
-            messageEl.style.display = 'block';
         }
     </script>
 </body>
+
 </html>

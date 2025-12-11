@@ -1,40 +1,60 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Deactivate Account - Security</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <link rel="stylesheet" href="/frontend/css/styles.css">
 </head>
+
 <body>
     <div class="dashboard">
         <aside class="sidebar">
             <div class="sidebar-header">
-                <h2>🔐 Condo Access</h2>
-                <div class="user-info"><div>Security Officer</div><div>officer@example.com</div></div>
+                <h2> Condo Access</h2>
+                <div class="user-info">
+                    <div>{{officer.full_name}}</div>
+                    <div>{{officer.contact_number}}</div>
+                </div>
             </div>
             <nav>
                 <ul class="nav-menu">
-                    <li class="nav-item"><a href="/?officer_id={{ officer.officer_id }}" class="nav-link">📹 Monitor Cameras</a></li>
-                    <li class="nav-item"><a href="/security-override?officer_id={{ officer.officer_id }}" class="nav-link">🚪 Manual Override</a></li>
-                    <li class="nav-item"><a href="/security-view-profile?officer_id={{ officer.officer_id }}" class="nav-link">👤 View Profile</a></li>
-                    <li class="nav-item"><a href="/security-update-profile?officer_id={{ officer.officer_id }}" class="nav-link">✏️ Update Profile</a></li>
-                    <li class="nav-item"><a href="/security-deactivate?officer_id={{ officer.officer_id }}" class="nav-link active">⚠️ Deactivate Account</a></li>
-                    <li class="nav-item"><a href="/security-face-verification?officer_id={{ officer.officer_id }}" class="nav-link">🔍 Face Verification</a></li>
-                    <li class="nav-item"><a href="/" class="nav-link" style="margin-top:20px;border-top:1px solid rgba(255,255,255,0.1);padding-top:20px;">🚪 Logout</a></li>
+                    <li class="nav-item"><a href="/security-dashboard?officer_id={{ officer.id }}" class="nav-link">📹
+                            Monitor Cameras</a></li>
+                    <li class="nav-item"><a href="/security-override?officer_id={{ officer.id }}" class="nav-link">🚪
+                            Manual Override</a></li>
+                    <li class="nav-item"><a href="/security-view-profile?officer_id={{ officer.id }}"
+                            class="nav-link">👤 View Profile</a></li>
+                    <li class="nav-item"><a href="/security-update-profile?officer_id={{ officer.id }}"
+                            class="nav-link">✏️ Update Profile</a></li>
+                    <li class="nav-item"><a href="/security-deactivate?officer_id={{ officer.id }}"
+                            class="nav-link active">⚠️ Deactivate Account</a></li>
+                    <li class="nav-item"><a href="/security-face-verification?officer_id={{ officer.id }}"
+                            class="nav-link">🔍 Face Verification</a></li>
+                    <li class="nav-item"><a href="/security/logout" class="nav-link"
+                            style="margin-top:20px;border-top:1px solid rgba(255,255,255,0.1);padding-top:20px;">🚪
+                            Logout</a></li>
                 </ul>
             </nav>
         </aside>
         <main class="main-content">
-            <div class="page-header"><h1>Deactivate Account</h1><p>Permanently deactivate your security officer account</p></div>
+            <div class="page-header">
+                <h1>Deactivate Account</h1>
+                <p>Permanently deactivate your security officer account</p>
+            </div>
             <div class="alert alert-warning" style="margin-bottom:20px;">
                 <strong>⚠️ Warning: This action cannot be undone</strong><br>
-                Deactivating your account will permanently remove your access to the system. All your data, shift history, and credentials will be archived but you will no longer be able to log in.
+                Deactivating your account will permanently remove your access to the system. All your data, shift
+                history, and credentials will be archived but you will no longer be able to log in.
             </div>
             <div class="card">
-                <div class="card-header"><h2>❌ Account Deactivation</h2></div>
+                <div class="card-header">
+                    <h2>❌ Account Deactivation</h2>
+                </div>
                 <div class="card-body">
-                    <div style="background:#fee2e2;border-left:4px solid #ef4444;padding:20px;border-radius:8px;margin-bottom:20px;">
+                    <div
+                        style="background:#fee2e2;border-left:4px solid #ef4444;padding:20px;border-radius:8px;margin-bottom:20px;">
                         <h3 style="margin:0 0 10px 0;color:#991b1b;">Before You Proceed</h3>
                         <ul style="margin:0;padding-left:20px;color:#991b1b;">
                             <li>You will lose access to all security monitoring systems</li>
@@ -59,11 +79,13 @@
                         </div>
                         <div class="form-group">
                             <label>Additional Comments (Optional)</label>
-                            <textarea id="comments" rows="4" placeholder="Please provide any additional details..." class="form-control"></textarea>
+                            <textarea id="comments" rows="4" placeholder="Please provide any additional details..."
+                                class="form-control"></textarea>
                         </div>
                         <div class="form-group">
                             <label>Confirm Your Password</label>
-                            <input type="password" id="password" placeholder="Enter your password to confirm" class="form-control">
+                            <input type="password" id="password" placeholder="Enter your password to confirm"
+                                class="form-control">
                         </div>
                         <div class="form-group">
                             <label style="display:flex;align-items:center;gap:10px;">
@@ -72,17 +94,22 @@
                             </label>
                         </div>
                         <div style="display:flex;gap:10px;">
-                            <button type="button" class="btn btn-danger" onclick="deactivateAccount()" style="flex:1;">⚠️ Deactivate Account</button>
-                            <a href="security-dashboard.html" class="btn btn-secondary" style="flex:1;text-align:center;">Cancel</a>
+                            <button type="button" class="btn btn-danger" onclick="deactivateAccount()"
+                                style="flex:1;">⚠️ Deactivate Account</button>
+                            <a href="security-dashboard.html" class="btn btn-secondary"
+                                style="flex:1;text-align:center;">Cancel</a>
                         </div>
                     </form>
                     <div id="message" class="message"></div>
                 </div>
             </div>
             <div class="card">
-                <div class="card-header"><h2>💬 Need Help?</h2></div>
+                <div class="card-header">
+                    <h2>💬 Need Help?</h2>
+                </div>
                 <div class="card-body">
-                    <p>If you're experiencing issues or have concerns, please contact your supervisor before deactivating your account.</p>
+                    <p>If you're experiencing issues or have concerns, please contact your supervisor before
+                        deactivating your account.</p>
                     <p><strong>Supervisor Contact:</strong> supervisor@security.com | +65 9000 1234</p>
                     <p><strong>HR Department:</strong> hr@property.com | +65 6123 4567</p>
                 </div>
@@ -94,7 +121,7 @@
             const reason = document.getElementById('reason').value;
             const password = document.getElementById('password').value;
             const confirmed = document.getElementById('confirmCheck').checked;
-            
+
             if (!reason) {
                 showMsg('Please select a reason for deactivation', 'error');
                 return;
@@ -107,7 +134,7 @@
                 showMsg('Please confirm that you understand this action is permanent', 'error');
                 return;
             }
-            
+
             if (confirm('Are you absolutely sure you want to deactivate your account? This cannot be undone.')) {
                 showMsg('Account deactivation request submitted. Your supervisor will review this request.', 'success');
                 setTimeout(() => {
@@ -115,7 +142,7 @@
                 }, 3000);
             }
         }
-        
+
         function showMsg(msg, type) {
             const el = document.getElementById('message');
             el.textContent = msg;
@@ -124,4 +151,5 @@
         }
     </script>
 </body>
+
 </html>

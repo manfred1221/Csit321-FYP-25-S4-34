@@ -46,7 +46,7 @@ class User:
                 'RESIDENT': 2, 'Resident': 2, 'USER': 2,
                 'VISITOR': 3, 'Visitor': 3,
                 'SECURITY': 4, 'Security': 4,
-                'GUEST': 5, 'Guest': 5,
+                'Internal Staff': 8,
                 'TEMP_WORKER': 6, 'TempWorker': 6
             }
             role_id = role_map.get(role_name, 2)
@@ -64,8 +64,8 @@ class User:
                 raise ValueError("Password is required")
             
             cursor.execute("""
-                INSERT INTO users (username, email, password_hash, role_id, status, access_level)
-                VALUES (%s, %s, %s, %s, %s, %s)
+                INSERT INTO users (username, email, password_hash, role_id, status, access_level, full_name, contact_number)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
                 RETURNING user_id
             """, (
                 data['username'],
@@ -73,7 +73,9 @@ class User:
                 User.hash_password(data['password']),
                 role_id,
                 status,
-                access_level
+                access_level,
+                data.get('full_name', data['username']),
+                data.get('phone', '')
             ))
             
             result = cursor.fetchone()
@@ -144,10 +146,12 @@ class User:
         cursor = conn.cursor(cursor_factory=RealDictCursor)
         try:
             cursor.execute("""
-                SELECT u.user_id as id, u.username, u.email, u.password_hash, 
+                SELECT u.user_id as id, u.username, u.email, u.password_hash,
                        u.role_id, r.role_name as role, u.created_at,
                        u.status, u.access_level,
-                       res.full_name, res.unit_number, res.contact_number as phone,
+                       COALESCE(u.full_name, res.full_name) as full_name,
+                       COALESCE(u.contact_number, res.contact_number) as phone,
+                       res.unit_number,
                        res.resident_id
                 FROM users u
                 JOIN roles r ON u.role_id = r.role_id
@@ -202,9 +206,11 @@ class User:
                 SELECT u.user_id as id, u.username, u.email, u.password_hash,
                        u.role_id, r.role_name as role, u.created_at,
                        u.status, u.access_level,
-                       res.full_name, res.unit_number, res.contact_number as phone,
+                       COALESCE(u.full_name, res.full_name) as full_name,
+                       COALESCE(u.contact_number, res.contact_number) as phone,
+                       res.unit_number,
                        res.resident_id,
-                       tw.work_start_date, tw.work_end_date, tw.work_schedule, 
+                       tw.work_start_date, tw.work_end_date, tw.work_schedule,
                        tw.work_details, tw.id_document_path
                 FROM users u
                 JOIN roles r ON u.role_id = r.role_id
@@ -227,7 +233,9 @@ class User:
                 SELECT u.user_id as id, u.username, u.email, u.password_hash,
                        u.role_id, r.role_name as role, u.created_at,
                        u.status, u.access_level,
-                       res.full_name, res.unit_number, res.contact_number as phone,
+                       COALESCE(u.full_name, res.full_name) as full_name,
+                       COALESCE(u.contact_number, res.contact_number) as phone,
+                       res.unit_number,
                        res.resident_id
                 FROM users u
                 JOIN roles r ON u.role_id = r.role_id
@@ -249,7 +257,9 @@ class User:
                 SELECT u.user_id as id, u.username, u.email,
                        u.role_id, r.role_name as role, u.created_at,
                        u.status, u.access_level,
-                       res.full_name, res.unit_number, res.contact_number as phone,
+                       COALESCE(u.full_name, res.full_name) as full_name,
+                       COALESCE(u.contact_number, res.contact_number) as phone,
+                       res.unit_number,
                        res.resident_id,
                        tw.work_start_date, tw.work_end_date,
                        CASE WHEN fe.embedding_id IS NOT NULL THEN 1 ELSE 0 END as has_face
@@ -292,7 +302,9 @@ class User:
                 SELECT u.user_id as id, u.username, u.email,
                        u.role_id, r.role_name as role, u.created_at,
                        u.status, u.access_level,
-                       res.full_name, res.unit_number, res.contact_number as phone,
+                       COALESCE(u.full_name, res.full_name) as full_name,
+                       COALESCE(u.contact_number, res.contact_number) as phone,
+                       res.unit_number,
                        res.resident_id,
                        tw.work_start_date, tw.work_end_date,
                        CASE WHEN fe.embedding_id IS NOT NULL THEN 1 ELSE 0 END as has_face
@@ -302,10 +314,10 @@ class User:
                 LEFT JOIN temp_workers tw ON u.user_id = tw.user_id
                 LEFT JOIN face_embeddings fe ON res.resident_id = fe.reference_id AND fe.user_type = 'resident'
                 WHERE (
-                    LOWER(u.username) LIKE LOWER(%s) OR 
-                    LOWER(COALESCE(res.full_name, '')) LIKE LOWER(%s) OR 
+                    LOWER(u.username) LIKE LOWER(%s) OR
+                    LOWER(COALESCE(u.full_name, res.full_name, '')) LIKE LOWER(%s) OR
                     LOWER(u.email) LIKE LOWER(%s) OR
-                    LOWER(COALESCE(res.contact_number, '')) LIKE LOWER(%s) OR
+                    LOWER(COALESCE(u.contact_number, res.contact_number, '')) LIKE LOWER(%s) OR
                     LOWER(COALESCE(res.unit_number, '')) LIKE LOWER(%s)
                 )
             """
@@ -340,12 +352,25 @@ class User:
         cursor = conn.cursor(cursor_factory=RealDictCursor)
         try:
             cursor.execute("""
+                -- Get residents with face embeddings
                 SELECT r.resident_id as id, r.full_name as username, r.full_name,
-                       fe.embedding_id, fe.embedding,
-                       u.role_id, ro.role_name as role, u.status, u.access_level
+                       fe.embedding_id, fe.embedding, fe.user_type,
+                       u.user_id, u.role_id, ro.role_name as role, u.status, u.access_level
                 FROM residents r
                 JOIN face_embeddings fe ON r.resident_id = fe.reference_id AND fe.user_type = 'resident'
                 LEFT JOIN users u ON r.user_id = u.user_id
+                LEFT JOIN roles ro ON u.role_id = ro.role_id
+                WHERE LOWER(u.status) = 'active'
+
+                UNION ALL
+
+                -- Get admin/staff/security_officer with face embeddings
+                SELECT u.user_id as id, u.username, COALESCE(u.username, '') as full_name,
+                       fe.embedding_id, fe.embedding, fe.user_type,
+                       u.user_id, u.role_id, ro.role_name as role, u.status, u.access_level
+                FROM users u
+                JOIN face_embeddings fe ON u.user_id = fe.reference_id
+                    AND fe.user_type IN ('ADMIN', 'internal_staff', 'temp_staff', 'security_officer')
                 LEFT JOIN roles ro ON u.role_id = ro.role_id
                 WHERE LOWER(u.status) = 'active'
             """)
@@ -373,70 +398,94 @@ class User:
     
     @staticmethod
     def update(user_id, data):
+        import logging
+        logger = logging.getLogger(__name__)
+
         conn = get_db_connection()
         cursor = conn.cursor()
         try:
+            logger.info(f"[UPDATE] Starting update for user_id={user_id} with data={data}")
+
             user_fields = []
             user_params = []
-            
+
             if 'email' in data:
                 user_fields.append("email = %s")
                 user_params.append(data['email'])
-            
+
             if 'password' in data and data['password']:
                 user_fields.append("password_hash = %s")
                 user_params.append(User.hash_password(data['password']))
-            
+
             if 'role' in data:
                 role_map = {
                     'ADMIN': 1, 'Admin': 1,
                     'RESIDENT': 2, 'Resident': 2, 'USER': 2,
                     'VISITOR': 3, 'Visitor': 3,
                     'SECURITY': 4, 'Security': 4,
-                    'GUEST': 5, 'Guest': 5,
+                    'Internal Staff': 8,
                     'TEMP_WORKER': 6, 'TempWorker': 6
                 }
                 role_id = role_map.get(data['role'], 2)
                 user_fields.append("role_id = %s")
                 user_params.append(role_id)
-            
+
             if 'status' in data:
                 user_fields.append("status = %s")
                 user_params.append(data['status'])
-            
+
             if 'access_level' in data:
                 user_fields.append("access_level = %s")
                 user_params.append(data['access_level'])
-            
+
+            # Store full_name and contact_number in users table (for all user types)
+            if 'full_name' in data:
+                user_fields.append("full_name = %s")
+                user_params.append(data['full_name'])
+
+            if 'phone' in data:
+                user_fields.append("contact_number = %s")
+                user_params.append(data['phone'])
+
             if user_fields:
                 user_params.append(user_id)
-                cursor.execute(
-                    f"UPDATE users SET {', '.join(user_fields)} WHERE user_id = %s",
-                    user_params
-                )
-            
+                sql = f"UPDATE users SET {', '.join(user_fields)} WHERE user_id = %s"
+                logger.info(f"[UPDATE] Executing users table update: {sql} with params={user_params}")
+                cursor.execute(sql, user_params)
+                logger.info(f"[UPDATE] Users table updated, rows affected: {cursor.rowcount}")
+            else:
+                logger.info(f"[UPDATE] No user table fields to update")
+
             # Update resident fields
             res_fields = []
             res_params = []
-            
+
             if 'full_name' in data:
                 res_fields.append("full_name = %s")
                 res_params.append(data['full_name'])
-            
+
             if 'phone' in data:
                 res_fields.append("contact_number = %s")
                 res_params.append(data['phone'])
-            
+
             if 'unit_number' in data:
                 res_fields.append("unit_number = %s")
                 res_params.append(data['unit_number'])
-            
+
             if res_fields:
-                res_params.append(user_id)
-                cursor.execute(
-                    f"UPDATE residents SET {', '.join(res_fields)} WHERE user_id = %s",
-                    res_params
-                )
+                # Check if resident record exists first
+                cursor.execute("SELECT resident_id FROM residents WHERE user_id = %s", (user_id,))
+                existing_resident = cursor.fetchone()
+                logger.info(f"[UPDATE] Checking for resident record: {existing_resident}")
+
+                if existing_resident:
+                    res_params.append(user_id)
+                    sql = f"UPDATE residents SET {', '.join(res_fields)} WHERE user_id = %s"
+                    logger.info(f"[UPDATE] Executing residents table update: {sql} with params={res_params}")
+                    cursor.execute(sql, res_params)
+                    logger.info(f"[UPDATE] Residents table updated, rows affected: {cursor.rowcount}")
+                else:
+                    logger.warning(f"[UPDATE] No resident record found for user_id={user_id}. Cannot update full_name/phone/unit_number. Need to create resident record or store data elsewhere.")
             
             # Update temp worker fields if applicable
             tw_fields = []

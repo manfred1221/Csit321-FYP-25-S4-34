@@ -13,6 +13,9 @@ import logging
 from datetime import datetime
 from psycopg2.extras import RealDictCursor
 from db import get_db_connection
+import sys
+from keras_facenet import FaceNet
+
 
 logger = logging.getLogger(__name__)
 
@@ -24,7 +27,6 @@ FACE_RECOGNITION_THRESHOLD = 1.0
 def get_embedder():
     global _embedder
     if _embedder is None:
-        from keras_facenet import FaceNet
         _embedder = FaceNet()
         logger.info("FaceNet model loaded")
     return _embedder
@@ -129,34 +131,46 @@ def save_embedding_to_db(embedding, reference_id, user_type='resident'):
     try:
         conn = get_db_connection()
         cursor = conn.cursor(cursor_factory=RealDictCursor)
-        
+
         # Convert embedding to list for PostgreSQL vector type
         embedding_list = embedding.tolist() if isinstance(embedding, np.ndarray) else list(embedding)
-        
+
         logger.info(f"Embedding dimensions: {len(embedding_list)}")
         logger.info(f"Saving for reference_id={reference_id}, user_type={user_type}")
-        
+
         # Format as PostgreSQL vector string
         embedding_str = '[' + ','.join(map(str, embedding_list)) + ']'
-        
-        # First verify the reference_id exists in residents table
-        cursor.execute("SELECT resident_id FROM residents WHERE resident_id = %s", (reference_id,))
-        check_result = cursor.fetchone()
-        if not check_result:
-            raise ValueError(f"reference_id {reference_id} does not exist in residents table")
-        
+
+        # Verify the reference_id exists in the appropriate table based on user_type
+        if user_type == 'resident':
+            cursor.execute("SELECT resident_id FROM residents WHERE resident_id = %s", (reference_id,))
+            check_result = cursor.fetchone()
+            if not check_result:
+                raise ValueError(f"reference_id {reference_id} does not exist in residents table")
+        elif user_type == 'visitor':
+            cursor.execute("SELECT visitor_id FROM visitors WHERE visitor_id = %s", (reference_id,))
+            check_result = cursor.fetchone()
+            if not check_result:
+                raise ValueError(f"reference_id {reference_id} does not exist in visitors table")
+        elif user_type in ['ADMIN', 'internal_staff', 'temp_staff', 'security_officer']:
+            cursor.execute("SELECT user_id FROM users WHERE user_id = %s", (reference_id,))
+            check_result = cursor.fetchone()
+            if not check_result:
+                raise ValueError(f"reference_id {reference_id} does not exist in users table")
+        # For other user types, skip validation (or add more checks as needed)
+
         cursor.execute("""
             INSERT INTO face_embeddings (user_type, reference_id, embedding)
             VALUES (%s, %s, %s::vector)
             RETURNING embedding_id
         """, (user_type, reference_id, embedding_str))
-        
+
         result = cursor.fetchone()
         if not result:
             raise ValueError("INSERT did not return embedding_id")
-        
+
         embedding_id = result['embedding_id']
-        
+
         conn.commit()
         logger.info(f"Saved embedding to database: embedding_id={embedding_id}")
         return embedding_id
@@ -199,9 +213,20 @@ def get_all_embeddings():
     try:
         cursor.execute("""
             SELECT fe.embedding_id, fe.user_type, fe.reference_id, fe.embedding,
-                   r.full_name, r.unit_number
+                   CASE
+                       WHEN fe.user_type = 'resident' THEN r.full_name
+                       WHEN fe.user_type IN ('ADMIN', 'internal_staff', 'temp_staff', 'security_officer') THEN u.username
+                       WHEN fe.user_type = 'visitor' THEN v.full_name
+                       ELSE 'Unknown'
+                   END as full_name,
+                   CASE
+                       WHEN fe.user_type = 'resident' THEN r.unit_number
+                       ELSE NULL
+                   END as unit_number
             FROM face_embeddings fe
             LEFT JOIN residents r ON fe.reference_id = r.resident_id AND fe.user_type = 'resident'
+            LEFT JOIN users u ON fe.reference_id = u.user_id AND fe.user_type IN ('ADMIN', 'internal_staff', 'temp_staff', 'security_officer')
+            LEFT JOIN visitors v ON fe.reference_id = v.visitor_id AND fe.user_type = 'visitor'
         """)
         return [dict(row) for row in cursor.fetchall()]
     finally:
@@ -416,7 +441,6 @@ def test_image(image_path):
     return embedding
 
 if __name__ == "__main__":
-    import sys
     if len(sys.argv) > 1:
         test_image(sys.argv[1])
     else:

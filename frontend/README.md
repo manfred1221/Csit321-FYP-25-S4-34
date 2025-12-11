@@ -187,7 +187,7 @@ The face registration feature requires camera access:
 2. **View Details** → See visit time window and unit
 3. **Show QR Code** → Present at entrance for access
 
-## 🔐 Security Notes
+##  Security Notes
 
 - This is a **development/demo version** with mock authentication
 - In production, implement:

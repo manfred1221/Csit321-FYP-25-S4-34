@@ -1,34 +1,51 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>View Profile - Security</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <link rel="stylesheet" href="/frontend/css/styles.css">
 </head>
+
 <body>
     <div class="dashboard">
         <aside class="sidebar">
             <div class="sidebar-header">
-                <h2>🔐 Condo Access</h2>
-                <div class="user-info"><div>{{officer.full_name}}</div><div>{{officer.contact_number}}</div>
-            </div>
-            <nav>
-                <ul class="nav-menu">
-                    <li class="nav-item"><a href="/?officer_id={{ officer.officer_id }}" class="nav-link">📹 Monitor Cameras</a></li>
-                    <li class="nav-item"><a href="/security-override?officer_id={{ officer.officer_id }}" class="nav-link">🚪 Manual Override</a></li>
-                    <li class="nav-item"><a href="/security-view-profile?officer_id={{ officer.officer_id }}" class="nav-link active">👤 View Profile</a></li>
-                    <li class="nav-item"><a href="/security-update-profile?officer_id={{ officer.officer_id }}" class="nav-link">✏️ Update Profile</a></li>
-                    <li class="nav-item"><a href="/security-deactivate?officer_id={{ officer.officer_id }}" class="nav-link">⚠️ Deactivate Account</a></li>
-                    <li class="nav-item"><a href="/security-face-verification?officer_id={{ officer.officer_id }}" class="nav-link">🔍 Face Verification</a></li>
-                    <li class="nav-item"><a href="/" class="nav-link" style="margin-top:20px;border-top:1px solid rgba(255,255,255,0.1);padding-top:20px;">🚪 Logout</a></li>
-                </ul>
-            </nav>
+                <h2> Condo Access</h2>
+                <div class="user-info">
+                    <div>{{officer.full_name}}</div>
+                    <div>{{officer.contact_number}}</div>
+                </div>
+                <nav>
+                    <ul class="nav-menu">
+                        <li class="nav-item"><a href="/security-dashboard?officer_id={{ officer.id }}"
+                                class="nav-link">📹 Monitor Cameras</a></li>
+                        <li class="nav-item"><a href="/security-override?officer_id={{ officer.id }}"
+                                class="nav-link">🚪 Manual Override</a></li>
+                        <li class="nav-item"><a href="/security-view-profile?officer_id={{ officer.id }}"
+                                class="nav-link active">👤 View Profile</a></li>
+                        <li class="nav-item"><a href="/security-update-profile?officer_id={{ officer.id }}"
+                                class="nav-link">✏️ Update Profile</a></li>
+                        <li class="nav-item"><a href="/security-deactivate?officer_id={{ officer.id }}"
+                                class="nav-link">⚠️ Deactivate Account</a></li>
+                        <li class="nav-item"><a href="/security-face-verification?officer_id={{ officer.id }}"
+                                class="nav-link">🔍 Face Verification</a></li>
+                        <li class="nav-item"><a href="/security/logout?officer_id={{ officer.id }}" class="nav-link"
+                                style="margin-top:20px;border-top:1px solid rgba(255,255,255,0.1);padding-top:20px;">🚪
+                                Logout</a></li>
+                    </ul>
+                </nav>
         </aside>
         <main class="main-content">
-            <div class="page-header"><h1>View Profile</h1><p>View your security officer information</p></div>
+            <div class="page-header">
+                <h1>View Profile</h1>
+                <p>View your security officer information</p>
+            </div>
             <div class="card">
-                <div class="card-header"><h2>👤 Personal Information</h2></div>
+                <div class="card-header">
+                    <h2>👤 Personal Information</h2>
+                </div>
                 <div class="card-body">
                     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:20px;">
                         <div>
@@ -53,13 +70,16 @@
                         </div>
                         <div>
                             <div style="font-weight:500;color:#6b7280;margin-bottom:5px;">Status</div>
-                            <div style="font-size:16px;"><span class="badge badge-success">{{officer.active}}</span></div>
+                            <div style="font-size:16px;"><span class="badge badge-success">{{officer.active}}</span>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
             <div class="card">
-                <div class="card-header"><h2>📊 Work Statistics</h2></div>
+                <div class="card-header">
+                    <h2>📊 Work Statistics</h2>
+                </div>
                 <div class="card-body">
                     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:20px;">
                         <div style="text-align:center;padding:20px;background:#f9fafb;border-radius:8px;">
@@ -78,7 +98,9 @@
                 </div>
             </div>
             <div class="card">
-                <div class="card-header"><h2>🎖️ Certifications & Training</h2></div>
+                <div class="card-header">
+                    <h2>🎖️ Certifications & Training</h2>
+                </div>
                 <div class="card-body">
                     <div style="display:flex;flex-direction:column;gap:15px;">
                         <div style="padding:15px;border-left:4px solid #10b981;background:#f9fafb;border-radius:4px;">
@@ -97,7 +119,8 @@
                 </div>
             </div>
             <div style="margin-top:20px;display:flex;gap:10px;">
-                <a href="/security-update-profile?officer_id={{ officer.officer_id }}" class="btn btn-primary">✏️ Edit Profile</a>
+                <a href="/security-update-profile?officer_id={{ officer.officer_id }}" class="btn btn-primary">✏️ Edit
+                    Profile</a>
                 <button class="btn btn-secondary" onclick="printProfile()">🖨️ Print</button>
             </div>
         </main>
@@ -108,4 +131,5 @@
         }
     </script>
 </body>
+
 </html>

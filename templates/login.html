@@ -18,7 +18,6 @@
     <select id="user_type">
         <option value="security_officer">Security Officer</option>
         <option value="resident">Resident</option>
-        <option value="visitor">Visitor</option>
     </select>
 
     <input type="number" id="user_id" placeholder="Enter ID">
@@ -35,7 +34,8 @@ function login() {
     const user_type = document.getElementById("user_type").value;
     const user_id = document.getElementById("user_id").value;
 
-    fetch("http://127.0.0.1:5001/login", {
+    // Post to current page URL (supports both /login and /security/login)
+    fetch(window.location.pathname, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ user_type, user_id})

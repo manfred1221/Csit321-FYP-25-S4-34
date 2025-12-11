@@ -1,11 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Staff Dashboard - Condo Access</title>
     <link rel="stylesheet" href="css/styles.css">
 </head>
+
 <body>
     <div class="dashboard">
         <!-- Sidebar -->
@@ -17,7 +19,7 @@
                     <p id="staffPosition">Staff Member</p>
                 </div>
             </div>
-            
+
             <nav>
                 <ul class="nav-menu">
                     <li class="nav-item">
@@ -30,7 +32,7 @@
                         <a href="staff-attendance.html" class="nav-link">⏰ Attendance</a>
                     </li>
                     <li class="nav-item">
-                        <a href="staff-profile.html" class="nav-link">👤 Profile</a>
+                        <a href="staff-profile.html" class="nav-link"> Profile</a>
                     </li>
                     <li class="nav-item">
                         <a href="#" class="nav-link" id="logoutBtn">🚪 Logout</a>
@@ -71,7 +73,8 @@
                     <div class="flex gap-10">
                         <button class="btn btn-primary" id="clockInBtn">🕐 Clock In</button>
                         <button class="btn btn-secondary" id="clockOutBtn">🕑 Clock Out</button>
-                        <button class="btn btn-success" onclick="window.location.href='staff-schedule.html'">📅 View Schedule</button>
+                        <button class="btn btn-success" onclick="window.location.href='staff-schedule.html'">📅 View
+                            Schedule</button>
                     </div>
                     <div id="actionMessage" class="message" style="display:none; margin-top:15px;"></div>
                 </div>
@@ -120,4 +123,5 @@
     <script src="js/config.js"></script>
     <script src="js/staff-dashboard.js"></script>
 </body>
+
 </html>

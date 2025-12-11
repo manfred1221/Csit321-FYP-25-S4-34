@@ -1,17 +1,19 @@
-import psycopg2
+import os
+from dotenv import load_dotenv
+from db import get_db_connection
 
-# Session pooler connection
-DATABASE_URL = "postgresql://postgres.hacoojohokviouocuwxx:year3fyp123Ab@aws-1-ap-northeast-2.pooler.supabase.com:5432/postgres"
+# Load environment variables from control/.env
+env_path = os.path.join(os.path.dirname(__file__), 'control', '.env')
+load_dotenv(env_path)
 
-try:
-    conn = psycopg2.connect(DATABASE_URL)
-    cur = conn.cursor()
-    
-    cur.execute("SELECT COUNT(*) FROM users")
-    count = cur.fetchone()[0]
-    print(f"✅ Connected! Found {count} users in database")
-    
-    cur.close()
-    conn.close()
-except Exception as e:
-    print(f"❌ Error: {e}")
+
+    # Use the project's database connection function
+conn = get_db_connection()
+cur = conn.cursor()
+
+# Test connection by querying users table
+cur.execute("SELECT COUNT(*) FROM users")
+count = cur.fetchone()[0]
+
+cur.close()
+conn.close()
