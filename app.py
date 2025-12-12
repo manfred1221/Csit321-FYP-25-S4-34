@@ -17,6 +17,7 @@ from db import get_db_connection
 from user import User, Resident
 from access_log import AccessLog
 from psycopg2.extras import RealDictCursor
+from database import DATABASE_URL, get_db_connection
 
 # Security Officer imports
 try:
@@ -1782,15 +1783,17 @@ def init_app(app):
     os.makedirs(Config.FACE_RECOGNITION['encoding_dir'], exist_ok=True)
     os.makedirs(Config.FACE_RECOGNITION['id_doc_dir'], exist_ok=True)
 
-    # Build DB URI from environment
-    dbname = os.getenv("DB_NAME", "CSIT321: Face Recognition")
-    user = os.getenv("DB_USER", "postgres")
-    password = os.getenv("DB_PASSWORD", "joshua1102")
-    host = os.getenv("DB_HOST", "localhost")
-    port = os.getenv("DB_PORT", "5432")
+    # # Build DB URI from environment
+    # dbname = os.getenv("DB_NAME", "CSIT321: Face Recognition")
+    # user = os.getenv("DB_USER", "postgres")
+    # password = os.getenv("DB_PASSWORD", "joshua1102")
+    # host = os.getenv("DB_HOST", "localhost")
+    # port = os.getenv("DB_PORT", "5432")
 
-    db_uri = f"postgresql://{user}:{password}@{host}:{port}/{dbname}"
-    app.config['SQLALCHEMY_DATABASE_URI'] = db_uri
+    # db_uri = f"postgresql://{user}:{password}@{host}:{port}/{dbname}"
+    # app.config['SQLALCHEMY_DATABASE_URI'] = db_uri
+    # app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+    app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
     # Bind SQLAlchemy
