@@ -20,7 +20,7 @@ from psycopg2.extras import RealDictCursor
 
 # Security Officer imports
 try:
-    from routes.security_officer.security_officer_model import SecurityOfficer, db, FaceEmbedding, log_access, Visitor
+    from routes.security_officer.security_officer_model import SecurityOfficer, db, FaceEmbedding, log_access, Visitor, AccessLog
     from routes.security_officer.security_officer_controller import (
         image_to_embedding,
         monitor_camera,
@@ -35,14 +35,6 @@ try:
 except ImportError as e:
     logging.warning(f"Security officer modules not available: {e}")
     SECURITY_OFFICER_AVAILABLE = False
-
-# Staff routes import
-try:
-    from boundary.staff_routes import staff_bp
-    STAFF_ROUTES_AVAILABLE = True
-except ImportError as e:
-    logging.warning(f"Staff routes not available: {e}")
-    STAFF_ROUTES_AVAILABLE = False
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
@@ -61,11 +53,6 @@ app.config['SECRET_KEY'] = Config.SECRET_KEY
 app.config['PERMANENT_SESSION_LIFETIME'] = Config.SESSION_LIFETIME
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
 CORS(app)
-
-# Register blueprints
-if STAFF_ROUTES_AVAILABLE:
-    app.register_blueprint(staff_bp, url_prefix='/api/staff')
-    logging.info("Staff routes blueprint registered")
 
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'pdf'}
 
@@ -139,26 +126,6 @@ def check_user_has_face_embedding(user):
 @app.route('/')
 def portal_choice():
     return render_template('/portal.html')
-
-@app.route('/login', methods=['GET', 'POST'])
-def general_login():
-    """General login endpoint"""
-    if request.method == 'GET':
-        return render_template('portal.html')
-
-    data = request.get_json() or {}
-    user_type = data.get('user_type', '')
-
-    if user_type == 'admin':
-        return redirect(url_for('admin_login'))
-    elif user_type == 'resident':
-        return redirect(url_for('auth_login'))
-    elif user_type == 'internal staff':
-        return redirect(url_for('staff_login'))
-    elif user_type in ['security', 'security_officer']:
-        return redirect(url_for('security_login'))
-
-    return jsonify({'success': False, 'message': 'Invalid user type'}), 400
 
 @app.route('/admin/login', methods=['GET', 'POST'])
 def admin_login():
@@ -412,8 +379,8 @@ def auth_login():
     if not user:
         return jsonify({"error": "Invalid username or password"}), 401
 
-    # Check if user is a resident (case-insensitive)
-    if user["role"].upper() != "RESIDENT":
+    # Check if user is a resident
+    if user["role"] not in ["Resident", "RESIDENT"]:
         return jsonify({"error": "Invalid username or password"}), 401
 
     # In future generate JWT here
@@ -440,23 +407,20 @@ def staff_login():
     username = data.get("username")
     password = data.get("password")
 
-    logger.info(f"[STAFF LOGIN] Received login request - username: '{username}', password length: {len(password) if password else 0}")
-
     if not username or not password:
-        logger.warning(f"[STAFF LOGIN] Missing credentials - username: {bool(username)}, password: {bool(password)}")
         return jsonify({"error": "Username and password are required"}), 400
 
+    # Authenticate against real database
     user = User.authenticate(username, password)
 
     if not user:
         return jsonify({"error": "Invalid username or password"}), 401
 
-    # Normalize role comparison - case insensitive, handle spaces/underscores
-    user_role_normalized = user["role"].upper().replace(" ", "_")
-    allowed_roles = ["INTERNAL_STAFF", "STAFF", "GUEST"]
-    if user_role_normalized not in allowed_roles:
+    # Check if user is internal staff
+    if user["role"] not in ["Internal_Staff", "INTERNAL_STAFF", "Staff"]:
         return jsonify({"error": "Invalid username or password"}), 401
 
+    # Generate token
     token = "fake-staff-token-123"
 
     return jsonify({
@@ -510,7 +474,7 @@ def parse_iso(dt_str):
 
 @app.route("/api/resident/register-face", methods=["POST"])
 def register_face():
-    """UC-R1: Register Face Data - Upload face photo for resident"""
+    """UC-R1: Register Face Data"""
     data = request.get_json() or {}
     resident_id = data.get("resident_id")
     image_data = data.get("image_data")
@@ -522,13 +486,9 @@ def register_face():
         }), 400
 
     try:
-        import base64
-        import tempfile
-        from model import register_face_from_photo
-
-        # Verify resident exists
         conn = get_db_connection()
         cur = conn.cursor()
+
         cur.execute(
             "SELECT resident_id FROM residents WHERE resident_id = %s;",
             (resident_id,)
@@ -538,44 +498,28 @@ def register_face():
             cur.close()
             conn.close()
             return jsonify({"error": "Resident not found"}), 404
+
+        cur.execute(
+            """
+            INSERT INTO face_embeddings (user_type, reference_id, embedding)
+            VALUES ('resident', %s, NULL)
+            RETURNING embedding_id;
+            """,
+            (resident_id,)
+        )
+        embedding_id = cur.fetchone()[0]
+        conn.commit()
         cur.close()
         conn.close()
 
-        # Decode base64 image and save to temporary file
-        try:
-            image_bytes = base64.b64decode(image_data)
-        except Exception as e:
-            return jsonify({"error": "Invalid image data format"}), 400
-
-        # Save to temporary file
-        with tempfile.NamedTemporaryFile(delete=False, suffix='.jpg') as temp_file:
-            temp_file.write(image_bytes)
-            temp_path = temp_file.name
-
-        try:
-            # Process the face image and create embedding
-            embedding_id, error = register_face_from_photo(temp_path, resident_id, 'resident')
-
-            if error:
-                return jsonify({"error": f"Face registration failed: {error}"}), 400
-
-            logger.info(f"Face registered for resident {resident_id}, embedding_id: {embedding_id}")
-            return jsonify({
-                "success": True,
-                "message": "Face registered successfully!",
-                "resident_id": resident_id,
-                "embedding_id": embedding_id
-            }), 201
-
-        finally:
-            # Clean up temporary file
-            import os
-            if os.path.exists(temp_path):
-                os.remove(temp_path)
+        return jsonify({
+            "message": "Face data registered (placeholder, no embedding yet)",
+            "resident_id": resident_id,
+            "embedding_id": embedding_id
+        }), 201
 
     except Exception as e:
-        logger.error(f"Face registration error: {e}")
-        return jsonify({"error": "Face registration failed", "details": str(e)}), 500
+        return jsonify({"error": "DB error while saving face data", "details": str(e)}), 500
 
 @app.route("/api/resident/<int:resident_id>", methods=["GET"])
 def view_personal_data(resident_id):
@@ -708,15 +652,9 @@ def view_personal_access_history(resident_id):
         )
         row = cur.fetchone()
         if not row:
-            # Return empty history instead of 404 - more user-friendly
             cur.close()
             conn.close()
-            return jsonify({
-                "resident_id": resident_id,
-                "resident_name": None,
-                "records": [],
-                "message": "No resident record found"
-            }), 200
+            return jsonify({"error": "Resident not found"}), 404
         full_name = row[0]
 
         cur.execute(
@@ -1522,42 +1460,13 @@ def admin_users():
 
     return render_template('admin_users.html', users=users)
 
-@app.route('/admin/users/add', methods=['GET'])
-@admin_required
-def admin_users_add():
-    """Add new user page - User Story: Register new residents/temp workers"""
-    return render_template('admin_add_user.html')
-
-@app.route('/admin/users/<int:user_id>/edit', methods=['GET', 'POST'])
+@app.route('/admin/users/<int:user_id>/edit')
 @admin_required
 def admin_users_edit(user_id):
     """Edit user page - User Story: Edit user details"""
     user = User.get_by_id(user_id)
     if not user:
         return "User not found", 404
-
-    if request.method == 'POST':
-        # Check if request is JSON or form data
-        if request.is_json:
-            data = request.get_json()
-        else:
-            data = request.form.to_dict()
-
-        try:
-            User.update(user_id, data)
-            # Return JSON response for AJAX requests
-            if request.is_json:
-                return jsonify({'success': True, 'message': 'User updated successfully'})
-            else:
-                return redirect(url_for('admin_users'))
-        except Exception as e:
-            logger.error(f"Update user error: {e}")
-            if request.is_json:
-                return jsonify({'success': False, 'message': str(e)}), 500
-            else:
-                return render_template('admin_edit_user.html',
-                                     user=user,
-                                     error=str(e))
 
     return render_template('admin_edit_user.html', user=user)
 
@@ -1566,14 +1475,22 @@ def admin_users_edit(user_id):
 def admin_users_create():
     """Create new user - User Story: Register new residents/temp workers"""
     data = request.json
-    required = ['username', 'password', 'role', 'email']
-
+    required = ['username', 'password', 'role']
+    
     if not all(k in data for k in required):
         return jsonify({'success': False, 'message': 'Missing required fields'}), 400
-
+    
     try:
-        # User.create() expects a dictionary, not keyword arguments
-        user_id = User.create(data)
+        user_id = User.create(
+            username=data['username'],
+            password=data['password'],
+            role=data['role'],
+            full_name=data.get('full_name'),
+            phone=data.get('phone'),
+            unit_number=data.get('unit_number'),
+            start_date=data.get('start_date'),
+            end_date=data.get('end_date')
+        )
         return jsonify({'success': True, 'user_id': user_id})
     except Exception as e:
         logger.error(f"Create user error: {e}")
@@ -1748,30 +1665,27 @@ def admin_upload_id_doc(user_id):
 @admin_required
 def admin_logs():
     """View access logs - User Story: View entry and exit history"""
-    username_filter = request.args.get('username', '')
+    user_filter = request.args.get('user_id', '')
     date_from = request.args.get('date_from', '')
     date_to = request.args.get('date_to', '')
     status_filter = request.args.get('status', '')
-    person_type_filter = request.args.get('person_type', '')
-
+    
     logs = AccessLog.filter_logs(
-        username=username_filter if username_filter else None,
+        user_id=int(user_filter) if user_filter else None,
         date_from=date_from if date_from else None,
         date_to=date_to if date_to else None,
-        status=status_filter if status_filter else None,
-        person_type=person_type_filter if person_type_filter else None
+        status=status_filter if status_filter else None
     )
-
+    
     users_for_filter = AccessLog.get_all_users_for_filter()
-
-    return render_template('admin_logs.html',
+    
+    return render_template('admin_logs.html', 
                          logs=logs,
                          users_for_filter=users_for_filter,
-                         username_filter=username_filter,
+                         user_filter=user_filter,
                          date_from=date_from,
                          date_to=date_to,
-                         status_filter=status_filter,
-                         person_type_filter=person_type_filter)
+                         status_filter=status_filter)
 
 
 # ============================================
@@ -1943,18 +1857,22 @@ def get_staff_schedules():
 
     if staff_id:
         cursor.execute("""
-            SELECT s.*, u.username, u.email
+            SELECT s.*, u.username, u.email,
+                   a.username as assigned_by_username
             FROM staff_schedules s
-            JOIN users u ON s.staff_id = u.user_id
-            WHERE s.staff_id = %s
-            ORDER BY s.shift_date DESC, s.shift_start
+            JOIN users u ON s.staff_user_id = u.user_id
+            LEFT JOIN users a ON s.assigned_by_user_id = a.user_id
+            WHERE s.staff_user_id = %s
+            ORDER BY s.start_date DESC, s.start_time
         """, (staff_id,))
     else:
         cursor.execute("""
-            SELECT s.*, u.username, u.email
+            SELECT s.*, u.username, u.email,
+                   a.username as assigned_by_username
             FROM staff_schedules s
-            JOIN users u ON s.staff_id = u.user_id
-            ORDER BY s.shift_date DESC, s.shift_start
+            JOIN users u ON s.staff_user_id = u.user_id
+            LEFT JOIN users a ON s.assigned_by_user_id = a.user_id
+            ORDER BY s.start_date DESC, s.start_time
         """)
 
     schedules = cursor.fetchall()
@@ -1966,12 +1884,14 @@ def get_staff_schedules():
     for schedule in schedules:
         schedule_dict = dict(schedule)
         # Convert date and time objects to strings
-        if schedule_dict.get('shift_date'):
-            schedule_dict['shift_date'] = schedule_dict['shift_date'].strftime('%Y-%m-%d')
-        if schedule_dict.get('shift_start'):
-            schedule_dict['shift_start'] = str(schedule_dict['shift_start'])
-        if schedule_dict.get('shift_end'):
-            schedule_dict['shift_end'] = str(schedule_dict['shift_end'])
+        if schedule_dict.get('start_date'):
+            schedule_dict['start_date'] = schedule_dict['start_date'].strftime('%Y-%m-%d')
+        if schedule_dict.get('end_date'):
+            schedule_dict['end_date'] = schedule_dict['end_date'].strftime('%Y-%m-%d')
+        if schedule_dict.get('start_time'):
+            schedule_dict['start_time'] = str(schedule_dict['start_time'])
+        if schedule_dict.get('end_time'):
+            schedule_dict['end_time'] = str(schedule_dict['end_time'])
         if schedule_dict.get('created_at'):
             schedule_dict['created_at'] = schedule_dict['created_at'].strftime('%Y-%m-%d %H:%M:%S')
         schedules_list.append(schedule_dict)
@@ -1984,7 +1904,7 @@ def create_staff_schedule():
     """Create a new staff schedule"""
     data = request.get_json()
 
-    required_fields = ['staff_id', 'shift_date', 'shift_start', 'shift_end']
+    required_fields = ['staff_user_id', 'start_date', 'end_date', 'start_time', 'end_time']
     for field in required_fields:
         if not data.get(field):
             return jsonify({'success': False, 'message': f'Missing required field: {field}'}), 400
@@ -1995,15 +1915,22 @@ def create_staff_schedule():
     try:
         cursor.execute("""
             INSERT INTO staff_schedules
-            (staff_id, shift_date, shift_start, shift_end, task_description)
-            VALUES (%s, %s, %s, %s, %s)
+            (staff_user_id, assigned_by_user_id, shift_name, start_date, end_date,
+             start_time, end_time, days_of_week, location, notes, status)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             RETURNING schedule_id
         """, (
-            data['staff_id'],
-            data['shift_date'],
-            data['shift_start'],
-            data['shift_end'],
-            data.get('task_description', '')
+            data['staff_user_id'],
+            session.get('user_id'),
+            data.get('shift_name', ''),
+            data['start_date'],
+            data['end_date'],
+            data['start_time'],
+            data['end_time'],
+            data.get('days_of_week', ''),
+            data.get('location', ''),
+            data.get('notes', ''),
+            data.get('status', 'active')
         ))
 
         result = cursor.fetchone()
@@ -2036,14 +1963,21 @@ def update_staff_schedule(schedule_id):
     try:
         cursor.execute("""
             UPDATE staff_schedules
-            SET shift_date = %s, shift_start = %s, shift_end = %s,
-                task_description = %s
+            SET shift_name = %s, start_date = %s, end_date = %s,
+                start_time = %s, end_time = %s, days_of_week = %s,
+                location = %s, notes = %s, status = %s,
+                updated_at = CURRENT_TIMESTAMP
             WHERE schedule_id = %s
         """, (
-            data.get('shift_date'),
-            data.get('shift_start'),
-            data.get('shift_end'),
-            data.get('task_description', ''),
+            data.get('shift_name', ''),
+            data.get('start_date'),
+            data.get('end_date'),
+            data.get('start_time'),
+            data.get('end_time'),
+            data.get('days_of_week', ''),
+            data.get('location', ''),
+            data.get('notes', ''),
+            data.get('status', 'active'),
             schedule_id
         ))
 
@@ -2103,9 +2037,10 @@ def get_my_schedules():
         cursor.execute("""
             SELECT s.*, u.username, u.email
             FROM staff_schedules s
-            JOIN users u ON s.staff_id = u.user_id
-            WHERE s.staff_id = %s
-            ORDER BY s.shift_date DESC, s.shift_start
+            JOIN users u ON s.staff_user_id = u.user_id
+            WHERE s.staff_user_id = %s
+            AND s.status = 'active'
+            ORDER BY s.start_date DESC, s.start_time
         """, (staff_id,))
 
         schedules = cursor.fetchall()
@@ -2114,12 +2049,14 @@ def get_my_schedules():
         schedules_list = []
         for schedule in schedules:
             schedule_dict = dict(schedule)
-            if schedule_dict.get('shift_date'):
-                schedule_dict['shift_date'] = schedule_dict['shift_date'].strftime('%Y-%m-%d')
-            if schedule_dict.get('shift_start'):
-                schedule_dict['shift_start'] = str(schedule_dict['shift_start'])
-            if schedule_dict.get('shift_end'):
-                schedule_dict['shift_end'] = str(schedule_dict['shift_end'])
+            if schedule_dict.get('start_date'):
+                schedule_dict['start_date'] = schedule_dict['start_date'].strftime('%Y-%m-%d')
+            if schedule_dict.get('end_date'):
+                schedule_dict['end_date'] = schedule_dict['end_date'].strftime('%Y-%m-%d')
+            if schedule_dict.get('start_time'):
+                schedule_dict['start_time'] = str(schedule_dict['start_time'])
+            if schedule_dict.get('end_time'):
+                schedule_dict['end_time'] = str(schedule_dict['end_time'])
             schedules_list.append(schedule_dict)
 
         return jsonify({'success': True, 'schedules': schedules_list})
