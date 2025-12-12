@@ -1,5 +1,5 @@
 from psycopg2.extras import RealDictCursor
-from db import get_db_connection
+from database import get_db_connection
 
 class AccessLog:
     @staticmethod
