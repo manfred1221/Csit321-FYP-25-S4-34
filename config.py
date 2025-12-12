@@ -12,9 +12,9 @@ class Config:
     
     # Database config - matches db.py
     DATABASE_CONFIG = {
-        'dbname': os.environ.get('DB_NAME', 'csit321_db'),
+        'dbname': os.environ.get('DB_NAME', 'csit321_face_recognition'),
         'user': os.environ.get('DB_USER', 'postgres'),
-        'password': os.environ.get('DB_PASSWORD', 'manfred@12'),
+        'password': os.environ.get('DB_PASSWORD', 'joshua1102'),
         'host': os.environ.get('DB_HOST', 'localhost'),
         'port': os.environ.get('DB_PORT', '5432')
     }

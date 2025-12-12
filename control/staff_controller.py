@@ -3,6 +3,7 @@
 
 from entity.staff_entity import StaffEntity
 from datetime import datetime
+import bcrypt
 
 
 class StaffController:
@@ -35,24 +36,37 @@ class StaffController:
         if not staff:
             raise ValueError("Invalid username or password")
         
-        # Check if staff is active
-        if not staff['is_active']:
+        # Check if staff is active (handle None or missing is_active field)
+        if staff.get('is_active') == False:
             raise ValueError("Staff account is inactive")
-        
-        # Verify password (simple comparison for now - use bcrypt in production)
-        if staff['password_hash'] != password:
+
+        # Verify password using bcrypt
+        password_hash = staff.get('password_hash', '')
+        try:
+            # Check if it's a bcrypt hash
+            if password_hash.startswith('$2b$') or password_hash.startswith('$2a$'):
+                if not bcrypt.checkpw(password.encode('utf-8'), password_hash.encode('utf-8')):
+                    raise ValueError("Invalid username or password")
+            else:
+                # Fallback for non-bcrypt passwords (shouldn't happen in production)
+                if password_hash != password:
+                    raise ValueError("Invalid username or password")
+        except Exception as e:
+            print(f"Password verification error: {e}")
             raise ValueError("Invalid username or password")
         
         # Generate token (mock - implement JWT in production)
-        token = f"staff-token-{staff['staff_id']}"
-        
+        # Use user_id if no staff_id (for users without staff table record)
+        staff_id = staff.get('staff_id') or staff['user_id']
+        token = f"staff-token-{staff_id}"
+
         # Return success response
         return {
             "user_id": staff["user_id"],
-            "staff_id": staff["staff_id"],
+            "staff_id": staff_id,
             "username": staff["username"],
-            "full_name": staff["full_name"],
-            "position": staff["position"],
+            "full_name": staff.get("full_name", staff["username"]),
+            "position": staff.get("position", "Internal Staff"),
             "role": staff["role_name"],
             "token": token,
             "message": "Login successful"

@@ -211,20 +211,28 @@ class AccessLog:
     
     @staticmethod
     def get_all_users_for_filter():
+        """Get all distinct users (residents, staff, etc.) who appear in access logs"""
         conn = get_db_connection()
         cursor = conn.cursor(cursor_factory=RealDictCursor)
         try:
             cursor.execute("""
                 SELECT DISTINCT
-                    r.resident_id as id,
-                    COALESCE(u.username, r.full_name) as username,
-                    r.full_name
+                    l.recognized_person as username,
+                    l.person_type,
+                    CASE
+                        WHEN l.person_type = 'resident' THEN 'Resident'
+                        WHEN l.person_type = 'internal_staff' THEN 'Staff'
+                        WHEN l.person_type = 'temp_staff' THEN 'Temp Worker'
+                        WHEN l.person_type = 'security_officer' THEN 'Security Officer'
+                        WHEN l.person_type = 'visitor' THEN 'Visitor'
+                        WHEN l.person_type = 'ADMIN' THEN 'Admin'
+                        ELSE l.person_type
+                    END as type_label
                 FROM access_logs l
-                LEFT JOIN face_embeddings fe ON l.embedding_id = fe.embedding_id
-                LEFT JOIN residents r ON (fe.reference_id = r.resident_id AND fe.user_type = 'resident')
-                LEFT JOIN users u ON r.user_id = u.user_id
-                WHERE r.resident_id IS NOT NULL
-                ORDER BY r.full_name
+                WHERE l.recognized_person IS NOT NULL
+                  AND l.recognized_person != 'Unknown'
+                  AND l.recognized_person != ''
+                ORDER BY l.person_type, l.recognized_person
             """)
             return [dict(u) for u in cursor.fetchall()]
         finally:

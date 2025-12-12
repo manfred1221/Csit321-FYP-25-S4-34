@@ -6,7 +6,7 @@ import psycopg2
 
 def get_db_connection():
 
-    dbname = os.getenv("DB_NAME", "CSIT321")
+    dbname = os.getenv("DB_NAME", "csit321_face_recognition")
     user = os.getenv("DB_USER", "postgres")
     password = os.getenv("DB_PASSWORD", "joshua1102")
     host = os.getenv("DB_HOST", "localhost")

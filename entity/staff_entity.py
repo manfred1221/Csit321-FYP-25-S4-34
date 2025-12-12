@@ -1,8 +1,26 @@
 # entity/staff_entity.py
 # Entity Layer - Staff data model and database operations
 
-from database import get_db_cursor
+from db import get_db_connection
+from psycopg2.extras import RealDictCursor
+from contextlib import contextmanager
 from datetime import datetime
+
+@contextmanager
+def get_db_cursor(commit=False):
+    """Use local database connection instead of Supabase"""
+    conn = get_db_connection()
+    cursor = conn.cursor(cursor_factory=RealDictCursor)
+    try:
+        yield cursor
+        if commit:
+            conn.commit()
+    except Exception as e:
+        conn.rollback()
+        raise e
+    finally:
+        cursor.close()
+        conn.close()
 
 
 class StaffEntity:
@@ -20,15 +38,22 @@ class StaffEntity:
             with get_db_cursor() as cursor:
                 cursor.execute("""
                     SELECT u.user_id, u.username, u.password_hash, r.role_name,
-                           s.staff_id, s.full_name, s.position, s.is_active,
-                           s.contact_number, s.created_at
+                           s.staff_id, COALESCE(s.full_name, u.username) as full_name, s.position,
+                           COALESCE(s.is_active, true) as is_active,
+                           s.contact_number,
+                           COALESCE(s.created_at, u.created_at) as created_at
                     FROM users u
                     JOIN roles r ON u.role_id = r.role_id
                     LEFT JOIN staff s ON s.user_id = u.user_id
-                    WHERE u.username = %s AND r.role_name = 'STAFF'
+                    WHERE u.username = %s
+                      AND (r.role_name IN ('STAFF', 'internal_staff', 'temp_staff') OR r.role_id IN (8, 9))
                 """, (username,))
-                
-                return cursor.fetchone()
+
+                result = cursor.fetchone()
+                print(f"[StaffEntity] find_by_username({username}) found: {result is not None}")
+                if result:
+                    print(f"[StaffEntity] User: {result.get('username')}, Role: {result.get('role_name')}, Active: {result.get('is_active')}")
+                return result
         except Exception as e:
             print(f"StaffEntity.find_by_username error: {e}")
             raise
@@ -43,13 +68,15 @@ class StaffEntity:
             with get_db_cursor() as cursor:
                 cursor.execute("""
                     SELECT s.staff_id, s.full_name, s.contact_number, s.position,
-                           s.created_at, s.is_active, u.username, u.email, u.user_id
+                           s.created_at as registered_at, s.is_active, u.username, u.email, u.user_id
                     FROM staff s
                     LEFT JOIN users u ON s.user_id = u.user_id
-                    WHERE s.staff_id = %s
+                    WHERE s.staff_id = %s AND s.is_active = TRUE
                 """, (staff_id,))
-                
-                return cursor.fetchone()
+
+                result = cursor.fetchone()
+                print(f"[StaffEntity] find_by_id({staff_id}) result: {result}")
+                return result
         except Exception as e:
             print(f"StaffEntity.find_by_id error: {e}")
             raise

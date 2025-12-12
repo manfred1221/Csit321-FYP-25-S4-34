@@ -23,15 +23,22 @@ def login():
         data = request.get_json(silent=True) or {}
         username = data.get("username")
         password = data.get("password")
-        
+
+        print(f"[BLUEPRINT LOGIN] Attempting login for username: {username}, password: {password}")
+
         # Delegate to controller
         result = StaffController.login(username, password)
+
+        print(f"[BLUEPRINT LOGIN] Login successful for: {username}")
         return jsonify(result), 200
-        
+
     except ValueError as e:
+        print(f"[BLUEPRINT LOGIN] ValueError: {e}")
         return jsonify({"error": str(e)}), 401
     except Exception as e:
-        print(f"Login error: {e}")
+        print(f"[BLUEPRINT LOGIN] Exception: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({"error": "Login failed", "details": str(e)}), 500
 
 

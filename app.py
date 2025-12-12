@@ -281,7 +281,20 @@ def officer_required(f):
     def decorated(*args, **kwargs):
         if 'officer_id' not in session:
             return redirect(url_for('security_login'))
-        officer = SecurityOfficer.query.get(session['officer_id'])
+
+        # Check if officer exists using direct database query
+        conn = get_db_connection()
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
+        try:
+            cursor.execute("""
+                SELECT officer_id FROM security_officers
+                WHERE officer_id = %s AND active = TRUE
+            """, (session['officer_id'],))
+            officer = cursor.fetchone()
+        finally:
+            cursor.close()
+            conn.close()
+
         if not officer:
             session.clear()
             return redirect(url_for('security_login'))
@@ -302,40 +315,106 @@ def security_login():
     if not officer_id:
         return jsonify({"success": False, "message": "Missing user_id"}), 400
 
-    officer = SecurityOfficer.query.get(officer_id)
+    # Get officer from database using direct query
+    conn = get_db_connection()
+    cursor = conn.cursor(cursor_factory=RealDictCursor)
+    try:
+        cursor.execute("""
+            SELECT officer_id, full_name, contact_number, shift, active, registered_at
+            FROM security_officers
+            WHERE officer_id = %s AND active = TRUE
+        """, (officer_id,))
+        officer = cursor.fetchone()
+    finally:
+        cursor.close()
+        conn.close()
+
     if not officer:
-        return jsonify({"success": False, "message": "Officer not found"}), 404
+        return jsonify({"success": False, "message": "Officer not found or inactive"}), 404
 
     # Store officer info in session
-    session['officer_id'] = officer.officer_id
-    session['officer_name'] = officer.full_name
+    session['officer_id'] = officer['officer_id']
+    session['officer_name'] = officer['full_name']
 
     return jsonify({"success": True, "redirect": "/security-dashboard"})
 
 @app.route("/security-dashboard")
 @officer_required
 def security_dashboard():
-    officer = SecurityOfficer.query.get(session['officer_id'])
-    access_logs = AccessLog.query.order_by(AccessLog.log_id.asc()).all()
+    # Get officer from database using direct query
+    conn = get_db_connection()
+    cursor = conn.cursor(cursor_factory=RealDictCursor)
+    try:
+        cursor.execute("""
+            SELECT officer_id, full_name, contact_number, shift, active, registered_at
+            FROM security_officers
+            WHERE officer_id = %s
+        """, (session['officer_id'],))
+        officer = cursor.fetchone()
+    finally:
+        cursor.close()
+        conn.close()
+
+    # Get access logs using the AccessLog static method
+    access_logs = AccessLog.get_recent(limit=100)
     return render_template("security-dashboard.html", officer=officer, logs=access_logs)
 
 
 @app.route("/security-deactivate")
 @officer_required
 def deactivate():
-    officer = SecurityOfficer.query.get(session['officer_id'])
+    # Get officer from database using direct query
+    conn = get_db_connection()
+    cursor = conn.cursor(cursor_factory=RealDictCursor)
+    try:
+        cursor.execute("""
+            SELECT officer_id, full_name, contact_number, shift, active, registered_at
+            FROM security_officers
+            WHERE officer_id = %s
+        """, (session['officer_id'],))
+        officer = cursor.fetchone()
+    finally:
+        cursor.close()
+        conn.close()
+
     return render_template("security-deactivate.html", officer=officer)
 
 @app.route("/security-override")
 @officer_required
 def manual_override():
-    officer = SecurityOfficer.query.get(session['officer_id'])
+    # Get officer from database using direct query
+    conn = get_db_connection()
+    cursor = conn.cursor(cursor_factory=RealDictCursor)
+    try:
+        cursor.execute("""
+            SELECT officer_id, full_name, contact_number, shift, active, registered_at
+            FROM security_officers
+            WHERE officer_id = %s
+        """, (session['officer_id'],))
+        officer = cursor.fetchone()
+    finally:
+        cursor.close()
+        conn.close()
+
     return render_template("security-override.html", officer=officer)
 
 @app.route("/security-view-profile")
 @officer_required
 def view_profile():
-    officer = SecurityOfficer.query.get(session['officer_id'])
+    # Get officer from database using direct query
+    conn = get_db_connection()
+    cursor = conn.cursor(cursor_factory=RealDictCursor)
+    try:
+        cursor.execute("""
+            SELECT officer_id, full_name, contact_number, shift, active, registered_at
+            FROM security_officers
+            WHERE officer_id = %s
+        """, (session['officer_id'],))
+        officer = cursor.fetchone()
+    finally:
+        cursor.close()
+        conn.close()
+
     return render_template("security-view-profile.html", officer=officer)
 
 
@@ -440,6 +519,7 @@ def staff_login():
     username = data.get("username")
     password = data.get("password")
 
+    print(f"[STAFF LOGIN] Received login request - username: '{username}', password: {password}")
     logger.info(f"[STAFF LOGIN] Received login request - username: '{username}', password length: {len(password) if password else 0}")
 
     if not username or not password:
@@ -449,13 +529,27 @@ def staff_login():
     user = User.authenticate(username, password)
 
     if not user:
+        print(f"[STAFF LOGIN] Authentication FAILED for username: {username}")
+        logger.warning(f"[STAFF LOGIN] Authentication failed - user not found or invalid password for username: {username}")
         return jsonify({"error": "Invalid username or password"}), 401
+
+    print(f"[STAFF LOGIN] User authenticated - username: {username}, role: '{user['role']}', status: {user.get('status')}")
+    logger.info(f"[STAFF LOGIN] User authenticated - username: {username}, role: '{user['role']}', status: {user.get('status')}")
 
     # Normalize role comparison - case insensitive, handle spaces/underscores
     user_role_normalized = user["role"].upper().replace(" ", "_")
-    allowed_roles = ["INTERNAL_STAFF", "STAFF", "GUEST"]
+    # Allow internal_staff, temp_staff, and generic "Staff" role
+    allowed_roles = ["INTERNAL_STAFF", "STAFF", "TEMP_STAFF"]
+
+    print(f"[STAFF LOGIN] Role check - original: '{user['role']}', normalized: '{user_role_normalized}', allowed: {allowed_roles}")
+    logger.info(f"[STAFF LOGIN] Role check - original: '{user['role']}', normalized: '{user_role_normalized}', allowed: {allowed_roles}")
+
     if user_role_normalized not in allowed_roles:
+        print(f"[STAFF LOGIN] Role NOT ALLOWED - user: {username}, role: '{user['role']}' (normalized: '{user_role_normalized}')")
+        logger.warning(f"[STAFF LOGIN] Role not allowed - user: {username}, role: '{user['role']}' (normalized: '{user_role_normalized}')")
         return jsonify({"error": "Invalid username or password"}), 401
+
+    print(f"[STAFF LOGIN] SUCCESS! Logging in user: {username}")
 
     token = "fake-staff-token-123"
 
@@ -1522,12 +1616,147 @@ def admin_users():
 
     return render_template('admin_users.html', users=users)
 
-@app.route('/admin/users/add', methods=['GET'])
+@app.route('/admin/users/add', methods=['GET', 'POST'])
 @admin_required
 def admin_users_add():
-    """Add new user page - User Story: Register new residents/temp workers"""
-    return render_template('admin_add_user.html')
-
+    """Create new user - User Story: Register new residents/temp workers/staff"""
+    if request.method == 'GET':
+        return render_template('admin_add_user.html')
+    
+    # POST request - handle form submission
+    data = request.form.to_dict()
+    
+    # Required fields validation
+    required = ['username', 'password', 'role', 'email', 'full_name']
+    missing = [f for f in required if f not in data or not data[f]]
+    
+    if missing:
+        return render_template('admin_add_user.html', 
+                             error=f'Missing required fields: {", ".join(missing)}')
+    
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        
+        # Check if username already exists
+        cur.execute("SELECT user_id FROM users WHERE username = %s", (data['username'],))
+        if cur.fetchone():
+            cur.close()
+            conn.close()
+            return render_template('admin_add_user.html', 
+                                 error='Username already exists')
+        
+        # Check if email already exists
+        cur.execute("SELECT user_id FROM users WHERE email = %s", (data['email'],))
+        if cur.fetchone():
+            cur.close()
+            conn.close()
+            return render_template('admin_add_user.html', 
+                                 error='Email already exists')
+        
+        # Get role_id from role name
+        role_name = data['role']
+        cur.execute("SELECT role_id FROM roles WHERE role_name = %s", (role_name,))
+        role_result = cur.fetchone()
+        
+        if not role_result:
+            cur.close()
+            conn.close()
+            return render_template('admin_add_user.html', 
+                                 error=f'Invalid role: {role_name}')
+        
+        role_id = role_result[0]
+        
+        # Hash the password
+        from werkzeug.security import generate_password_hash
+        password_hash = generate_password_hash(data['password'])
+        
+        # Insert into users table
+        cur.execute("""
+            INSERT INTO users 
+            (username, email, password_hash, role_id, full_name, contact_number, 
+             status, access_level, created_at)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, NOW())
+            RETURNING user_id
+        """, (
+            data['username'],
+            data['email'],
+            password_hash,
+            role_id,
+            data['full_name'],
+            data.get('phone', ''),
+            'active',
+            data.get('access_level', 'standard')
+        ))
+        
+        user_id = cur.fetchone()[0]
+        
+        # If role is Resident, create resident record
+        if role_name == 'Resident':
+            cur.execute("""
+                INSERT INTO residents 
+                (full_name, unit_number, contact_number, user_id, registered_at)
+                VALUES (%s, %s, %s, %s, NOW())
+            """, (
+                data['full_name'],
+                data.get('unit_number', ''),
+                data.get('phone', ''),
+                user_id
+            ))
+        
+        # If role is internal_staff, create internal_staff record
+        elif role_name == 'internal_staff':
+            cur.execute("""
+                INSERT INTO internal_staff 
+                (full_name, department, contact_number, staff_type, user_id, registered_at)
+                VALUES (%s, %s, %s, %s, %s, NOW())
+            """, (
+                data['full_name'],
+                data.get('department', 'General'),  # Default department
+                data.get('phone', ''),
+                data.get('staff_type', 'Full-time'),  # Default staff type
+                user_id
+            ))
+        
+        # If role is temp_staff, create temp_workers record
+        elif role_name == 'temp_staff':
+            work_start = data.get('work_start_date')
+            work_end = data.get('work_end_date')
+            
+            if work_start and work_end:
+                cur.execute("""
+                    INSERT INTO temp_workers 
+                    (user_id, work_start_date, work_end_date, work_schedule, 
+                     work_details, created_at)
+                    VALUES (%s, %s, %s, %s, %s, NOW())
+                """, (
+                    user_id,
+                    work_start,
+                    work_end,
+                    data.get('work_schedule', ''),
+                    data.get('work_details', '')
+                ))
+        
+        conn.commit()
+        cur.close()
+        conn.close()
+        
+        logger.info(f"User created successfully: {data['username']} (ID: {user_id})")
+        
+        # Redirect based on role
+        if role_name == 'temp_staff':
+            return redirect(url_for('admin_temp_workers'))
+        else:
+            return redirect(url_for('admin_users'))
+        
+    except Exception as e:
+        logger.error(f"Error creating user: {e}")
+        if 'conn' in locals():
+            conn.rollback()
+        return render_template('admin_add_user.html', 
+                             error=f'Error creating user: {str(e)}')
+    
+    
 @app.route('/admin/users/<int:user_id>/edit', methods=['GET', 'POST'])
 @admin_required
 def admin_users_edit(user_id):
@@ -1869,7 +2098,7 @@ def init_app(app):
     os.makedirs(Config.FACE_RECOGNITION['id_doc_dir'], exist_ok=True)
 
     # Build DB URI from environment
-    dbname = os.getenv("DB_NAME", "CSIT321: Face Recognition")
+    dbname = os.getenv("DB_NAME", "csit321_face_recognition")
     user = os.getenv("DB_USER", "postgres")
     password = os.getenv("DB_PASSWORD", "joshua1102")
     host = os.getenv("DB_HOST", "localhost")
@@ -1879,8 +2108,9 @@ def init_app(app):
     app.config['SQLALCHEMY_DATABASE_URI'] = db_uri
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-    # Bind SQLAlchemy
-    db.init_app(app)
+    # Bind SQLAlchemy (only if available)
+    if SECURITY_OFFICER_AVAILABLE:
+        db.init_app(app)
 
     # Test database connection
     try:
@@ -1921,7 +2151,8 @@ def admin_staff_schedules():
         SELECT u.user_id, u.username, u.email, r.role_name
         FROM users u
         JOIN roles r ON u.role_id = r.role_id
-        WHERE r.role_name IN ('Internal_Staff', 'INTERNAL_STAFF', 'Staff')
+        WHERE (r.role_name IN ('Internal Staff', 'Internal_Staff', 'INTERNAL_STAFF', 'Staff', 'STAFF', 'internal_staff')
+               OR r.role_id IN (4, 5, 8))
         AND u.status = 'active'
         ORDER BY u.username
     """)
@@ -1965,15 +2196,37 @@ def get_staff_schedules():
     schedules_list = []
     for schedule in schedules:
         schedule_dict = dict(schedule)
-        # Convert date and time objects to strings
-        if schedule_dict.get('shift_date'):
-            schedule_dict['shift_date'] = schedule_dict['shift_date'].strftime('%Y-%m-%d')
-        if schedule_dict.get('shift_start'):
-            schedule_dict['shift_start'] = str(schedule_dict['shift_start'])
-        if schedule_dict.get('shift_end'):
-            schedule_dict['shift_end'] = str(schedule_dict['shift_end'])
+
+        # Map database field names to frontend field names
+        schedule_dict['staff_user_id'] = schedule_dict.get('staff_id')
+        schedule_dict['start_date'] = schedule_dict['shift_date'].strftime('%Y-%m-%d') if schedule_dict.get('shift_date') else None
+        schedule_dict['end_date'] = schedule_dict['shift_date'].strftime('%Y-%m-%d') if schedule_dict.get('shift_date') else None  # Use same date for now
+        schedule_dict['start_time'] = str(schedule_dict['shift_start']) if schedule_dict.get('shift_start') else None
+        schedule_dict['end_time'] = str(schedule_dict['shift_end']) if schedule_dict.get('shift_end') else None
+
+        # Parse task_description to extract shift_name, location, days_of_week, notes
+        task_desc = schedule_dict.get('task_description', '')
+        schedule_dict['shift_name'] = ''
+        schedule_dict['location'] = ''
+        schedule_dict['days_of_week'] = ''
+        schedule_dict['notes'] = ''
+        schedule_dict['status'] = 'active'  # Default status
+
+        if task_desc:
+            parts = task_desc.split(' | ')
+            for part in parts:
+                if part.startswith('Shift: '):
+                    schedule_dict['shift_name'] = part.replace('Shift: ', '')
+                elif part.startswith('Location: '):
+                    schedule_dict['location'] = part.replace('Location: ', '')
+                elif part.startswith('Days: '):
+                    schedule_dict['days_of_week'] = part.replace('Days: ', '')
+                elif part.startswith('Notes: '):
+                    schedule_dict['notes'] = part.replace('Notes: ', '')
+
         if schedule_dict.get('created_at'):
             schedule_dict['created_at'] = schedule_dict['created_at'].strftime('%Y-%m-%d %H:%M:%S')
+
         schedules_list.append(schedule_dict)
 
     return jsonify({'success': True, 'schedules': schedules_list})
@@ -1984,10 +2237,26 @@ def create_staff_schedule():
     """Create a new staff schedule"""
     data = request.get_json()
 
-    required_fields = ['staff_id', 'shift_date', 'shift_start', 'shift_end']
-    for field in required_fields:
-        if not data.get(field):
-            return jsonify({'success': False, 'message': f'Missing required field: {field}'}), 400
+    # Map frontend field names to database field names
+    staff_id = data.get('staff_user_id') or data.get('staff_id')
+    shift_date = data.get('start_date') or data.get('shift_date')
+    shift_start = data.get('start_time') or data.get('shift_start')
+    shift_end = data.get('end_time') or data.get('shift_end')
+
+    # Combine notes, shift_name, location, days_of_week into task_description
+    task_parts = []
+    if data.get('shift_name'):
+        task_parts.append(f"Shift: {data['shift_name']}")
+    if data.get('location'):
+        task_parts.append(f"Location: {data['location']}")
+    if data.get('days_of_week'):
+        task_parts.append(f"Days: {data['days_of_week']}")
+    if data.get('notes'):
+        task_parts.append(f"Notes: {data['notes']}")
+    task_description = ' | '.join(task_parts) if task_parts else data.get('task_description', '')
+
+    if not all([staff_id, shift_date, shift_start, shift_end]):
+        return jsonify({'success': False, 'message': 'Missing required fields'}), 400
 
     conn = get_db_connection()
     cursor = conn.cursor(cursor_factory=RealDictCursor)
@@ -1999,11 +2268,11 @@ def create_staff_schedule():
             VALUES (%s, %s, %s, %s, %s)
             RETURNING schedule_id
         """, (
-            data['staff_id'],
-            data['shift_date'],
-            data['shift_start'],
-            data['shift_end'],
-            data.get('task_description', '')
+            staff_id,
+            shift_date,
+            shift_start,
+            shift_end,
+            task_description
         ))
 
         result = cursor.fetchone()
@@ -2030,6 +2299,23 @@ def update_staff_schedule(schedule_id):
     """Update an existing staff schedule"""
     data = request.get_json()
 
+    # Map frontend field names to database field names
+    shift_date = data.get('start_date') or data.get('shift_date')
+    shift_start = data.get('start_time') or data.get('shift_start')
+    shift_end = data.get('end_time') or data.get('shift_end')
+
+    # Combine notes, shift_name, location, days_of_week into task_description
+    task_parts = []
+    if data.get('shift_name'):
+        task_parts.append(f"Shift: {data['shift_name']}")
+    if data.get('location'):
+        task_parts.append(f"Location: {data['location']}")
+    if data.get('days_of_week'):
+        task_parts.append(f"Days: {data['days_of_week']}")
+    if data.get('notes'):
+        task_parts.append(f"Notes: {data['notes']}")
+    task_description = ' | '.join(task_parts) if task_parts else data.get('task_description', '')
+
     conn = get_db_connection()
     cursor = conn.cursor(cursor_factory=RealDictCursor)
 
@@ -2040,10 +2326,10 @@ def update_staff_schedule(schedule_id):
                 task_description = %s
             WHERE schedule_id = %s
         """, (
-            data.get('shift_date'),
-            data.get('shift_start'),
-            data.get('shift_end'),
-            data.get('task_description', ''),
+            shift_date,
+            shift_start,
+            shift_end,
+            task_description,
             schedule_id
         ))
 

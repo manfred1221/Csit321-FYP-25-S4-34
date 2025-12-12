@@ -273,8 +273,8 @@
                                         <option value="Resident">Resident</option>
                                         <option value="Admin">Admin</option>
                                         <option value="Security">Security</option>
-                                        <option value="Internal Staff">Internal Staff</option>
-                                        <option value="TEMP_WORKER">Temporary Worker</option>
+                                        <option value="internal_staff">Internal Staff</option>
+                                        <option value="temp_staff">Temporary Worker</option>
                                     </select>
                                 </div>
                                 <div class="form-group">
@@ -326,7 +326,7 @@
             const role = document.getElementById('role').value;
             const tempFields = document.getElementById('tempWorkerFields');
 
-            if (role === 'TEMP_WORKER') {
+            if (role === 'temp_staff') {
                 tempFields.classList.add('show');
                 // Set default dates
                 const today = new Date().toISOString().split('T')[0];
@@ -360,7 +360,7 @@
             };
 
             // Validate temp worker fields
-            if (role === 'TEMP_WORKER') {
+            if (role === 'temp_staff') {
                 data.work_start_date = document.getElementById('work_start_date').value || null;
                 data.work_end_date = document.getElementById('work_end_date').value || null;
                 data.work_schedule = document.getElementById('work_schedule').value;
@@ -392,7 +392,7 @@
                     successDiv.textContent = 'User created successfully! Redirecting...';
                     successDiv.style.display = 'block';
                     setTimeout(() => {
-                        if (role === 'TEMP_WORKER') {
+                        if (role === 'temp_staff') {
                             window.location.href = '/admin/temp-workers';
                         } else {
                             window.location.href = '/admin/users';

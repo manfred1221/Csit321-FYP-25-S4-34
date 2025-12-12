@@ -45,9 +45,9 @@ class User:
                 'ADMIN': 1, 'Admin': 1,
                 'RESIDENT': 2, 'Resident': 2, 'USER': 2,
                 'VISITOR': 3, 'Visitor': 3,
-                'SECURITY': 4, 'Security': 4,
-                'Internal Staff': 8,
-                'TEMP_WORKER': 6, 'TempWorker': 6
+                'SECURITY': 4, 'Security': 4, 'Security Officer': 4,
+                'Internal Staff': 8, 'Internal_Staff': 8, 'INTERNAL_STAFF': 8, 'Staff': 8, 'STAFF': 8, 'internal_staff': 8,
+                'TEMP_WORKER': 9, 'TempWorker': 9, 'Temp_Worker': 9, 'temp_staff': 9
             }
             role_id = role_map.get(role_name, 2)
             

@@ -376,9 +376,9 @@
                                         <option value="Security" {% if user.role=='Security' %}selected{% endif %}>
                                             Security
                                         </option>
-                                        <option value="Internal Staff" {% if user.role=='Internal Staff' %}selected{%
+                                        <option value="internal_staff" {% if user.role=='internal_staff' %}selected{%
                                             endif %}>Internal Staff</option>
-                                        <option value="TEMP_WORKER" {% if user.role=='TEMP_WORKER' %}selected{% endif
+                                        <option value="temp_staff" {% if user.role=='temp_staff' %}selected{% endif
                                             %}>
                                             Temporary Worker</option>
                                     </select>
@@ -425,7 +425,7 @@
                             </div>
 
                             <!-- Temporary Worker Fields -->
-                            <div class="temp-worker-fields {% if user.role == 'TEMP_WORKER' %}show{% endif %}"
+                            <div class="temp-worker-fields {% if user.role == 'temp_staff' %}show{% endif %}"
                                 id="tempWorkerFields">
                                 <h4>Temporary Worker Details</h4>
                                 <div class="form-row">
@@ -459,7 +459,7 @@
                 </div>
 
                 <!-- ID Document Upload (for temp workers) -->
-                {% if user.role == 'TEMP_WORKER' %}
+                {% if user.role == 'temp_staff' %}
                 <div class="card">
                     <div class="card-header">
                         <h2>Upload ID Document</h2>
@@ -489,7 +489,7 @@
             const role = document.getElementById('role').value;
             const tempFields = document.getElementById('tempWorkerFields');
 
-            if (role === 'TEMP_WORKER') {
+            if (role === 'temp_staff') {
                 tempFields.classList.add('show');
             } else {
                 tempFields.classList.remove('show');
@@ -559,7 +559,7 @@
             };
 
             // Add temp worker fields if applicable
-            if (data.role === 'TEMP_WORKER') {
+            if (data.role === 'temp_staff') {
                 data.work_start_date = document.getElementById('work_start_date').value || null;
                 data.work_end_date = document.getElementById('work_end_date').value || null;
                 data.work_schedule = document.getElementById('work_schedule').value;

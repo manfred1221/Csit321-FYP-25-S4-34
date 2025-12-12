@@ -201,8 +201,15 @@
                 <h2>Access Logs</h2>
                 <form class="filters" method="GET">
                     <div class="filter-group">
-                        <label>User</label>
-                        <input type="text" name="username" placeholder="Search by username..." value="{{ username_filter }}">
+                        <label>User/Staff Member</label>
+                        <select name="username">
+                            <option value="">All Users</option>
+                            {% for user in users_for_filter %}
+                            <option value="{{ user.username }}" {% if username_filter==user.username %}selected{% endif %}>
+                                {{ user.username }} ({{ user.type_label }})
+                            </option>
+                            {% endfor %}
+                        </select>
                     </div>
                     <div class="filter-group">
                         <label>From Date</label>
@@ -221,11 +228,24 @@
                             <option value="denied" {% if status_filter=='denied' %}selected{% endif %}>Denied</option>
                         </select>
                     </div>
+                    <div class="filter-group">
+                        <label>Person Type</label>
+                        <select name="person_type">
+                            <option value="">All Types</option>
+                            <option value="ADMIN" {% if person_type_filter=='ADMIN' %}selected{% endif %}>Admin</option>
+                            <option value="resident" {% if person_type_filter=='resident' %}selected{% endif %}>Resident</option>
+                            <option value="visitor" {% if person_type_filter=='visitor' %}selected{% endif %}>Visitor</option>
+                            <option value="security_officer" {% if person_type_filter=='security_officer' %}selected{% endif %}>Security Officer</option>
+                            <option value="internal_staff" {% if person_type_filter=='internal_staff' %}selected{% endif %}>Internal Staff</option>
+                            <option value="temp_staff" {% if person_type_filter=='temp_staff' %}selected{% endif %}>Temp Worker</option>
+                            <option value="unknown" {% if person_type_filter=='unknown' %}selected{% endif %}>Unknown</option>
+                        </select>
+                    </div>
                     <div class="filter-group" style="justify-content: flex-end;">
                         <label>&nbsp;</label>
                         <div style="display:flex;gap:10px;">
                             <button type="submit" class="btn btn-primary btn-sm">Filter</button>
-                            {% if username_filter or date_from or date_to or status_filter %}
+                            {% if username_filter or date_from or date_to or status_filter or person_type_filter %}
                             <a href="/admin/logs" class="btn btn-sm" style="background:#e2e8f0;color:#334155;">Clear</a>
                             {% endif %}
                         </div>

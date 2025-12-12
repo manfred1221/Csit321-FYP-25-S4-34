@@ -26,7 +26,7 @@ CORS(backend_security, resources={r"/api/*": {"origins": "*"}}, supports_credent
 
 
 # PostgreSQL config
-backend_security.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:joshua1102@localhost:5432/CSIT321: Face Recognition'
+backend_security.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:joshua1102@localhost:5432/csit321_face_recognition'
 backend_security.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db.init_app(backend_security)
