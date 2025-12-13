@@ -225,7 +225,7 @@
                                 <td>Main Entrance</td>  <!-- optional: remove if your DB has a location column later -->
                                 <td>{{ officer.full_name }}</td>  <!-- because recognized_person = officer 1 -->
                                 <td><span class="badge badge-info">{{ log.user_type }}</span></td>
-                                <td>{{ "%.2f"|format(log.confidence) }}</td>
+                                <td>{{ "%.2f"|format(log.confidence) if log.confidence is not none else "N/A" }}</td>
                                 {% if log.access_result == "granted" %}
                                     <td><span class="badge badge-success">GRANTED</span></td>
                                 {% else %}
