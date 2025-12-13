@@ -50,7 +50,7 @@ The camera now works properly on all pages! We've updated the camera code to use
 
 2. Position your face in the frame
 
-3. Click **"📸 Capture Photo"**
+3. Click **" Capture Photo"**
    - Camera stops
    - Preview appears
    - Status bar turns blue: "Preview ready"
@@ -235,7 +235,7 @@ The working camera code you provided taught us:
 - ✅ Proper error handling
 - ✅ Simpler code
 
-**Download v2.0 and enjoy working cameras!** 📸
+**Download v2.0 and enjoy working cameras!** 
 
 ---
 

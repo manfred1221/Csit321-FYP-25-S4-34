@@ -1,11 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>My Profile - Staff Portal</title>
-    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="/frontend/css/styles.css">
 </head>
+
 <body>
     <div class="dashboard">
         <!-- Sidebar -->
@@ -17,7 +19,7 @@
                     <p id="staffPosition">Staff Member</p>
                 </div>
             </div>
-            
+
             <nav>
                 <ul class="nav-menu">
                     <li class="nav-item">
@@ -30,7 +32,7 @@
                         <a href="staff-attendance.html" class="nav-link">⏰ Attendance</a>
                     </li>
                     <li class="nav-item">
-                        <a href="staff-profile.html" class="nav-link active">👤 Profile</a>
+                        <a href="staff-profile.html" class="nav-link active"> Profile</a>
                     </li>
                     <li class="nav-item">
                         <a href="#" class="nav-link" id="logoutBtn">🚪 Logout</a>
@@ -42,7 +44,7 @@
         <!-- Main Content -->
         <main class="main-content">
             <div class="page-header">
-                <h1>👤 My Profile</h1>
+                <h1> My Profile</h1>
                 <p>View and update your personal information</p>
             </div>
 
@@ -50,7 +52,7 @@
             <div class="card">
                 <div class="card-header">
                     <h2>Personal Information</h2>
-                    <button class="btn btn-primary" id="editBtn">✏️ Edit Profile</button>
+                    <button class="btn btn-primary" id="editBtn">Edit Profile</button>
                 </div>
                 <div class="card-body">
                     <!-- View Mode -->
@@ -71,21 +73,21 @@
                                 <label for="editName">Full Name</label>
                                 <input type="text" id="editName" class="form-control" required>
                             </div>
-                            
+
                             <div class="form-group">
                                 <label for="editContact">Contact Number</label>
                                 <input type="text" id="editContact" class="form-control" required>
                             </div>
-                            
+
                             <div class="form-group">
                                 <label for="editPosition">Position</label>
                                 <input type="text" id="editPosition" class="form-control" required>
                             </div>
-                            
+
                             <div id="profileMessage" class="message" style="display:none;"></div>
-                            
+
                             <div class="flex gap-10 mt-20">
-                                <button type="submit" class="btn btn-primary">💾 Save Changes</button>
+                                <button type="submit" class="btn btn-primary">Save Changes</button>
                                 <button type="button" class="btn btn-secondary" id="cancelBtn">❌ Cancel</button>
                             </div>
                         </form>
@@ -108,7 +110,8 @@
         </main>
     </div>
 
-    <script src="js/config.js"></script>
-    <script src="js/staff-profile.js"></script>
+    <script src="/frontend/js/config.js"></script>
+    <script src="/frontend/js/staff-profile.js"></script>
 </body>
+
 </html>
