@@ -20,7 +20,7 @@ class Config:
     }
     
     FACE_RECOGNITION = {
-        'threshold': 1.0,
+        'threshold': 1.1,
         'upload_dir': os.path.join(os.path.dirname(__file__), 'uploads'),
         'encoding_dir': os.path.join(os.path.dirname(__file__), 'face_encodings'),
         'id_doc_dir': os.path.join(os.path.dirname(__file__), 'id_documents')

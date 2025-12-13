@@ -18,7 +18,11 @@
         }
 
         .navbar {
+<<<<<<< HEAD
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+=======
+            background: #2563eb;
+>>>>>>> e00f4330b54b2a5a29c75eee08ba7b7e3007c292
             color: #fff;
             padding: 18px 30px;
             display: flex;
@@ -66,7 +70,11 @@
 
         .card-header h2 {
             font-size: 18px;
+<<<<<<< HEAD
             color: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+=======
+            color: #2563eb;
+>>>>>>> e00f4330b54b2a5a29c75eee08ba7b7e3007c292
             margin-bottom: 15px;
         }
 
@@ -202,6 +210,7 @@
                 <form class="filters" method="GET">
                     <div class="filter-group">
                         <label>User</label>
+<<<<<<< HEAD
                         <select name="user_id">
                             <option value="">All Users</option>
                             {% for u in users_for_filter %}
@@ -210,6 +219,9 @@
                             </option>
                             {% endfor %}
                         </select>
+=======
+                        <input type="text" name="username" placeholder="Search by username..." value="{{ username_filter }}">
+>>>>>>> e00f4330b54b2a5a29c75eee08ba7b7e3007c292
                     </div>
                     <div class="filter-group">
                         <label>From Date</label>
@@ -232,7 +244,11 @@
                         <label>&nbsp;</label>
                         <div style="display:flex;gap:10px;">
                             <button type="submit" class="btn btn-primary btn-sm">Filter</button>
+<<<<<<< HEAD
                             {% if user_filter or date_from or date_to or status_filter %}
+=======
+                            {% if username_filter or date_from or date_to or status_filter %}
+>>>>>>> e00f4330b54b2a5a29c75eee08ba7b7e3007c292
                             <a href="/admin/logs" class="btn btn-sm" style="background:#e2e8f0;color:#334155;">Clear</a>
                             {% endif %}
                         </div>
@@ -246,9 +262,12 @@
                             <th>ID</th>
                             <th>Date/Time</th>
                             <th>User</th>
+<<<<<<< HEAD
                             <th>Role</th>
                             <th>Type</th>
                             <th>Access Point</th>
+=======
+>>>>>>> e00f4330b54b2a5a29c75eee08ba7b7e3007c292
                             <th>Status</th>
                             <th>Confidence</th>
                         </tr>
@@ -267,6 +286,7 @@
                                 {% endif %}
                             </td>
                             <td>
+<<<<<<< HEAD
                                 {% if log.role %}
                                 <span class="badge badge-info">{{ log.role }}</span>
                                 {% else %}
@@ -276,6 +296,8 @@
                             <td>{{ log.access_type or 'entry' }}</td>
                             <td>{{ log.access_point or 'Main Gate' }}</td>
                             <td>
+=======
+>>>>>>> e00f4330b54b2a5a29c75eee08ba7b7e3007c292
                                 <span
                                     class="badge {{ 'badge-success' if log.status == 'granted' else 'badge-danger' }}">
                                     {{ log.status }}
@@ -291,7 +313,11 @@
                         </tr>
                         {% else %}
                         <tr>
+<<<<<<< HEAD
                             <td colspan="8" class="empty">No access logs found</td>
+=======
+                            <td colspan="5" class="empty">No access logs found</td>
+>>>>>>> e00f4330b54b2a5a29c75eee08ba7b7e3007c292
                         </tr>
                         {% endfor %}
                     </tbody>

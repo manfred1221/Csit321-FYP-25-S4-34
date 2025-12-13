@@ -176,7 +176,7 @@
                     <label for="userType">Login As</label>
                     <select id="userType" name="userType">
                         <option value="resident">Resident</option>
-                        <option value="visitor">Visitor</option>
+                        <option value="security">Security Officer</option>
                         <option value="admin">Admin</option>
                         <option value="staff">Internal Staff</option>
                     </select>
@@ -199,6 +199,7 @@
         // Configuration for different user types
         const USER_TYPES = {
             resident: {
+<<<<<<< HEAD
                 apiUrl: '/admin/login',
                 dashboard: '/resident/dashboard',
                 storageKey: 'residentAuth'
@@ -207,6 +208,16 @@
                 apiUrl: '/admin/login',
                 dashboard: '/visitor/dashboard',
                 storageKey: 'visitorAuth'
+=======
+                apiUrl: 'http://localhost:5001/api/auth/login',
+                dashboard: '/frontend/resident-dashboard.html',
+                storageKey: 'residentAuth'
+            },
+            security: {
+                apiUrl: 'http://localhost:5001/security/login',
+                dashboard: '/security-dashboard',
+                storageKey: 'securityAuth'
+>>>>>>> e00f4330b54b2a5a29c75eee08ba7b7e3007c292
             },
             admin: {
                 apiUrl: '/admin/login',
@@ -214,8 +225,13 @@
                 storageKey: 'adminAuth'
             },
             staff: {
+<<<<<<< HEAD
                 apiUrl: '/admin/login',
                 dashboard: '/staff/dashboard',
+=======
+                apiUrl: 'http://localhost:5001/api/staff/login',
+                dashboard: '/frontend/staff-dashboard.html',
+>>>>>>> e00f4330b54b2a5a29c75eee08ba7b7e3007c292
                 storageKey: 'staffAuth'
             }
         };
