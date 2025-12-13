@@ -63,9 +63,9 @@ class AccessLog:
         cursor = conn.cursor(cursor_factory=RealDictCursor)
         try:
             cursor.execute("""
-                SELECT l.log_id, l.access_time,
-                       l.recognized_person, l.person_type as user_type,
-                       l.confidence, l.access_result,
+                SELECT l.log_id as id, l.access_time as created_at, 
+                       l.recognized_person, l.person_type, 
+                       l.confidence, l.access_result as status,
                        l.embedding_id
                 FROM access_logs l
                 ORDER BY l.access_time DESC
@@ -77,11 +77,7 @@ class AccessLog:
             conn.close()
     
     @staticmethod
-<<<<<<< HEAD
     def filter_logs(user_id=None, date_from=None, date_to=None, status=None, person_type=None, limit=500):
-=======
-    def filter_logs(username=None, date_from=None, date_to=None, status=None, person_type=None, limit=500):
->>>>>>> e00f4330b54b2a5a29c75eee08ba7b7e3007c292
         """Filter access logs with various criteria and include user details"""
         conn = get_db_connection()
         cursor = conn.cursor(cursor_factory=RealDictCursor)
@@ -106,16 +102,9 @@ class AccessLog:
             """
             params = []
 
-<<<<<<< HEAD
             if user_id:
                 query += " AND r.resident_id = %s"
                 params.append(user_id)
-=======
-            if username:
-                query += " AND (u.username ILIKE %s OR r.full_name ILIKE %s OR l.recognized_person ILIKE %s)"
-                search_pattern = f"%{username}%"
-                params.extend([search_pattern, search_pattern, search_pattern])
->>>>>>> e00f4330b54b2a5a29c75eee08ba7b7e3007c292
 
             if date_from:
                 query += " AND DATE(l.access_time) >= %s"
@@ -221,6 +210,7 @@ class AccessLog:
     
     @staticmethod
     def get_all_users_for_filter():
+        """Get all unique users for filter dropdown"""
         conn = get_db_connection()
         cursor = conn.cursor(cursor_factory=RealDictCursor)
         try:
