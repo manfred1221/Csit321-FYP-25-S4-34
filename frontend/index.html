@@ -176,7 +176,7 @@
                     <label for="userType">Login As</label>
                     <select id="userType" name="userType">
                         <option value="resident">Resident</option>
-                        <option value="security">Security Officer</option>
+                        <option value="security">Visitor</option>
                         <option value="admin">Admin</option>
                         <option value="staff">Internal Staff</option>
                     </select>
@@ -207,14 +207,6 @@
                 apiUrl: '/admin/login',
                 dashboard: '/visitor/dashboard',
                 storageKey: 'visitorAuth',
-                apiUrl: 'http://localhost:5001/api/auth/login',
-                dashboard: '/frontend/resident-dashboard.html',
-                storageKey: 'residentAuth'
-            },
-            security: {
-                apiUrl: 'http://localhost:5001/security/login',
-                dashboard: '/security-dashboard',
-                storageKey: 'securityAuth'
             },
             admin: {
                 apiUrl: '/admin/login',
@@ -224,10 +216,6 @@
             staff: {
                 apiUrl: '/admin/login',
                 dashboard: '/staff/dashboard',
-                apiUrl: '/admin/login',
-                dashboard: '/staff/dashboard',
-                apiUrl: 'http://localhost:5001/api/staff/login',
-                dashboard: '/frontend/staff-dashboard.html',
                 storageKey: 'staffAuth'
             }
         };
