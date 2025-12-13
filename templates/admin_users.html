@@ -18,11 +18,7 @@
         }
 
         .navbar {
-<<<<<<< HEAD
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-=======
-            background: #2563eb;
->>>>>>> e00f4330b54b2a5a29c75eee08ba7b7e3007c292
             color: #fff;
             padding: 18px 30px;
             display: flex;
@@ -75,11 +71,7 @@
 
         .card-header h2 {
             font-size: 18px;
-<<<<<<< HEAD
             color: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-=======
-            color: #2563eb;
->>>>>>> e00f4330b54b2a5a29c75eee08ba7b7e3007c292
         }
 
         .card-body {
@@ -311,8 +303,7 @@
                             </option>
                             <option value="Security" {% if role_filter=='Security' %}selected{% endif %}>Security
                             </option>
-                            <option value="Internal Staff" {% if role_filter=='Internal Staff' %}selected{% endif %}>
-                                Internal Staff</option>
+                            <option value="Guest" {% if role_filter=='Guest' %}selected{% endif %}>Guest</option>
                             <option value="TEMP_WORKER" {% if role_filter=='TEMP_WORKER' %}selected{% endif %}>Temp
                                 Worker</option>
                         </select>
@@ -382,7 +373,7 @@
                                     {% if user.role == 'Admin' %}badge-danger
                                     {% elif user.role == 'Security' %}badge-warning
                                     {% elif user.role == 'TEMP_WORKER' %}badge-purple
-                                    {% elif user.role == 'Internal Staff' %}badge-gray
+                                    {% elif user.role == 'Guest' %}badge-gray
                                     {% else %}badge-info{% endif %}">
                                     {{ user.role }}
                                 </span>
@@ -493,7 +484,7 @@
         async function deleteUser(id) {
             if (!confirm('Delete this user? This action cannot be undone.')) return;
 
-            const response = await fetch('/admin/users/' + id, { method: 'DELETE' });
+            const response = await fetch('/admin/users/' + id + '/delete', { method: 'POST' });
             const data = await response.json();
 
             if (data.success) {
