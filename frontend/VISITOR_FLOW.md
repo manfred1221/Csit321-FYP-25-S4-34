@@ -5,7 +5,7 @@ This system uses **facial recognition ONLY** for visitor access - no QR codes, n
 
 ---
 
-## 👤 Complete Visitor Journey
+##  Complete Visitor Journey
 
 ### Step 1: Resident Registers Visitor
 **Location:** Resident Portal → Manage Visitors

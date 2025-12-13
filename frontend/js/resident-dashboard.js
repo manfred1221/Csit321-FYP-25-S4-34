@@ -1,12 +1,31 @@
-// Check authentication
-const user = checkAuth();
-if (user && user.type !== 'resident') {
-    window.location.href = 'index.html';
-}
+// // Check authentication
+// const user = checkAuth();
+// if (user && user.type !== 'resident') {
+//     window.location.href = '/';
+// }
 
-// Update user info in sidebar
-document.getElementById('userName').textContent = user.full_name || user.username;
-document.getElementById('userEmail').textContent = user.email;
+// // Update user info in sidebar
+// document.getElementById('userName').textContent = user.full_name || user.username;
+// document.getElementById('userEmail').textContent = user.email;
+console.log('checkAuth returned:', user);
+
+document.addEventListener('DOMContentLoaded', () => {
+    const user = checkAuth();
+    if (!user) return;
+
+    if (!user || user.type !== 'resident') {
+        window.location.href = '/';
+        return;
+    }
+
+    document.getElementById('userName').textContent =
+        user.full_name || user.username;
+    document.getElementById('userEmail').textContent = user.email;
+
+    loadDashboardData();
+});
+
+
 
 // Load dashboard data
 async function loadDashboardData() {
@@ -19,7 +38,7 @@ async function loadDashboardData() {
 
 // Load visitors
 async function loadVisitors() {
-    const endpoint = API_CONFIG.ENDPOINTS.RESIDENT.GET_VISITORS(user.id);
+    const endpoint = API_CONFIG.ENDPOINTS.RESIDENT.GET_VISITORS(user.user.id);
     const result = await apiCall(endpoint);
     
     if (result.success) {
@@ -60,7 +79,7 @@ function displayRecentVisitors(visitors) {
 
 // Load access history
 async function loadAccessHistory() {
-    const endpoint = API_CONFIG.ENDPOINTS.RESIDENT.ACCESS_HISTORY(user.id);
+    const endpoint = API_CONFIG.ENDPOINTS.RESIDENT.ACCESS_HISTORY(user.user.id);
     const result = await apiCall(endpoint);
     
     if (result.success) {
@@ -98,7 +117,7 @@ function displayAccessHistory(records) {
 
 // Load stats
 async function loadStats() {
-    const endpoint = API_CONFIG.ENDPOINTS.RESIDENT.ALERTS(user.id);
+    const endpoint = API_CONFIG.ENDPOINTS.RESIDENT.ALERTS(user.user.id);
     const result = await apiCall(endpoint);
     
     if (result.success) {
@@ -124,7 +143,7 @@ async function toggleFaceAccess() {
     const btn = document.getElementById('toggleAccessBtn');
     
     if (faceAccessEnabled) {
-        const endpoint = API_CONFIG.ENDPOINTS.RESIDENT.DISABLE_FACE_ACCESS(user.id);
+        const endpoint = API_CONFIG.ENDPOINTS.RESIDENT.DISABLE_FACE_ACCESS(user.user.id);
         const result = await apiCall(endpoint, { method: 'POST' });
         
         if (result.success) {
@@ -144,8 +163,8 @@ async function toggleFaceAccess() {
 
 // View visitor details
 function viewVisitor(visitorId) {
-    window.location.href = `resident-visitors.html?visitor=${visitorId}`;
+    window.location.href = `/resident/visitors?visitor=${visitorId}`;
 }
 
-// Initialize dashboard
-loadDashboardData();
+// // Initialize dashboard
+// loadDashboardData();

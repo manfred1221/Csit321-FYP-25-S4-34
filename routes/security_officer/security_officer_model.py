@@ -72,6 +72,35 @@ def deactivate_officer(officer_id):
     return officer
 
 def log_access(recognized_person, person_type, confidence, result, embedding_id):
+    """
+    Log access event with proper user type categorization
+
+    Args:
+        recognized_person: Name of the person
+        person_type: User type from face_embeddings (resident, visitor, security_officer, internal_staff, temp_staff, ADMIN)
+        confidence: Recognition confidence score
+        result: 'granted' or 'denied'
+        embedding_id: Reference to face embedding
+    """
+    # Normalize person_type to match database constraints
+    valid_types = ['resident', 'visitor', 'security_officer', 'internal_staff', 'temp_staff', 'ADMIN', 'unknown']
+
+    if person_type not in valid_types:
+        # Handle edge cases - map similar types
+        type_mapping = {
+            'RESIDENT': 'resident',
+            'VISITOR': 'visitor',
+            'SECURITY_OFFICER': 'security_officer',
+            'INTERNAL_STAFF': 'internal_staff',
+            'Internal_Staff': 'internal_staff',
+            'TEMP_STAFF': 'temp_staff',
+            'Temp_Staff': 'temp_staff',
+            'TEMP_WORKER': 'temp_staff',
+            'temp_worker': 'temp_staff',
+            'admin': 'ADMIN'
+        }
+        person_type = type_mapping.get(person_type, 'unknown')
+
     log = AccessLog(
         recognized_person=recognized_person,
         person_type=person_type,

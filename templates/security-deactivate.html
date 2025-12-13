@@ -4,24 +4,24 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Deactivate Account - Security</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <link rel="stylesheet" href="/frontend/css/styles.css">
 </head>
 <body>
     <div class="dashboard">
         <aside class="sidebar">
             <div class="sidebar-header">
                 <h2>🔐 Condo Access</h2>
-                <div class="user-info"><div>Security Officer</div><div>officer@example.com</div></div>
+                <div class="user-info"><div>{{officer.full_name}}</div><div>{{officer.contact_number}}</div></div>
             </div>
             <nav>
                 <ul class="nav-menu">
-                    <li class="nav-item"><a href="/?officer_id={{ officer.officer_id }}" class="nav-link">📹 Monitor Cameras</a></li>
-                    <li class="nav-item"><a href="/security-override?officer_id={{ officer.officer_id }}" class="nav-link">🚪 Manual Override</a></li>
-                    <li class="nav-item"><a href="/security-view-profile?officer_id={{ officer.officer_id }}" class="nav-link">👤 View Profile</a></li>
-                    <li class="nav-item"><a href="/security-update-profile?officer_id={{ officer.officer_id }}" class="nav-link">✏️ Update Profile</a></li>
-                    <li class="nav-item"><a href="/security-deactivate?officer_id={{ officer.officer_id }}" class="nav-link active">⚠️ Deactivate Account</a></li>
-                    <li class="nav-item"><a href="/security-face-verification?officer_id={{ officer.officer_id }}" class="nav-link">🔍 Face Verification</a></li>
-                    <li class="nav-item"><a href="/" class="nav-link" style="margin-top:20px;border-top:1px solid rgba(255,255,255,0.1);padding-top:20px;">🚪 Logout</a></li>
+                    <li class="nav-item"><a href="/security-dashboard?officer_id={{ officer.id }}" class="nav-link">📹 Monitor Cameras</a></li>
+                    <li class="nav-item"><a href="/security-override?officer_id={{ officer.id }}" class="nav-link">🚪 Manual Override</a></li>
+                    <li class="nav-item"><a href="/security-view-profile?officer_id={{ officer.id }}" class="nav-link">👤 View Profile</a></li>
+                    <li class="nav-item"><a href="/security-update-profile?officer_id={{ officer.id }}" class="nav-link">✏️ Update Profile</a></li>
+                    <li class="nav-item"><a href="/security-deactivate?officer_id={{ officer.id }}" class="nav-link active">⚠️ Deactivate Account</a></li>
+                    <li class="nav-item"><a href="/security-face-verification?officer_id={{ officer.id }}" class="nav-link">🔍 Face Verification</a></li>
+                    <li class="nav-item"><a href="/security/logout" class="nav-link" style="margin-top:20px;border-top:1px solid rgba(255,255,255,0.1);padding-top:20px;">🚪 Logout</a></li>
                 </ul>
             </nav>
         </aside>

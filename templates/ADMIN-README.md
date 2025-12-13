@@ -118,7 +118,7 @@ Admin Panel
 ├── ➕ Add User (admin_add_user.html)
 ├── 📋 Access Logs (admin_logs.html)
 ├── 📹 Cameras (camera.html)
-├── 👤 My Profile (admin_profile.html)
+├──  My Profile (admin_profile.html)
 └── 🚪 Logout (admin_login.html)
 ```
 
@@ -244,7 +244,7 @@ async function loadUsers() {
 - **8 cameras** (1 offline for testing)
 - **Statistics cards** (realistic numbers)
 
-## 🔒 Default Admin Credentials
+##  Default Admin Credentials
 
 - **Username:** admin
 - **Password:** (set in your backend)

@@ -1327,3 +1327,100 @@ ALTER TABLE ONLY public.visitors
 -- PostgreSQL database dump complete
 --
 
+--Add new columns to users table
+ALTER TABLE public.users ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'active';
+ALTER TABLE public.users ADD COLUMN IF NOT EXISTS access_level VARCHAR(50) DEFAULT 'standard';
+
+--Update existing users to have 'active' status
+UPDATE public.users SET status = 'active' WHERE status IS NULL;
+UPDATE public.users SET access_level = 'standard' WHERE access_level IS NULL;
+
+-- Add new roles (Guest and TEMP_WORKER)
+INSERT INTO public.roles (role_id, role_name) VALUES (5, 'Guest') ON CONFLICT (role_id) DO NOTHING;
+INSERT INTO public.roles (role_id, role_name) VALUES (6, 'TEMP_WORKER') ON CONFLICT (role_id) DO NOTHING;
+
+--Create temp_workers table
+CREATE TABLE IF NOT EXISTS public.temp_workers (
+    temp_worker_id SERIAL PRIMARY KEY,
+    user_id INTEGER REFERENCES public.users(user_id) ON DELETE CASCADE,
+    resident_id INTEGER REFERENCES public.residents(resident_id) ON DELETE CASCADE,
+    work_start_date DATE,
+    work_end_date DATE,
+    work_schedule VARCHAR(255),
+    work_details TEXT,
+    id_document_path VARCHAR(500),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 5. Create indexes for better performance
+CREATE INDEX IF NOT EXISTS idx_users_status ON public.users(status);
+CREATE INDEX IF NOT EXISTS idx_users_access_level ON public.users(access_level);
+CREATE INDEX IF NOT EXISTS idx_temp_workers_user_id ON public.temp_workers(user_id);
+CREATE INDEX IF NOT EXISTS idx_temp_workers_dates ON public.temp_workers(work_start_date, work_end_date);
+
+--  Verify changes
+SELECT 'Users table columns:' as info;
+SELECT column_name, data_type, column_default 
+FROM information_schema.columns 
+WHERE table_name = 'users' AND table_schema = 'public'
+ORDER BY ordinal_position;
+
+SELECT 'All roles:' as info;
+SELECT * FROM public.roles ORDER BY role_id;
+
+SELECT 'Temp workers table exists:' as info;
+SELECT EXISTS (
+    SELECT FROM information_schema.tables 
+    WHERE table_name = 'temp_workers' AND table_schema = 'public'
+) as temp_workers_exists;
+
+-- Fix access_logs person_type to include all user categories
+-- This script adds support for temp_staff and ADMIN user types
+
+-- Drop the existing constraint
+ALTER TABLE public.access_logs
+DROP CONSTRAINT IF EXISTS access_logs_person_type_check;
+
+-- Add updated constraint with all user types
+ALTER TABLE public.access_logs
+ADD CONSTRAINT access_logs_person_type_check
+CHECK (
+    person_type IN (
+        'resident',
+        'visitor',
+        'security_officer',
+        'internal_staff',
+        'temp_staff',
+        'ADMIN',
+        'unknown'
+    )
+);
+
+-- Update any existing records that might have null or invalid person_type
+UPDATE public.access_logs
+SET person_type = 'unknown'
+WHERE person_type IS NULL OR person_type NOT IN (
+    'resident',
+    'visitor',
+    'security_officer',
+    'internal_staff',
+    'temp_staff',
+    'ADMIN',
+    'unknown'
+);
+
+-- Verify the change
+SELECT
+    constraint_name,
+    check_clause
+FROM information_schema.check_constraints
+WHERE constraint_name = 'access_logs_person_type_check';
+
+-- Show current person_type distribution
+SELECT
+    person_type,
+    COUNT(*) as count,
+    COUNT(*) * 100.0 / SUM(COUNT(*)) OVER () as percentage
+FROM public.access_logs
+GROUP BY person_type
+ORDER BY count DESC;

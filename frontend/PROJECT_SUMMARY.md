@@ -242,7 +242,7 @@ const API_CONFIG = {
 
 ---
 
-## 🔒 Security Considerations
+##  Security Considerations
 
 **Current Implementation (Development):**
 - ⚠️ Mock authentication (for testing)

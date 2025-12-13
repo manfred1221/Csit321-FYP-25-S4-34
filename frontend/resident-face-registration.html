@@ -1,126 +1,281 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Face Registration - Condo Access</title>
-    <link rel="stylesheet" href="css/styles.css">
+    <title>Face Registration</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background: #f5f5f5;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+        }
+
+        h1 {
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        p {
+            color: #666;
+            margin-bottom: 30px;
+        }
+
+        .upload-section {
+            margin-bottom: 30px;
+        }
+
+        .upload-area {
+            border: 2px dashed #ddd;
+            border-radius: 8px;
+            padding: 40px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .upload-area:hover {
+            border-color: #4CAF50;
+            background: #f9f9f9;
+        }
+
+        .upload-area.dragover {
+            border-color: #4CAF50;
+            background: #f0f8f0;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        .upload-label {
+            font-size: 16px;
+            color: #666;
+        }
+
+        .preview-section {
+            margin: 20px 0;
+            text-align: center;
+        }
+
+        .preview-image {
+            max-width: 100%;
+            max-height: 400px;
+            border-radius: 8px;
+            margin-top: 10px;
+        }
+
+        .btn {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #45a049;
+        }
+
+        .btn-primary:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .message {
+            padding: 15px;
+            border-radius: 6px;
+            margin-top: 20px;
+            display: none;
+        }
+
+        .message.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .message.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .back-link {
+            display: inline-block;
+            margin-bottom: 20px;
+            color: #4CAF50;
+            text-decoration: none;
+        }
+
+        .back-link:hover {
+            text-decoration: underline;
+        }
+    </style>
 </head>
+
 <body>
-    <div class="dashboard">
-        <!-- Sidebar -->
-        <aside class="sidebar">
-            <div class="sidebar-header">
-                <h2>🏢 Condo Access</h2>
-                <div class="user-info">
-                    <strong id="userName">Loading...</strong>
-                    <p id="userEmail"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="126077617b76777c6652776a737f627e773c717d7f">[email&#160;protected]</a></p>
-                </div>
-            </div>
-            
-            <nav>
-                <ul class="nav-menu">
-                    <li class="nav-item">
-                        <a href="resident-dashboard.html" class="nav-link">📊 Dashboard</a>
-                    </li>
-                    <li class="nav-item">
-                        <a href="resident-profile.html" class="nav-link">👤 My Profile</a>
-                    </li>
-                    <li class="nav-item">
-                        <a href="resident-face-registration.html" class="nav-link active">📸 Face Registration</a>
-                    </li>
-                    <li class="nav-item">
-                        <a href="resident-visitors.html" class="nav-link">👥 Manage Visitors</a>
-                    </li>
-                    <li class="nav-item">
-                        <a href="resident-access-history.html" class="nav-link">📜 Access History</a>
-                    </li>
-                    <li class="nav-item">
-                        <a href="resident-alerts.html" class="nav-link">🔔 Alerts</a>
-                    </li>
-                    <li class="nav-item">
-                        <a href="#" class="nav-link" onclick="logout()">🚪 Logout</a>
-                    </li>
-                </ul>
-            </nav>
-        </aside>
+    <div class="container">
+        <a href="/resident/dashboard" class="back-link">Back to Dashboard</a>
 
-        <!-- Main Content -->
-        <main class="main-content">
-            <div class="page-header">
-                <h1>Face Registration</h1>
-                <p>Register or update your facial recognition data</p>
-            </div>
+        <h1>Face Registration</h1>
+        <p>Upload a clear photo of your face for facial recognition access</p>
 
-            <!-- Instructions Card -->
-            <div class="card">
-                <div class="card-header">
-                    <h2>📋 Instructions</h2>
-                </div>
-                <div class="card-body">
-                    <div class="alert alert-info">
-                        <strong>Important Tips for Best Results:</strong>
-                        <ul style="margin-top: 10px; padding-left: 20px;">
-                            <li>Ensure good lighting on your face</li>
-                            <li>Remove glasses, hats, or face coverings</li>
-                            <li>Look directly at the camera</li>
-                            <li>Keep a neutral expression</li>
-                            <li>Position your face within the frame guide</li>
-                        </ul>
-                    </div>
-                </div>
+        <div class="upload-section">
+            <div class="upload-area" id="uploadArea">
+                <p class="upload-label">Click to select a photo or drag and drop here</p>
+                <input type="file" id="fileInput" accept="image/*">
             </div>
+        </div>
 
-            <!-- Face Capture Card -->
-            <div class="card">
-                <div class="card-header">
-                    <h2>📸 Capture Your Face</h2>
-                </div>
-                <div class="card-body">
-                    <p id="status" style="padding: 10px; background: #f3f4f6; border-radius: 6px; margin-bottom: 15px; text-align: center;">
-                        Ready to capture your face
-                    </p>
-                    
-                    <div class="camera-container">
-                        <video id="video" autoplay playsinline width="320" height="240" 
-                               style="border-radius: 8px; background: #111; display: block; margin: 0 auto;"></video>
-                        <canvas id="canvas" width="320" height="240" style="display: none;"></canvas>
-                        <img id="preview" alt="capture preview" class="preview-image" 
-                             style="display: none; max-width: 320px; border-radius: 8px; margin: 15px auto; display: block;">
-                    </div>
-                    
-                    <div class="camera-controls">
-                        <button id="startBtn" class="btn btn-primary">
-                            Start Camera
-                        </button>
-                        <button id="captureBtn" class="btn btn-success" disabled>
-                            📸 Capture Photo
-                        </button>
-                        <button id="uploadBtn" class="btn btn-primary" disabled>
-                            ✅ Register Face Data
-                        </button>
-                    </div>
-                    
-                    <div id="message" class="message"></div>
-                </div>
-            </div>
+        <div class="preview-section" id="previewSection" style="display: none;">
+            <h3>Preview:</h3>
+            <img id="preview" class="preview-image" alt="Preview">
+        </div>
 
-            <!-- Current Registration Status -->
-            <div class="card">
-                <div class="card-header">
-                    <h2>Registration Status</h2>
-                </div>
-                <div class="card-body">
-                    <div id="registrationStatus">
-                        <p>Current Status: <span class="badge badge-warning">Not Registered</span></p>
-                        <p>Last Updated: <span id="lastUpdated">Never</span></p>
-                    </div>
-                </div>
-            </div>
-        </main>
+        <button id="uploadBtn" class="btn btn-primary" disabled>Upload and Register Face</button>
+
+        <div id="message" class="message"></div>
     </div>
 
     <script src="js/config.js"></script>
-    <script src="js/resident-face-registration.js"></script>
+    <script>
+        // Check authentication
+        const user = checkAuth();
+        if (!user || user.type !== 'resident') {
+            window.location.href = 'index.html';
+        }
+
+        const fileInput = document.getElementById('fileInput');
+        const uploadArea = document.getElementById('uploadArea');
+        const preview = document.getElementById('preview');
+        const previewSection = document.getElementById('previewSection');
+        const uploadBtn = document.getElementById('uploadBtn');
+        const messageDiv = document.getElementById('message');
+
+        let selectedFile = null;
+
+        // Click to upload
+        uploadArea.addEventListener('click', () => {
+            fileInput.click();
+        });
+
+        // File selected
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                handleFile(file);
+            }
+        });
+
+        // Drag and drop
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+
+            const file = e.dataTransfer.files[0];
+            if (file && file.type.startsWith('image/')) {
+                handleFile(file);
+            } else {
+                showMessage('Please upload an image file', 'error');
+            }
+        });
+
+        // Handle file
+        function handleFile(file) {
+            selectedFile = file;
+
+            // Show preview
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                preview.src = e.target.result;
+                previewSection.style.display = 'block';
+                uploadBtn.disabled = false;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // Upload button
+        uploadBtn.addEventListener('click', async () => {
+            if (!selectedFile) return;
+
+            uploadBtn.disabled = true;
+            uploadBtn.textContent = 'Uploading...';
+
+            try {
+                // Convert to base64
+                const reader = new FileReader();
+                reader.onload = async (e) => {
+                    const base64Image = e.target.result.split(',')[1];
+
+                    // Call API
+                    const response = await fetch(`${API_CONFIG.BASE_URL}/api/resident/register-face`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            resident_id: user.resident_id || user.id,
+                            image_data: base64Image
+                        })
+                    });
+
+                    const data = await response.json();
+
+                    if (response.ok && (data.success || data.message?.includes('success'))) {
+                        showMessage('Face registered successfully!', 'success');
+                        setTimeout(() => {
+                            window.location.href = 'resident-dashboard.html';
+                        }, 2000);
+                    } else {
+                        throw new Error(data.error || data.message || 'Registration failed');
+                    }
+                };
+                reader.readAsDataURL(selectedFile);
+            } catch (error) {
+                showMessage(error.message || 'Upload failed. Please try again.', 'error');
+                uploadBtn.disabled = false;
+                uploadBtn.textContent = 'Upload and Register Face';
+            }
+        });
+
+        // Show message
+        function showMessage(text, type) {
+            messageDiv.textContent = text;
+            messageDiv.className = 'message ' + type;
+            messageDiv.style.display = 'block';
+        }
+    </script>
 </body>
+
 </html>

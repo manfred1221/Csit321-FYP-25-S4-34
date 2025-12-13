@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(grep [📹🚪⚠️🔍📋🔄✏️👤📊👥📜🔔🏢➕✅❌✓⚠●] templates/*.html frontend/*.html)",
+      "Bash(ls:*)",
+      "Bash(./venv/bin/pip:*)",
+      "Bash(/usr/local/bin/python3.12 -m py_compile:*)"
+    ]
+  }
+}
