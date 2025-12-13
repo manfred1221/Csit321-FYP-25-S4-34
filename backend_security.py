@@ -147,10 +147,17 @@ def api_update_officer():
     data = request.json
     print("DEBUG JSON:", data)
 
-    # Read officer_id from query: /api/update-officer?officer_id=7
+    # Try query params first
     officer_id = request.args.get("officer_id", type=int)
+
+    # If not found, try JSON body
+    if not officer_id:
+        officer_id = data.get("officer_id")
+
+    # Final check
     if not officer_id:
         return jsonify({"success": False, "message": "Missing officer_id"}), 400
+
 
     officer = db.session.get(SecurityOfficer, officer_id)
     if not officer:
@@ -166,7 +173,6 @@ def api_update_officer():
     print("DEBUG OFFICER AFTER:", officer.full_name, officer.contact_number, officer.shift)
 
     return jsonify({"success": True, "message": "Profile updated"}), 200
-
 
 
 @backend_security.route("/security-face-verification")
@@ -399,3 +405,4 @@ def test_list_users():
 
 if __name__ == "__main__":
     backend_security.run(debug=True, port=5001)
+
