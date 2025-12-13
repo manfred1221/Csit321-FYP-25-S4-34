@@ -2,30 +2,31 @@ import bcrypt
 import numpy as np
 from datetime import datetime, date
 from psycopg2.extras import RealDictCursor
-from db import get_db_connection
+from database import get_db_connection
 from config import Config
+from werkzeug.security import check_password_hash
 
 class User:
-    @staticmethod
-    def hash_password(password):
-        return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+    # @staticmethod
+    # def hash_password(password):
+    #     return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
     
-    @staticmethod
-    def verify_password(password, password_hash):
-        try:
-            # If it's a bcrypt hash
-            if password_hash.startswith('$2b$') or password_hash.startswith('$2a$'):
-                return bcrypt.checkpw(password.encode('utf-8'), password_hash.encode('utf-8'))
+    # @staticmethod
+    # def verify_password(password, password_hash):
+    #     try:
+    #         # If it's a bcrypt hash
+    #         if password_hash.startswith('$2b$') or password_hash.startswith('$2a$'):
+    #             return bcrypt.checkpw(password.encode('utf-8'), password_hash.encode('utf-8'))
             
-            # Fallback for legacy/test passwords
-            if password_hash.startswith('hashed_pw_'):
-                return password == 'admin123' or password == password_hash
+    #         # Fallback for legacy/test passwords
+    #         if password_hash.startswith('hashed_pw_'):
+    #             return password == 'admin123' or password == password_hash
             
-            # Direct comparison for plaintext (temporary/testing)
-            return password == password_hash
-        except Exception as e:
-            print(f"Password verification error: {e}")
-            return False
+    #         # Direct comparison for plaintext (temporary/testing)
+    #         return password == password_hash
+    #     except Exception as e:
+    #         print(f"Password verification error: {e}")
+    #         return False
     
     @staticmethod
     def create(data):
@@ -70,7 +71,7 @@ class User:
             """, (
                 data['username'],
                 data['email'],
-                User.hash_password(data['password']),
+                data['password'],
                 role_id,
                 status,
                 access_level
@@ -109,13 +110,12 @@ class User:
                 if role_id == 6:
                     cursor.execute("""
                         INSERT INTO temp_workers (
-                            user_id, resident_id, work_start_date, work_end_date, 
+                            user_id, work_start_date, work_end_date, 
                             work_schedule, work_details, id_document_path
                         )
-                        VALUES (%s, %s, %s, %s, %s, %s, %s)
+                        VALUES (%s, %s, %s, %s, %s, %s)
                     """, (
                         user_id,
-                        resident_id,
                         data.get('work_start_date'),
                         data.get('work_end_date'),
                         data.get('work_schedule', ''),
@@ -140,58 +140,43 @@ class User:
     
     @staticmethod
     def authenticate(username, password):
-        conn = get_db_connection()
-        cursor = conn.cursor(cursor_factory=RealDictCursor)
         try:
+            conn = get_db_connection()
+            cursor = conn.cursor()
+            print(f"[DEBUG] authenticate called with username='{username}', password='{password}'")
+
             cursor.execute("""
-                SELECT u.user_id as id, u.username, u.email, u.password_hash, 
-                       u.role_id, r.role_name as role, u.created_at,
-                       u.status, u.access_level,
-                       res.full_name, res.unit_number, res.contact_number as phone,
-                       res.resident_id
-                FROM users u
-                JOIN roles r ON u.role_id = r.role_id
-                LEFT JOIN residents res ON u.user_id = res.user_id
-                WHERE u.username = %s
+                SELECT user_id, username, password_hash
+                FROM users
+                WHERE username = %s
+                LIMIT 1
             """, (username,))
-            user = cursor.fetchone()
-            
-            if not user:
-                print(f"User '{username}' not found")
-                return None
-            
-            print(f"Found user: {user['username']}, role: {user['role']}, status: {user['status']}")
-            
-            # Verify password
-            if not User.verify_password(password, user['password_hash']):
-                print(f"Password verification failed for user: {username}")
-                return None
-            
-            print(f"Password verified for user: {username}")
-            
-            # Check if user is active (case-insensitive)
-            user_status = str(user.get('status', '')).lower()
-            if user_status == 'inactive':
-                print(f"User {username} is inactive")
-                return None
-            
-            # Check if temp worker is still valid
-            if user['role'] in ['TEMP_WORKER', 'TempWorker']:
-                if not User.is_temp_worker_valid(user):
-                    print(f"Temp worker {username} access has expired")
-                    return None
-            
-            print(f"Authentication successful for user: {username}")
-            return dict(user)
-            
-        except Exception as e:
-            print(f"Authentication error: {e}")
-            import traceback
-            traceback.print_exc()
-            return None
-        finally:
+
+            row = cursor.fetchone()
             cursor.close()
             conn.close()
+
+            if not row:
+                print("[DEBUG] User not found")
+                return None
+
+            user_id, db_username, db_password = row
+
+            # ❗ PLAIN TEXT CHECK — NO HASHING
+            if password != db_password:
+                print("[DEBUG] Incorrect password (plain-text check failed)")
+                return None
+
+            # Successful login
+            return {
+                'id': user_id,
+                'username': db_username,
+                'role': 'Admin'
+            }
+
+        except Exception as e:
+            print("[AUTHENTICATION ERROR]", e)
+            return None
     
     @staticmethod
     def get_by_id(user_id):
@@ -201,7 +186,6 @@ class User:
             cursor.execute("""
                 SELECT u.user_id as id, u.username, u.email, u.password_hash,
                        u.role_id, r.role_name as role, u.created_at,
-                       u.status, u.access_level,
                        res.full_name, res.unit_number, res.contact_number as phone,
                        res.resident_id,
                        tw.work_start_date, tw.work_end_date, tw.work_schedule, 
@@ -226,7 +210,6 @@ class User:
             cursor.execute("""
                 SELECT u.user_id as id, u.username, u.email, u.password_hash,
                        u.role_id, r.role_name as role, u.created_at,
-                       u.status, u.access_level,
                        res.full_name, res.unit_number, res.contact_number as phone,
                        res.resident_id
                 FROM users u
@@ -248,7 +231,6 @@ class User:
             query = """
                 SELECT u.user_id as id, u.username, u.email,
                        u.role_id, r.role_name as role, u.created_at,
-                       u.status, u.access_level,
                        res.full_name, res.unit_number, res.contact_number as phone,
                        res.resident_id,
                        tw.work_start_date, tw.work_end_date,
@@ -291,7 +273,6 @@ class User:
             query = """
                 SELECT u.user_id as id, u.username, u.email,
                        u.role_id, r.role_name as role, u.created_at,
-                       u.status, u.access_level,
                        res.full_name, res.unit_number, res.contact_number as phone,
                        res.resident_id,
                        tw.work_start_date, tw.work_end_date,
@@ -342,7 +323,7 @@ class User:
             cursor.execute("""
                 SELECT r.resident_id as id, r.full_name as username, r.full_name,
                        fe.embedding_id, fe.embedding,
-                       u.role_id, ro.role_name as role, u.status, u.access_level
+                       u.role_id, ro.role_name as role
                 FROM residents r
                 JOIN face_embeddings fe ON r.resident_id = fe.reference_id AND fe.user_type = 'resident'
                 LEFT JOIN users u ON r.user_id = u.user_id
@@ -385,8 +366,8 @@ class User:
             
             if 'password' in data and data['password']:
                 user_fields.append("password_hash = %s")
-                user_params.append(User.hash_password(data['password']))
-            
+                user_params.append(data['password'])
+                        
             if 'role' in data:
                 role_map = {
                     'ADMIN': 1, 'Admin': 1,
@@ -477,11 +458,10 @@ class User:
                     res = cursor.fetchone()
                     if res:
                         cursor.execute("""
-                            INSERT INTO temp_workers (user_id, resident_id, work_start_date, work_end_date, work_schedule, work_details, id_document_path)
-                            VALUES (%s, %s, %s, %s, %s, %s, %s)
+                            INSERT INTO temp_workers (user_id, work_start_date, work_end_date, work_schedule, work_details, id_document_path)
+                            VALUES (%s, %s, %s, %s, %s, %s)
                         """, (
                             user_id,
-                            res[0],
                             data.get('work_start_date'),
                             data.get('work_end_date'),
                             data.get('work_schedule'),
@@ -670,7 +650,7 @@ class Resident:
         cursor = conn.cursor(cursor_factory=RealDictCursor)
         try:
             cursor.execute("""
-                SELECT r.*, u.username, u.email, u.status, u.access_level, ro.role_name as role
+                SELECT r.*, u.username, u.email, ro.role_name as role
                 FROM residents r
                 LEFT JOIN users u ON r.user_id = u.user_id
                 LEFT JOIN roles ro ON u.role_id = ro.role_id
@@ -688,7 +668,7 @@ class Resident:
         cursor = conn.cursor(cursor_factory=RealDictCursor)
         try:
             cursor.execute("""
-                SELECT r.*, u.username, u.email, u.status, u.access_level
+                SELECT r.*, u.username, u.email
                 FROM residents r
                 LEFT JOIN users u ON r.user_id = u.user_id
                 ORDER BY r.registered_at DESC

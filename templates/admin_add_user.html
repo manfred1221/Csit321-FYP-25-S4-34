@@ -18,7 +18,7 @@
         }
 
         .navbar {
-            background: #1e293b;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: #fff;
             padding: 18px 30px;
             display: flex;
@@ -78,7 +78,7 @@
 
         .card-header h2 {
             font-size: 18px;
-            color: #1e293b;
+            color: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         }
 
         .card-body {
@@ -303,12 +303,9 @@
                                 <p class="help-text">Access automatically revoked after this date</p>
                             </div>
                         </div>
-                        
                         <div class="form-group">
-                            <label style="display:flex;align-items:center;gap:10px;">
-                                <input type="checkbox" id="sendEmail">
-                                <span>Send welcome email with login credentials</span>
-                            </label>
+                            <label>Work Schedule</label>
+                            <input type="text" id="work_schedule" placeholder="e.g., Mon-Fri 8:00-17:00">
                         </div>
                         <div class="form-group">
                             <label>Work Details</label>
@@ -320,11 +317,11 @@
                     <button type="submit" class="btn btn-primary">Create User</button>
                 </form>
             </div>
-        </main>
+        </div>
     </div>
 
     <script>
-        function toggleFields() {
+        function toggleTempWorkerFields() {
             const role = document.getElementById('role').value;
             const tempFields = document.getElementById('tempWorkerFields');
 
@@ -382,7 +379,7 @@
             }
 
             try {
-                const response = await fetch('/admin/users/add', {
+                const response = await fetch('/admin/users/create', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(data)
@@ -408,21 +405,7 @@
                 errorDiv.textContent = 'Network error. Please try again.';
                 errorDiv.style.display = 'block';
             }
-            
-            // TODO: Call API to create user
-            showMessage('User created successfully! Redirecting...', 'success');
-            setTimeout(() => {
-                window.location.href = 'admin_users.html';
-            }, 2000);
-        });
-        
-        function showMessage(msg, type) {
-            const el = document.getElementById('message');
-            el.textContent = msg;
-            el.className = 'message ' + type;
-            el.style.display = 'block';
-            setTimeout(() => el.style.display = 'none', 3000);
-        }
+        };
     </script>
 </body>
 

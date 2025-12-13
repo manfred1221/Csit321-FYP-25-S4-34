@@ -13,6 +13,9 @@ import logging
 from datetime import datetime
 from psycopg2.extras import RealDictCursor
 from db import get_db_connection
+import sys
+from keras_facenet import FaceNet
+
 
 logger = logging.getLogger(__name__)
 
@@ -24,7 +27,6 @@ FACE_RECOGNITION_THRESHOLD = 1.0
 def get_embedder():
     global _embedder
     if _embedder is None:
-        from keras_facenet import FaceNet
         _embedder = FaceNet()
         logger.info("FaceNet model loaded")
     return _embedder
@@ -416,7 +418,6 @@ def test_image(image_path):
     return embedding
 
 if __name__ == "__main__":
-    import sys
     if len(sys.argv) > 1:
         test_image(sys.argv[1])
     else:

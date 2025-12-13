@@ -1,11 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>My Profile - Condo Access</title>
-    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="/frontend/css/styles.css">
 </head>
+
 <body>
     <div class="dashboard">
         <!-- Sidebar -->
@@ -14,32 +16,35 @@
                 <h2>🏢 Condo Access</h2>
                 <div class="user-info">
                     <strong id="userName">Loading...</strong>
-                    <p id="userEmail"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="522037213b36373c2612372a333f223e377c313d3f">[email&#160;protected]</a></p>
+                    <p id="userEmail"><a href="/cdn-cgi/l/email-protection" class="__cf_email__"
+                            data-cfemail="522037213b36373c2612372a333f223e377c313d3f">[email&#160;protected]</a></p>
                 </div>
             </div>
-            
+
             <nav>
                 <ul class="nav-menu">
                     <li class="nav-item">
-                        <a href="resident-dashboard.html" class="nav-link">📊 Dashboard</a>
+                        <a href="/resident/dashboard" class="nav-link active">📊 Dashboard</a>
                     </li>
                     <li class="nav-item">
-                        <a href="resident-profile.html" class="nav-link active">👤 My Profile</a>
+                        <a href="/resident/profile" class="nav-link">My Profile</a>
                     </li>
                     <li class="nav-item">
-                        <a href="resident-face-registration.html" class="nav-link">📸 Face Registration</a>
+                        <a href="/resident/face-registration" class="nav-link">Face Registration</a>
                     </li>
                     <li class="nav-item">
-                        <a href="resident-visitors.html" class="nav-link">👥 Manage Visitors</a>
+                        <a href="/resident/visitors" class="nav-link">👥 Manage Visitors</a>
                     </li>
                     <li class="nav-item">
-                        <a href="resident-access-history.html" class="nav-link">📜 Access History</a>
+                        <a href="/resident/access-history" class="nav-link">📜 Access History</a>
                     </li>
                     <li class="nav-item">
-                        <a href="resident-alerts.html" class="nav-link">🔔 Alerts</a>
+                        <a href="/resident/alerts" class="nav-link">🔔 Alerts</a>
                     </li>
                     <li class="nav-item">
-                        <a href="#" class="nav-link" onclick="logout()">🚪 Logout</a>
+                        <a href="/admin/logout" class="nav-link" onclick="logout()">
+                            🚪 Logout
+                        </a>
                     </li>
                 </ul>
             </nav>
@@ -64,28 +69,28 @@
                             <label for="fullName">Full Name</label>
                             <input type="text" id="fullName" name="full_name" disabled>
                         </div>
-                        
+
                         <div class="form-group">
                             <label for="unitNumber">Unit Number</label>
                             <input type="text" id="unitNumber" name="unit_number" disabled>
                         </div>
-                        
+
                         <div class="form-group">
                             <label for="contactNumber">Contact Number</label>
                             <input type="tel" id="contactNumber" name="contact_number" disabled>
                         </div>
-                        
+
                         <div class="form-group">
                             <label for="email">Email Address</label>
                             <input type="email" id="email" name="email" disabled>
                         </div>
-                        
+
                         <div id="editActions" style="display: none;" class="mt-20">
                             <button type="button" class="btn btn-primary" onclick="saveProfile()">Save Changes</button>
                             <button type="button" class="btn btn-secondary" onclick="cancelEdit()">Cancel</button>
                         </div>
                     </form>
-                    
+
                     <div id="message" class="message"></div>
                 </div>
             </div>
@@ -105,7 +110,7 @@
                             </button>
                         </div>
                     </div>
-                    
+
                     <div class="form-group mt-20">
                         <label>Change Password</label>
                         <button class="btn btn-sm btn-secondary" onclick="changePassword()">
@@ -122,7 +127,7 @@
                 </div>
                 <div class="card-body">
                     <div class="alert alert-warning">
-                        <strong>⚠️ Warning:</strong> Deleting your account is permanent and cannot be undone. 
+                        <strong>⚠️ Warning:</strong> Deleting your account is permanent and cannot be undone.
                         All your data including visitor records and access history will be permanently removed.
                     </div>
                     <button class="btn btn-danger" onclick="deleteAccount()">
@@ -133,11 +138,8 @@
         </main>
     </div>
 
-    <script src="js/config.js"></script>
-    <script src="js/resident-profile.js"></script>
+    <script src="/frontend/js/config.js"></script>
+    <script src="/frontend/js/resident-profile.js"></script>
 </body>
-</html>
-ipt><script src="js/config.js"></script>
-    <script src="js/resident-profile.js"></script>
-</body>
+
 </html>

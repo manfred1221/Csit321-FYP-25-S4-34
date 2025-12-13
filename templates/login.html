@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login</title>
+    <link rel="stylesheet" href="/frontend/css/styles.css">
+</head>
+<body>
+<div class="login-container">
+    <div class="login-box card">
+        <div class="logo">
+            <h1>Condo Access</h1>
+            <p>Security Officer Login</p>
+        </div>
+
+        <div class="form-group">
+            <label for="user_type">User Type</label>
+            <select id="user_type">
+                <option value="security_officer">Security Officer</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="user_id">User ID</label>
+            <input type="number" id="user_id" placeholder="Enter ID">
+        </div>
+
+        <!-- If you want a password field for officers later -->
+        <!-- <div class="form-group">
+            <label for="password">Password</label>
+            <input type="password" id="password" placeholder="Password (Officers only)">
+        </div> -->
+
+        <button class="btn btn-primary" onclick="login()">Login</button>
+        <a href="{{ url_for('portal_choice') }}">Back to Portal</a>
+
+        <p id="msg" class="message error"></p>
+    </div>
+</div>
+
+<script>
+function login() {
+    const user_type = document.getElementById("user_type").value;
+    const user_id = document.getElementById("user_id").value;
+
+    fetch("http://127.0.0.1:5001/security/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ user_type, user_id })
+    })
+    .then(res => res.json())
+    .then(data => {
+        const msgEl = document.getElementById("msg");
+        if (!data.success) {
+            msgEl.classList.add("error");
+            msgEl.classList.remove("success");
+            msgEl.innerHTML = data.message;
+            return;
+        }
+
+        msgEl.classList.add("success");
+        msgEl.classList.remove("error");
+        msgEl.innerHTML = "Login successful! Redirecting...";
+        window.location.href = data.redirect;
+    })
+    .catch(err => {
+        document.getElementById("msg").classList.add("error");
+        document.getElementById("msg").innerHTML = "Login failed. Try again.";
+        console.error(err);
+    });
+}
+</script>
+</body>
+</html>

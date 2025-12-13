@@ -223,7 +223,7 @@ python -m http.server 3000
 - ✅ Edge 90+
 
 **Required Permissions:**
-- 📸 Camera access (for face registration)
+-  Camera access (for face registration)
 - 🔐 JavaScript enabled
 - 💾 LocalStorage enabled
 

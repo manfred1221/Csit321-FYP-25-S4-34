@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -11,6 +12,7 @@
             margin: 0 auto;
             padding: 40px 20px;
         }
+
         .hero {
             text-align: center;
             padding: 60px 20px;
@@ -19,12 +21,14 @@
             border-radius: 12px;
             margin-bottom: 40px;
         }
+
         .feature-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
             gap: 30px;
             margin: 40px 0;
         }
+
         .feature-card {
             background: white;
             padding: 30px;
@@ -32,13 +36,16 @@
             box-shadow: var(--shadow-lg);
             transition: transform 0.3s;
         }
+
         .feature-card:hover {
             transform: translateY(-5px);
         }
+
         .feature-icon {
             font-size: 48px;
             margin-bottom: 15px;
         }
+
         .demo-links {
             display: flex;
             gap: 20px;
@@ -46,6 +53,7 @@
             flex-wrap: wrap;
             margin-top: 30px;
         }
+
         .demo-btn {
             padding: 15px 30px;
             font-size: 16px;
@@ -53,6 +61,7 @@
             border-radius: 8px;
             transition: all 0.3s;
         }
+
         .screenshot {
             width: 100%;
             border-radius: 8px;
@@ -61,6 +70,7 @@
         }
     </style>
 </head>
+
 <body>
     <div class="demo-container">
         <!-- Hero Section -->
@@ -86,10 +96,10 @@
 
         <!-- Features -->
         <h2 style="margin: 50px 0 30px; text-align: center; font-size: 32px;">✨ Key Features</h2>
-        
+
         <div class="feature-grid">
             <div class="feature-card">
-                <div class="feature-icon">📸</div>
+                <div class="feature-icon"></div>
                 <h3>Face Registration</h3>
                 <p>Capture and register facial data using webcam with real-time preview and validation.</p>
                 <ul style="margin-top: 15px; padding-left: 20px;">
@@ -148,7 +158,7 @@
             </div>
 
             <div class="feature-card">
-                <div class="feature-icon">👤</div>
+                <div class="feature-icon"></div>
                 <h3>Profile Management</h3>
                 <p>Easy management of personal information and security settings.</p>
                 <ul style="margin-top: 15px; padding-left: 20px;">
@@ -247,7 +257,7 @@
             </div>
             <div class="card-body">
                 <div class="alert alert-info">
-                    <strong>Note:</strong> This is a development version with mock authentication. 
+                    <strong>Note:</strong> This is a development version with mock authentication.
                     Use any username/password combination to login.
                 </div>
                 <table style="width: 100%; margin-top: 20px;">
@@ -295,4 +305,5 @@
         </div>
     </div>
 </body>
+
 </html>
