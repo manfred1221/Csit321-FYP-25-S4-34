@@ -921,10 +921,10 @@ COPY public.temp_staff (temp_id, full_name, company, contact_number, contract_st
 COPY public.users (user_id, username, email, password_hash, role_id, created_at) FROM stdin;
 1	admin_user	admin@condo.com	hashed_pw_123	1	2025-11-12 11:06:13.172525
 2	john_resident	john@condo.com	hashed_pw_456	2	2025-11-12 11:06:13.172525
-3	visitor_mary	mary@guest.com	hashed_pw_789	3	2025-11-12 11:06:13.172525
+3	visitor_mary	mary@Internal Staff.com	hashed_pw_789	3	2025-11-12 11:06:13.172525
 4	alice_resident	alice@condo.com	hashed_pw_101	2	2025-11-12 11:06:13.172525
 5	bob_resident	bob@condo.com	hashed_pw_102	2	2025-11-12 11:06:13.172525
-6	charlie_visitor	charlie@guest.com	hashed_pw_103	3	2025-11-12 11:06:13.172525
+6	charlie_visitor	charlie@Internal Staff.com	hashed_pw_103	3	2025-11-12 11:06:13.172525
 7	security_sam	sam@security.com	hashed_pw_104	4	2025-11-12 11:06:13.172525
 8	admin1	admin@example.com	...	10	2025-12-05 11:59:09.440753
 9	admin_test	admin_test@example.com	scrypt:32768:8:1$NZyoAIz4fqljiRei$4f63f3ae86424d7dd9f7d0fd29096ce2d58966e6bf9247b5b512adfbd8b5d045746a1e7175e53f71f7be9d261647efcae4896f9c8a7ac0cfbea26e4f924991bb	11	2025-12-05 12:43:29.01668
@@ -1330,13 +1330,31 @@ ALTER TABLE ONLY public.visitors
 --Add new columns to users table
 ALTER TABLE public.users ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'active';
 ALTER TABLE public.users ADD COLUMN IF NOT EXISTS access_level VARCHAR(50) DEFAULT 'standard';
+<<<<<<< HEAD
+=======
+ALTER TABLE public.users ADD COLUMN IF NOT EXISTS full_name VARCHAR(100);
+ALTER TABLE public.users ADD COLUMN IF NOT EXISTS contact_number VARCHAR(20);
+>>>>>>> e00f4330b54b2a5a29c75eee08ba7b7e3007c292
 
 --Update existing users to have 'active' status
 UPDATE public.users SET status = 'active' WHERE status IS NULL;
 UPDATE public.users SET access_level = 'standard' WHERE access_level IS NULL;
 
+<<<<<<< HEAD
 -- Add new roles (Guest and TEMP_WORKER)
 INSERT INTO public.roles (role_id, role_name) VALUES (5, 'Guest') ON CONFLICT (role_id) DO NOTHING;
+=======
+--Migrate existing data from residents table to users table
+UPDATE public.users u
+SET full_name = r.full_name,
+    contact_number = r.contact_number
+FROM public.residents r
+WHERE u.user_id = r.user_id
+AND u.full_name IS NULL;
+
+-- Add new roles (Internal Staff and TEMP_WORKER)
+INSERT INTO public.roles (role_id, role_name) VALUES (5, 'Internal Staff') ON CONFLICT (role_id) DO NOTHING;
+>>>>>>> e00f4330b54b2a5a29c75eee08ba7b7e3007c292
 INSERT INTO public.roles (role_id, role_name) VALUES (6, 'TEMP_WORKER') ON CONFLICT (role_id) DO NOTHING;
 
 --Create temp_workers table

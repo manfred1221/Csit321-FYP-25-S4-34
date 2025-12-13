@@ -43,24 +43,72 @@ def api_recognize():
         
         # Get users with face embeddings
         users = User.get_with_face()
-        
+
+        matched_user = None
+        user_type = None
+
         if not users:
             # Try direct recognition from database
             threshold = Config.FACE_RECOGNITION['threshold']
             user_id, username, full_name, distance = recognize_face(embedding, threshold)
+
+            # If recognized, query for user_type from face_embeddings
+            if user_id:
+                conn = get_db_connection()
+                cursor = conn.cursor()
+                try:
+                    # Try to find the face embedding and get user_type
+                    cursor.execute("""
+                        SELECT user_type, reference_id
+                        FROM face_embeddings
+                        WHERE (user_type = 'resident' AND reference_id = %s)
+                           OR (user_type IN ('ADMIN', 'internal_staff', 'temp_staff', 'security_officer') AND reference_id = %s)
+                        LIMIT 1
+                    """, (user_id, user_id))
+                    result = cursor.fetchone()
+                    if result:
+                        user_type = result[0]
+                finally:
+                    cursor.close()
+                    conn.close()
         else:
             threshold = Config.FACE_RECOGNITION['threshold']
             user_id, username, full_name, distance = recognize_face_with_users(embedding, users, threshold)
-        
+
+            # Find the matched user to get their user_type
+            if user_id:
+                for user in users:
+                    if user.get('id') == user_id:
+                        matched_user = user
+                        user_type = matched_user.get('user_type')
+                        break
+
         if user_id:
             confidence = max(0, min(100, int((1 - distance / 2) * 100)))
-            
+
+            # Determine person_type from user_type
+            person_type = 'resident'  # default
+            if user_type:
+                # Map user_type to person_type for access logs (match database constraint)
+                if user_type == 'ADMIN':
+                    person_type = 'ADMIN'
+                elif user_type == 'internal_staff':
+                    person_type = 'internal_staff'
+                elif user_type == 'temp_staff':
+                    person_type = 'internal_staff'  # Map temp_staff to internal_staff for logs
+                elif user_type == 'security_officer':
+                    person_type = 'security_officer'
+                elif user_type == 'visitor':
+                    person_type = 'visitor'
+                else:
+                    person_type = 'resident'
+
             # Create access log
             AccessLog.create(
                 recognized_person=full_name,
                 access_result='granted',
                 confidence=confidence / 100,
-                person_type='resident'
+                person_type=person_type
             )
             
             return jsonify({
