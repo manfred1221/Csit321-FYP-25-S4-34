@@ -18,11 +18,7 @@
         }
 
         .navbar {
-<<<<<<< HEAD
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-=======
-            background: #2563eb;
->>>>>>> e00f4330b54b2a5a29c75eee08ba7b7e3007c292
             color: #fff;
             padding: 18px 30px;
             display: flex;
@@ -90,11 +86,7 @@
             width: 80px;
             height: 80px;
             border-radius: 50%;
-<<<<<<< HEAD
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-=======
-            background: #2563eb;
->>>>>>> e00f4330b54b2a5a29c75eee08ba7b7e3007c292
             display: flex;
             align-items: center;
             justify-content: center;
@@ -342,19 +334,11 @@
                     </div>
                     <div class="user-details">
                         <h3>{{ user.full_name }}</h3>
-<<<<<<< HEAD
                         <p>@{{ user.username }} • {{ user.email }}</p>
                         {% if user.face_encoding_path %}
                         <span class="status-badge success">✓ Face Registered</span>
                         {% else %}
                         <span class="status-badge warning">⚠ Photo Required</span>
-=======
-                        <p>@{{ user.username }} - {{ user.email }}</p>
-                        {% if user.face_encoding_path %}
-                        <span class="status-badge success">Face Registered</span>
-                        {% else %}
-                        <span class="status-badge warning">Photo Required</span>
->>>>>>> e00f4330b54b2a5a29c75eee08ba7b7e3007c292
                         {% endif %}
                     </div>
                 </div>
@@ -427,15 +411,9 @@
                     <div class="tips" style="margin-top: 0;">
                         <h4>Password Requirements:</h4>
                         <ul>
-<<<<<<< HEAD
                             <li>✓ At least 8 characters long</li>
                             <li>✓ Mix of letters and numbers recommended</li>
                             <li>✓ Include special characters for better security</li>
-=======
-                            <li>At least 8 characters long</li>
-                            <li>Mix of letters and numbers recommended</li>
-                            <li>Include special characters for better security</li>
->>>>>>> e00f4330b54b2a5a29c75eee08ba7b7e3007c292
                         </ul>
                     </div>
 
@@ -470,17 +448,10 @@
                 <div class="tips">
                     <h4>Photo Tips:</h4>
                     <ul>
-<<<<<<< HEAD
                         <li>✓ Face clearly visible, front-facing</li>
                         <li>✓ Good lighting, no shadows</li>
                         <li>✓ Only one face in the photo</li>
                         <li>✓ No sunglasses or face masks</li>
-=======
-                        <li>Face clearly visible, front-facing</li>
-                        <li>Good lighting, no shadows</li>
-                        <li>Only one face in the photo</li>
-                        <li>No sunglasses or face masks</li>
->>>>>>> e00f4330b54b2a5a29c75eee08ba7b7e3007c292
                     </ul>
                 </div>
             </div>
@@ -526,26 +497,15 @@
                 const data = await response.json();
 
                 if (data.success) {
-<<<<<<< HEAD
                     showAlert(uploadAlertBox, '✓ ' + data.message + ' Refreshing...', 'success');
                     setTimeout(() => location.reload(), 1500);
                 } else {
                     showAlert(uploadAlertBox, '✗ ' + data.message, 'error');
-=======
-                    showAlert(uploadAlertBox, '' + data.message + ' Refreshing...', 'success');
-                    setTimeout(() => location.reload(), 1500);
-                } else {
-                    showAlert(uploadAlertBox, ' ' + data.message, 'error');
->>>>>>> e00f4330b54b2a5a29c75eee08ba7b7e3007c292
                     uploadBtn.disabled = false;
                     uploadBtn.textContent = 'Upload Photo';
                 }
             } catch (err) {
-<<<<<<< HEAD
                 showAlert(uploadAlertBox, '✗ Network error. Please try again.', 'error');
-=======
-                showAlert(uploadAlertBox, ' Network error. Please try again.', 'error');
->>>>>>> e00f4330b54b2a5a29c75eee08ba7b7e3007c292
                 uploadBtn.disabled = false;
                 uploadBtn.textContent = 'Upload Photo';
             }
@@ -576,7 +536,6 @@
                 const result = await response.json();
 
                 if (result.success) {
-<<<<<<< HEAD
                     showAlert(infoAlertBox, '✓ Profile updated successfully!', 'success');
                     setTimeout(() => location.reload(), 1500);
                 } else {
@@ -584,15 +543,6 @@
                 }
             } catch (err) {
                 showAlert(infoAlertBox, '✗ Network error. Please try again.', 'error');
-=======
-                    showAlert(infoAlertBox, 'Profile updated successfully!', 'success');
-                    setTimeout(() => location.reload(), 1500);
-                } else {
-                    showAlert(infoAlertBox, ' ' + (result.message || 'Failed to update profile'), 'error');
-                }
-            } catch (err) {
-                showAlert(infoAlertBox, ' Network error. Please try again.', 'error');
->>>>>>> e00f4330b54b2a5a29c75eee08ba7b7e3007c292
             }
         };
 
@@ -609,20 +559,12 @@
 
             // Validation
             if (newPassword !== confirmPassword) {
-<<<<<<< HEAD
                 showAlert(passwordAlertBox, '✗ New passwords do not match!', 'error');
-=======
-                showAlert(passwordAlertBox, ' New passwords do not match!', 'error');
->>>>>>> e00f4330b54b2a5a29c75eee08ba7b7e3007c292
                 return;
             }
 
             if (newPassword.length < 8) {
-<<<<<<< HEAD
                 showAlert(passwordAlertBox, '✗ Password must be at least 8 characters!', 'error');
-=======
-                showAlert(passwordAlertBox, ' Password must be at least 8 characters!', 'error');
->>>>>>> e00f4330b54b2a5a29c75eee08ba7b7e3007c292
                 return;
             }
 
@@ -643,7 +585,6 @@
                 const result = await response.json();
 
                 if (result.success) {
-<<<<<<< HEAD
                     showAlert(passwordAlertBox, '✓ Password changed successfully!', 'success');
                     document.getElementById('changePasswordForm').reset();
                 } else {
@@ -651,15 +592,6 @@
                 }
             } catch (err) {
                 showAlert(passwordAlertBox, '✗ Network error. Please try again.', 'error');
-=======
-                    showAlert(passwordAlertBox, 'Password changed successfully!', 'success');
-                    document.getElementById('changePasswordForm').reset();
-                } else {
-                    showAlert(passwordAlertBox, ' ' + (result.message || 'Failed to change password'), 'error');
-                }
-            } catch (err) {
-                showAlert(passwordAlertBox, ' Network error. Please try again.', 'error');
->>>>>>> e00f4330b54b2a5a29c75eee08ba7b7e3007c292
             }
         };
 
