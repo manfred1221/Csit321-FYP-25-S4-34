@@ -367,15 +367,14 @@
                         <div class="form-group">
                             <label>Role</label>
                             <select id="role" onchange="toggleTempWorkerFields()">
-                                <option value="Resident" {% if user.role=='Resident' %}selected{% endif %}>Resident
-                                </option>
-                                <option value="Admin" {% if user.role=='Admin' %}selected{% endif %}>Admin</option>
-                                <option value="Security" {% if user.role=='Security' %}selected{% endif %}>Security
-                                </option>
-                                <option value="Guest" {% if user.role=='Guest' %}selected{% endif %}>Guest</option>
-                                <option value="TEMP_WORKER" {% if user.role=='TEMP_WORKER' %}selected{% endif %}>
-                                    Temporary Worker</option>
+                                <option value="Resident">Resident</option>
+                                <option value="Admin">Admin</option>
+                                <option value="Internal_Staff">Internal Staff</option>
+                                <option value="Security">Security</option>
+                                <option value="Guest">Guest</option>
+                                <option value="TEMP_WORKER">Temporary Worker</option>
                             </select>
+
                         </div>
                         <div class="form-group">
                             <label>Status</label>
@@ -390,18 +389,19 @@
                     <div class="form-row">
                         <div class="form-group">
                             <label>Access Level</label>
-                            <select id="access_level">
-                                <option value="standard" {% if user.access_level=='standard' %}selected{% endif %}>
-                                    Standard (Common Areas)</option>
-                                <option value="level_1" {% if user.access_level=='level_1' %}selected{% endif %}>Level 1
-                                    (Floor 1-5)</option>
-                                <option value="level_2" {% if user.access_level=='level_2' %}selected{% endif %}>Level 2
-                                    (Floor 6-10)</option>
-                                <option value="level_3" {% if user.access_level=='level_3' %}selected{% endif %}>Level 3
-                                    (Floor 11-15)</option>
-                                <option value="vip" {% if user.access_level=='vip' %}selected{% endif %}>VIP (Full
-                                    Access)</option>
+                            <select id="role" onchange="toggleTempWorkerFields()">
+                                <option value="Resident" {% if user.role=='Resident' %}selected{% endif %}>Resident</option>
+                                <option value="Admin" {% if user.role=='Admin' %}selected{% endif %}>Admin</option>
+                                <option value="Internal_Staff"
+                                    {% if user.role in ['Internal_Staff','INTERNAL_STAFF','Internal Staff','Staff'] %}selected{% endif %}>
+                                    Internal Staff
+                                </option>
+                                <option value="Security" {% if user.role=='Security' %}selected{% endif %}>Security</option>
+                                <option value="Guest" {% if user.role=='Guest' %}selected{% endif %}>Guest</option>
+                                <option value="TEMP_WORKER" {% if user.role=='TEMP_WORKER' %}selected{% endif %}>Temporary Worker</option>
                             </select>
+
+
                             <p class="help-text">Determines which areas/floors the user can access</p>
                         </div>
                         <div class="form-group">
