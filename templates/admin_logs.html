@@ -1,242 +1,533 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Access Logs - Admin</title>
-    <link rel="stylesheet" href="css/styles.css">
+    <title>Admin Profile</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f1f5f9;
+        }
+
+        .navbar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #fff;
+            padding: 18px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .navbar h1 {
+            font-size: 20px;
+        }
+
+        .navbar-links a {
+            color: #fff;
+            text-decoration: none;
+            margin-left: 25px;
+            padding: 10px 18px;
+            border-radius: 6px;
+            font-weight: 500;
+        }
+
+        .navbar-links a:hover {
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .navbar-links a.active {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 30px;
+        }
+
+        .card {
+            background: #fff;
+            border-radius: 8px;
+            margin-bottom: 25px;
+            overflow: hidden;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .card-header {
+            padding: 20px 25px;
+            border-bottom: 1px solid #e2e8f0;
+            background: #f8fafc;
+        }
+
+        .card-header h2 {
+            font-size: 18px;
+            color: #1e293b;
+        }
+
+        .card-body {
+            padding: 25px;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .avatar {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+            color: #fff;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+
+        .avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .user-details h3 {
+            font-size: 20px;
+            color: #1e293b;
+            margin-bottom: 5px;
+        }
+
+        .user-details p {
+            color: #64748b;
+            font-size: 14px;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 6px 14px;
+            border-radius: 4px;
+            font-size: 13px;
+            font-weight: 600;
+            margin-top: 10px;
+        }
+
+        .status-badge.success {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .status-badge.warning {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #334155;
+            font-size: 14px;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e2e8f0;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #3b82f6;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .upload-area {
+            border: 3px dashed #cbd5e1;
+            border-radius: 8px;
+            padding: 40px 30px;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: #f8fafc;
+            text-align: center;
+        }
+
+        .upload-area:hover {
+            border-color: #3b82f6;
+            background: #f0f7ff;
+        }
+
+        .upload-area.has-image {
+            border-style: solid;
+            border-color: #10b981;
+            background: #ecfdf5;
+        }
+
+        .upload-area h3 {
+            color: #334155;
+            font-size: 16px;
+            margin-bottom: 8px;
+        }
+
+        .upload-area p {
+            color: #64748b;
+            font-size: 14px;
+        }
+
+        .upload-area img {
+            max-width: 200px;
+            max-height: 200px;
+            border-radius: 8px;
+        }
+
+        #photoInput {
+            display: none;
+        }
+
+        .btn {
+            padding: 14px 30px;
+            border: none;
+            border-radius: 6px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 20px;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: #3b82f6;
+            color: #fff;
+        }
+
+        .btn-primary:hover {
+            background: #2563eb;
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-secondary {
+            background: #64748b;
+            color: #fff;
+        }
+
+        .btn-secondary:hover {
+            background: #475569;
+        }
+
+        .alert {
+            padding: 16px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            display: none;
+        }
+
+        .alert.show {
+            display: block;
+        }
+
+        .alert-success {
+            background: #dcfce7;
+            color: #166534;
+            border-left: 4px solid #10b981;
+        }
+
+        .alert-error {
+            background: #fee2e2;
+            color: #dc2626;
+            border-left: 4px solid #ef4444;
+        }
+
+        .alert-info {
+            background: #dbeafe;
+            color: #1e40af;
+            border-left: 4px solid #3b82f6;
+        }
+
+        .tips {
+            margin-top: 20px;
+            padding: 16px;
+            background: #f8fafc;
+            border-radius: 6px;
+        }
+
+        .tips h4 {
+            color: #334155;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+
+        .tips ul {
+            list-style: none;
+            color: #64748b;
+            font-size: 13px;
+        }
+
+        .tips li {
+            padding: 4px 0;
+        }
+
+        @media (max-width: 768px) {
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+
+            .container {
+                padding: 15px;
+            }
+        }
+    </style>
 </head>
+
 <body>
-    <div class="dashboard">
-        <aside class="sidebar">
-            <div class="sidebar-header">
-                <h2>👑 Admin Panel</h2>
-                <div class="user-info"><div>Administrator</div><div><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="fd9c99909493bd9e92939992d39e9290">[email&#160;protected]</a></div></div>
+    <nav class="navbar">
+        <h1>🔐 Admin Panel</h1>
+        <div class="navbar-links">
+            <a href="/admin/profile" class="active">Profile</a>
+            <a href="/admin/users">Users</a>
+            <a href="/admin/staff-schedules">Staff Schedules</a>
+            <a href="/admin/logs">Logs</a>
+            <a href="/admin/logout">Logout</a>
+        </div>
+    </nav>
+
+    <div class="container">
+        <!-- Profile Overview Card -->
+        <div class="card">
+            <div class="card-header">
+                <h2>👤 Your Profile</h2>
             </div>
-            <nav>
-                <ul class="nav-menu">
-                    <li class="nav-item"><a href="admin_users.html" class="nav-link">👥 Manage Users</a></li>
-                    <li class="nav-item"><a href="admin_add_user.html" class="nav-link">➕ Add User</a></li>
-                    <li class="nav-item"><a href="admin_logs.html" class="nav-link active">📋 Access Logs</a></li>
-                    <li class="nav-item"><a href="camera.html" class="nav-link">📹 Cameras</a></li>
-                    <li class="nav-item"><a href="admin_profile.html" class="nav-link">👤 My Profile</a></li>
-                    <li class="nav-item"><a href="admin_login.html" class="nav-link" style="margin-top:20px;border-top:1px solid rgba(255,255,255,0.1);padding-top:20px;">🚪 Logout</a></li>
-                </ul>
-            </nav>
-        </aside>
-        <main class="main-content">
-            <div class="page-header">
-                <h1>Access Logs</h1>
-                <p>View and analyze all access events and security incidents</p>
-            </div>
-            
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <h3>Today's Events</h3>
-                    <div class="stat-value">234</div>
-                </div>
-                <div class="stat-card">
-                    <h3>Successful Access</h3>
-                    <div class="stat-value" style="color:#10b981;">218</div>
-                </div>
-                <div class="stat-card">
-                    <h3>Failed Attempts</h3>
-                    <div class="stat-value" style="color:#ef4444;">16</div>
-                </div>
-                <div class="stat-card">
-                    <h3>Manual Overrides</h3>
-                    <div class="stat-value" style="color:#f59e0b;">8</div>
-                </div>
-            </div>
-            
-            <div class="card">
-                <div class="card-header">
-                    <h2>🔍 Filter Logs</h2>
-                    <button class="btn btn-sm btn-primary" onclick="exportLogs()">📥 Export CSV</button>
-                </div>
-                <div class="card-body">
-                    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:15px;margin-bottom:20px;">
-                        <div class="form-group">
-                            <label>Date From</label>
-                            <input type="date" id="dateFrom">
-                        </div>
-                        <div class="form-group">
-                            <label>Date To</label>
-                            <input type="date" id="dateTo">
-                        </div>
-                        <div class="form-group">
-                            <label>Access Point</label>
-                            <select id="accessPoint">
-                                <option value="">All Locations</option>
-                                <option>Main Entrance</option>
-                                <option>Parking Lot A</option>
-                                <option>Lobby</option>
-                                <option>Back Entrance</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label>Result</label>
-                            <select id="result">
-                                <option value="">All Results</option>
-                                <option>Granted</option>
-                                <option>Denied</option>
-                                <option>Manual Override</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label>User Type</label>
-                            <select id="userType">
-                                <option value="">All Types</option>
-                                <option>Resident</option>
-                                <option>Visitor</option>
-                                <option>Staff</option>
-                                <option>Unknown</option>
-                            </select>
-                        </div>
+            <div class="card-body">
+                <div class="user-info">
+                    <div class="avatar">
+                        {% if user.photo_path %}
+                        <img src="/uploads/{{ user.photo_path.split('/')[-1] }}" alt="Photo">
+                        {% else %}
+                        {{ user.full_name[0] if user.full_name else '?' }}
+                        {% endif %}
                     </div>
-                    <button class="btn btn-primary" onclick="applyFilter()">🔍 Apply Filter</button>
-                    <button class="btn btn-secondary" onclick="clearFilter()">Clear</button>
-                </div>
-            </div>
-            
-            <div class="card">
-                <div class="card-header"><h2>📋 Access Log History</h2></div>
-                <div class="card-body">
-                    <div class="table-container">
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>Log ID</th>
-                                    <th>Timestamp</th>
-                                    <th>Location</th>
-                                    <th>Person</th>
-                                    <th>Type</th>
-                                    <th>Confidence</th>
-                                    <th>Result</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td>#10234</td>
-                                    <td>2024-12-08 14:23:15</td>
-                                    <td>Main Entrance</td>
-                                    <td>John Tan</td>
-                                    <td><span class="badge badge-info">Resident</span></td>
-                                    <td>98.5%</td>
-                                    <td><span class="badge badge-success">GRANTED</span></td>
-                                    <td><button class="btn btn-sm btn-secondary" onclick="viewDetail(10234)">View</button></td>
-                                </tr>
-                                <tr>
-                                    <td>#10233</td>
-                                    <td>2024-12-08 14:18:42</td>
-                                    <td>Parking Lot A</td>
-                                    <td>Mary Lee</td>
-                                    <td><span class="badge badge-warning">Visitor</span></td>
-                                    <td>95.2%</td>
-                                    <td><span class="badge badge-success">GRANTED</span></td>
-                                    <td><button class="btn btn-sm btn-secondary" onclick="viewDetail(10233)">View</button></td>
-                                </tr>
-                                <tr>
-                                    <td>#10232</td>
-                                    <td>2024-12-08 14:15:01</td>
-                                    <td>Main Entrance</td>
-                                    <td>Unknown Person</td>
-                                    <td><span class="badge badge-danger">Unknown</span></td>
-                                    <td>42.1%</td>
-                                    <td><span class="badge badge-danger">DENIED</span></td>
-                                    <td><button class="btn btn-sm btn-secondary" onclick="viewDetail(10232)">View</button></td>
-                                </tr>
-                                <tr>
-                                    <td>#10231</td>
-                                    <td>2024-12-08 14:10:33</td>
-                                    <td>Lobby</td>
-                            r:#92400e;">Security</span></td>
-                                    <td>-</td>
-                                    <td><span class="badge" style="background:#dbeafe;color:#1e40af;">OVERRIDE</span></td>
-                                    <td><button class="btn btn-sm btn-secondary" onclick="viewDetail(10231)">View</button></td>
-                                </tr>
-                                <tr>
-                                    <td>#10230</td>
-                                    <td>2024-12-08 14:05:18</td>
-                                    <td>Back Entrance</td>
-                                    <td>Sarah Kim</td>
-                                    <td><span class="badge badge-info">Resident</span></td>
-                                    <td>97.8%</td>
-                                    <td><span class="badge badge-success">GRANTED</span></td>
-                                    <td><button class="btn btn-sm btn-secondary" onclick="viewDetail(10230)">View</button></td>
-                                </tr>
-                                <tr>
-                                    <td>#10229</td>
-                                    <td>2024-12-08 13:58:45</td>
-                                    <td>Main Entrance</td>
-                                    <td>Delivery Person</td>
-                                    <td><span class="badge" style="background:#dbeafe;color:#1e40af;">Staff</span></td>
-                                    <td>88.3%</td>
-                                    <td><span class="badge badge-success">GRANTED</span></td>
-                                    <td><button class="btn btn-sm btn-secondary" onclick="viewDetail(10229)">View</button></td>
-                                </tr>
-                                <tr>
-                                    <td>#10228</td>
-                                    <td>2024-12-08 13:52:12</td>
-                                    <td>Parking Lot A</td>
-                                    <td>Unknown</td>
-                                    <td><span class="badge badge-danger">Unknown</span></td>
-                                    <td>35.7%</td>
-                                    <td><span class="badge badge-danger">DENIED</span></td>
-                                    <td><button class="btn btn-sm btn-secondary" onclick="viewDetail(10228)">View</button></td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                    <div style="margin-top:20px;display:flex;justify-content:space-between;align-items:center;">
-                        <div style="color:#6b7280;">Showing 7 of 10,234 logs</div>
-                        <div style="display:flex;gap:5px;">
-                            <button class="btn btn-sm btn-secondary">Previous</button>
-                            <button class="btn btn-sm btn-primary">1</button>
-                            <button class="btn btn-sm btn-secondary">2</button>
-                            <button class="btn btn-sm btn-secondary">3</button>
-                            <button class="btn btn-sm btn-secondary">...</button>
-                            <button class="btn btn-sm btn-secondary">Next</button>
-                        </div>
+                    <div class="user-details">
+                        <h3>{{ user.full_name }}</h3>
+                        <p>@{{ user.username }} • {{ user.email }}</p>
+                        <span class="status-badge {% if user.face_encoding_path %}success{% else %}warning{% endif %}"
+                            id="faceStatusBadge">
+                            {% if user.face_encoding_path %}
+                            ✓ Face Verified
+                            {% else %}
+                            ⚠ Photo Required
+                            {% endif %}
+                        </span>
                     </div>
                 </div>
             </div>
-            <div id="message" class="message"></div>
-        </main>
+        </div>
+
+        <!-- Update Personal Information Card -->
+        <div class="card">
+            <div class="card-header">
+                <h2>📝 Update Personal Information</h2>
+            </div>
+            <div class="card-body">
+                <div id="infoAlertBox"></div>
+
+                <form id="updateInfoForm">
+                    <div class="form-group">
+                        <label>Full Name</label>
+                        <input type="text" id="fullName" value="{{ user.full_name }}" required>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Email Address</label>
+                            <input type="email" id="email" value="{{ user.email }}" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Phone Number</label>
+                            <input type="tel" id="phone" value="{{ user.phone if user.phone else '' }}"
+                                placeholder="+65 1234 5678">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Username</label>
+                        <input type="text" value="{{ user.username }}" disabled
+                            style="background: #f1f5f9; cursor: not-allowed;">
+                        <p style="color: #64748b; font-size: 12px; margin-top: 5px;">Username cannot be changed</p>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Upload Face Photo Card -->
+        <div class="card">
+            <div class="card-header">
+                <h2>📸 Upload Face Photo</h2>
+            </div>
+            <div class="card-body">
+                <div id="uploadAlertBox"></div>
+
+                {% if not user.face_encoding_path %}
+                <div class="alert alert-info show">
+                    📷 Upload your photo to enable face recognition at the camera gate.
+                </div>
+                {% endif %}
+
+                <form id="uploadForm" enctype="multipart/form-data">
+                    <div class="upload-area" id="uploadArea" onclick="document.getElementById('photoInput').click()">
+                        <h3>📁 Click to select photo</h3>
+                        <p>JPG or PNG - Clear front-facing photo</p>
+                    </div>
+                    <input type="file" id="photoInput" name="photo" accept="image/*">
+                    <button type="submit" class="btn btn-primary" id="uploadBtn" disabled>Upload Photo</button>
+                </form>
+
+                <div class="tips">
+                    <h4>💡 Photo Tips for Best Results:</h4>
+                    <ul>
+                        <li>✓ Face clearly visible, front-facing</li>
+                        <li>✓ Good lighting, no shadows</li>
+                        <li>✓ Only one face in the photo</li>
+                        <li>✓ No sunglasses or face masks</li>
+                        <li>✓ Neutral expression recommended</li>
+                        <li>✓ High resolution image (at least 640x480)</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
     </div>
+
     <script>
-        function applyFilter() {
-            showMessage('Filters applied. Refreshing logs...', 'success');
-            // TODO: Implement filter logic
-        }
-        
-        function clearFilter() {
-            document.getElementById('dateFrom').value = '';
-            document.getElementById('dateTo').value = '';
-            document.getElementById('accessPoint').value = '';
-            document.getElementById('result').value = '';
-            document.getElementById('userType').value = '';
-            showMessage('Filters cleared', 'success');
-        }
-        
-        function exportLogs() {
-            showMessage('Exporting logs to CSV...', 'success');
-            // TODO: Implement CSV export
-        }
-        
-        function viewDetail(logId) {
-            showMessage('Viewing details for log #' + logId, 'success');
-            // TODO: Show modal with detailed log information
-        }
-        
-        function showMessage(msg, type) {
-            const el = document.getElementById('message');
-            el.textContent = msg;
-            el.className = 'message ' + type;
-            el.style.display = 'block';
-            setTimeout(() => el.style.display = 'none', 3000);
+        // Photo Upload
+        const photoInput = document.getElementById('photoInput');
+        const uploadArea = document.getElementById('uploadArea');
+        const uploadBtn = document.getElementById('uploadBtn');
+        const uploadAlertBox = document.getElementById('uploadAlertBox');
+        const faceStatusBadge = document.getElementById('faceStatusBadge');
+
+        photoInput.onchange = (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    uploadArea.innerHTML = '<img src="' + e.target.result + '" alt="Preview">';
+                    uploadArea.classList.add('has-image');
+                    uploadBtn.disabled = false;
+                };
+                reader.readAsDataURL(file);
+            }
+        };
+
+        document.getElementById('uploadForm').onsubmit = async (e) => {
+            e.preventDefault();
+
+            uploadAlertBox.innerHTML = '';
+            uploadBtn.disabled = true;
+            uploadBtn.textContent = 'Processing face...';
+
+            const formData = new FormData();
+            formData.append('photo', photoInput.files[0]);
+
+            try {
+                const response = await fetch('/admin/profile/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showAlert(uploadAlertBox, '✓ ' + data.message + ' Refreshing page...', 'success');
+
+                    // Update badge immediately
+                    faceStatusBadge.className = 'status-badge success';
+                    faceStatusBadge.textContent = '✓ Face Verified';
+
+                    // Reload page after short delay
+                    setTimeout(() => location.reload(), 1500);
+                } else {
+                    showAlert(uploadAlertBox, '✗ ' + data.message, 'error');
+                    uploadBtn.disabled = false;
+                    uploadBtn.textContent = 'Upload Photo';
+                }
+            } catch (err) {
+                showAlert(uploadAlertBox, '✗ Network error. Please try again.', 'error');
+                uploadBtn.disabled = false;
+                uploadBtn.textContent = 'Upload Photo';
+            }
+        };
+
+        // Update Personal Information
+        document.getElementById('updateInfoForm').onsubmit = async (e) => {
+            e.preventDefault();
+
+            const infoAlertBox = document.getElementById('infoAlertBox');
+            infoAlertBox.innerHTML = '';
+
+            const data = {
+                full_name: document.getElementById('fullName').value,
+                email: document.getElementById('email').value,
+                phone: document.getElementById('phone').value
+            };
+
+            try {
+                const response = await fetch('/admin/profile/update', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showAlert(infoAlertBox, '✓ Profile updated successfully!', 'success');
+                    setTimeout(() => location.reload(), 1500);
+                } else {
+                    showAlert(infoAlertBox, '✗ ' + (result.message || 'Failed to update profile'), 'error');
+                }
+            } catch (err) {
+                showAlert(infoAlertBox, '✗ Network error. Please try again.', 'error');
+            }
+        };
+
+        // Helper function to show alerts
+        function showAlert(container, message, type) {
+            container.innerHTML = '<div class="alert alert-' + type + ' show">' + message + '</div>';
+            setTimeout(() => {
+                const alert = container.querySelector('.alert');
+                if (alert) alert.classList.remove('show');
+            }, 5000);
         }
     </script>
 </body>
+
 </html>

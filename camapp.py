@@ -6,7 +6,7 @@ from flask_cors import CORS
 import logging
 
 from config import Config
-from db import get_db_connection
+from database import get_db_connection
 from user import User
 from access_log import AccessLog
 
@@ -29,11 +29,12 @@ def api_recognize():
         return jsonify({'success': False, 'message': 'No image provided'}), 400
     
     try:
-        from model import extract_embedding_from_base64, recognize_face, recognize_face_with_users
+        from model import extract_embedding_from_base64, recognize_face
         
         embedding, error = extract_embedding_from_base64(data['image'])
         
         if error:
+            logger.warning(f"Face extraction failed: {error}")
             AccessLog.create(None, 'denied', None, 'unknown')
             return jsonify({
                 'success': True,
@@ -41,18 +42,12 @@ def api_recognize():
                 'message': error
             })
         
-        # Get users with face embeddings
-        users = User.get_with_face()
-        
-        if not users:
-            # Try direct recognition from database
-            threshold = Config.FACE_RECOGNITION['threshold']
-            user_id, username, full_name, distance = recognize_face(embedding, threshold)
-        else:
-            threshold = Config.FACE_RECOGNITION['threshold']
-            user_id, username, full_name, distance = recognize_face_with_users(embedding, users, threshold)
+        # Use the recognize_face function which queries database directly
+        threshold = Config.FACE_RECOGNITION['threshold']
+        user_id, username, full_name, distance = recognize_face(embedding, threshold)
         
         if user_id:
+            # Calculate confidence percentage
             confidence = max(0, min(100, int((1 - distance / 2) * 100)))
             
             # Create access log
@@ -62,6 +57,8 @@ def api_recognize():
                 confidence=confidence / 100,
                 person_type='resident'
             )
+            
+            logger.info(f"✓ Access granted: {full_name} (confidence: {confidence}%)")
             
             return jsonify({
                 'success': True,
@@ -73,6 +70,7 @@ def api_recognize():
                 'message': f'Welcome, {full_name}!'
             })
         else:
+            logger.warning(f"✗ Access denied: Face not recognized (distance: {distance:.4f})")
             AccessLog.create(
                 recognized_person=None,
                 access_result='denied',
@@ -86,7 +84,7 @@ def api_recognize():
             })
     
     except Exception as e:
-        logger.error(f"Recognition error: {e}")
+        logger.error(f"Recognition error: {e}", exc_info=True)
         return jsonify({'success': False, 'message': str(e)}), 500
 
 @app.route('/api/stats')
@@ -126,12 +124,12 @@ def init_app():
     try:
         conn = get_db_connection()
         conn.close()
-        logger.info("Database connection successful")
+        logger.info("✓ Database connection successful")
     except Exception as e:
-        logger.error(f"Database connection failed: {e}")
+        logger.error(f"✗ Database connection failed: {e}")
         raise e
     
-    logger.info("Camera application initialized")
+    logger.info("✓ Camera application initialized")
 
 if __name__ == '__main__':
     init_app()

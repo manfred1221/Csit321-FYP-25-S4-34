@@ -1,22 +1,57 @@
 import os
+
+from routes.security_officer.security_officer_model import SecurityOfficer
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
-from flask import Flask, request, jsonify, session, render_template, redirect, url_for, send_from_directory
+from flask import Flask, request, jsonify, session, render_template, redirect, url_for, send_from_directory, Response
 from flask_cors import CORS
 from functools import wraps
 import logging
 from werkzeug.utils import secure_filename
 import uuid
+from jinja2 import ChoiceLoader, FileSystemLoader
+from datetime import datetime
+import numpy as np
+
 
 from config import Config
 from db import get_db_connection
 from user import User, Resident
 from access_log import AccessLog
+from psycopg2.extras import RealDictCursor
+from database import DATABASE_URL, get_db_connection
+
+# # Security Officer imports
+# try:
+#     from routes.security_officer.security_officer_model import SecurityOfficer, db, FaceEmbedding, log_access, Visitor, AccessLog
+#     from routes.security_officer.security_officer_controller import (
+#         image_to_embedding,
+#         monitor_camera,
+#         manual_override,
+#         view_profile,
+#         update_profile,
+#         delete_account,
+#         deactivate_account,
+#         verify_face as face_verify
+#     )
+#     SECURITY_OFFICER_AVAILABLE = True
+# except ImportError as e:
+#     logging.warning(f"Security officer modules not available: {e}")
+#     SECURITY_OFFICER_AVAILABLE = False
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+# Support both frontend and templates folders
+app.jinja_loader = ChoiceLoader([
+    FileSystemLoader((os.path.join(BASE_DIR, 'templates'))),
+    FileSystemLoader((os.path.join(BASE_DIR, 'frontend'))),
+])
+
 app.config['SECRET_KEY'] = Config.SECRET_KEY
 app.config['PERMANENT_SESSION_LIFETIME'] = Config.SESSION_LIFETIME
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
@@ -42,20 +77,40 @@ def check_user_has_face_embedding(user):
     """Check if user has a registered face embedding"""
     if not user:
         return None
-    
-    resident_id = user.get('resident_id')
-    if not resident_id:
-        return None
-    
+
+    user_role = user.get('role', '').lower()
+    user_id = user.get('id')
+
     try:
         from psycopg2.extras import RealDictCursor
         conn = get_db_connection()
         cursor = conn.cursor(cursor_factory=RealDictCursor)
+
+        # Determine user type and reference ID based on role
+        if user_role == 'admin':
+            user_type = 'admin'
+            reference_id = user_id
+        elif user_role in ['internal_staff', 'staff', 'temp_worker']:
+            user_type = 'staff'
+            reference_id = user_id
+        elif user_role == 'resident':
+            user_type = 'resident'
+            resident_id = user.get('resident_id')
+            if not resident_id:
+                cursor.close()
+                conn.close()
+                return None
+            reference_id = resident_id
+        else:
+            cursor.close()
+            conn.close()
+            return None
+
         cursor.execute("""
-            SELECT embedding_id FROM face_embeddings 
-            WHERE reference_id = %s AND user_type = 'resident'
+            SELECT embedding_id FROM face_embeddings
+            WHERE reference_id = %s AND user_type = %s
             LIMIT 1
-        """, (resident_id,))
+        """, (reference_id, user_type))
         result = cursor.fetchone()
         cursor.close()
         conn.close()
@@ -69,43 +124,1227 @@ def check_user_has_face_embedding(user):
 # AUTHENTICATION ROUTES
 # ============================================
 
+
+
 @app.route('/')
-def index():
-    return redirect(url_for('admin_login'))
+def portal_choice():
+    return render_template('/portal.html')
 
 @app.route('/admin/login', methods=['GET', 'POST'])
 def admin_login():
-    """Admin login - User Story: Login to manage users"""
+
     if request.method == 'GET':
+        session.clear()
         if 'user_id' in session:
-            user = User.get_by_id(session['user_id'])
-            if user and user['role'] == 'Admin':
-                return redirect(url_for('admin_profile'))
-        return render_template('admin_login.html')
-    
+            return redirect(url_for('admin_profile'))
+        return render_template('index.html')
+
+    # POST (login)
     data = request.json
-    user = User.authenticate(data.get('username'), data.get('password'))
-    
+    username = data.get('username')
+    password = data.get('password')
+
+    user = User.authenticate(username, password)
+
     if user and user['role'] == 'Admin':
         session['user_id'] = user['id']
         session['username'] = user['username']
         session['role'] = user['role']
         session.permanent = True
-        
-        # Check for expired temp workers on admin login
-        expired_count = User.check_expired_temp_workers()
-        if expired_count > 0:
-            logger.info(f"Deactivated {expired_count} expired temporary workers")
-        
+
         return jsonify({'success': True})
-    
-    return jsonify({'success': False, 'message': 'Invalid credentials or not admin'}), 401
+
+    return jsonify({'success': False, 'message': 'Invalid credentials'}), 401
 
 @app.route('/admin/logout')
 def admin_logout():
     """Admin logout - User Story: Logout so no one can use account"""
     session.clear()
     return redirect(url_for('admin_login'))
+
+
+# ============================================
+# FRONTEND ROUTES - Serve HTML files for all roles
+# ============================================
+
+# Serve main login page
+@app.route('/login')
+def frontend_login():
+    """Serve the main login page for all user types"""
+    return send_from_directory('frontend', 'index.html')
+
+# Resident Routes
+@app.route('/resident/dashboard')
+def resident_dashboard():
+    """Serve resident dashboard"""
+    return send_from_directory('frontend', 'resident-dashboard.html')
+
+@app.route('/resident/profile')
+def resident_profile():
+    """Sere resident profile page"""
+    return send_from_directory('frontend', 'resident-profile.html')
+
+@app.route('/resident/face-registration')
+def resident_face_registration():
+    """Serve resident face registration page"""
+    return send_from_directory('frontend', 'resident-face-registration.html')
+
+@app.route('/resident/visitors')
+def resident_visitors():
+    """Serve resident visitors management page"""
+    return send_from_directory('frontend', 'resident-visitors.html')
+
+@app.route('/resident/access-history')
+def resident_access_history():
+    """Serve resident access history page"""
+    return send_from_directory('frontend', 'resident-access-history.html')
+
+@app.route('/resident/alerts')
+def resident_alerts():
+    """Serve resident alerts page"""
+    return send_from_directory('frontend', 'resident-alerts.html')
+
+# Visitor Routes
+@app.route('/frontend/visitor-dashboard.html')
+@app.route('/visitor/dashboard')
+def visitor_dashboard():
+    """Serve visitor dashboard"""
+    return send_from_directory('frontend', 'visitor-dashboard.html')
+
+# Staff Routes
+@app.route('/frontend/staff-dashboard.html')
+@app.route('/staff/dashboard')
+def staff_dashboard():
+    """Serve staff dashboard"""
+    return send_from_directory('frontend', 'staff-dashboard.html')
+
+@app.route('/frontend/staff-profile.html')
+@app.route('/staff/profile')
+def staff_profile():
+    """Serve staff profile page"""
+    return send_from_directory('frontend', 'staff-profile.html')
+
+@app.route('/frontend/staff-schedule.html')
+@app.route('/staff/schedule')
+def staff_schedule():
+    """Serve staff schedule page"""
+    return send_from_directory('frontend', 'staff-schedule.html')
+
+@app.route('/frontend/staff-attendance.html')
+@app.route('/staff/attendance')
+def staff_attendance():
+    """Serve staff attendance page"""
+    return send_from_directory('frontend', 'staff-attendance.html')
+
+# Security Officer Routes
+def officer_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if 'officer_id' not in session:
+            return redirect(url_for('security_login'))
+        officer = SecurityOfficer.query.get(session['officer_id'])
+        if not officer:
+            session.clear()
+            return redirect(url_for('security_login'))
+        return f(*args, **kwargs)
+    return decorated
+
+@app.route("/security/login", methods=["GET", "POST"])
+def security_login():
+    if request.method == "GET":
+        return render_template("login.html")
+
+    # POST: handle login
+    data = request.json
+    if not data:
+        return jsonify({"success": False, "message": "No data provided"}), 400
+
+    officer_id = data.get("user_id")
+    if not officer_id:
+        return jsonify({"success": False, "message": "Missing user_id"}), 400
+
+    officer = SecurityOfficer.query.get(officer_id)
+    if not officer:
+        return jsonify({"success": False, "message": "Officer not found"}), 404
+
+    # Store officer info in session
+    session['officer_id'] = officer.officer_id
+    session['officer_name'] = officer.full_name
+
+    return jsonify({"success": True, "redirect": "/security-dashboard"})
+
+@app.route("/security-dashboard")
+@officer_required
+def security_dashboard():
+    officer = SecurityOfficer.query.get(session['officer_id'])
+    access_logs = AccessLog.query.order_by(AccessLog.log_id.asc()).all()
+    return render_template("security-dashboard.html", officer=officer, logs=access_logs)
+
+
+@app.route("/security-deactivate")
+@officer_required
+def deactivate():
+    officer = SecurityOfficer.query.get(session['officer_id'])
+    return render_template("security-deactivate.html", officer=officer)
+
+@app.route("/security-override")
+@officer_required
+def manual_override():
+    officer = SecurityOfficer.query.get(session['officer_id'])
+    return render_template("security-override.html", officer=officer)
+
+@app.route("/security-view-profile")
+@officer_required
+def view_profile():
+    officer = SecurityOfficer.query.get(session['officer_id'])
+    return render_template("security-view-profile.html", officer=officer)
+
+
+@app.route("/security-update-profile", methods=["GET", "POST"])
+@officer_required
+def update_profile():   
+    officer = SecurityOfficer.query.get(session['officer_id'])
+    return render_template("security-update-profile.html", officer=officer)
+
+@app.route("/api/update-officer", methods=["POST"])
+@officer_required
+def api_update_officer():
+    data = request.json
+    officer = SecurityOfficer.query.get(session['officer_id'])
+
+    officer.full_name = data.get("full_name", officer.full_name)
+    officer.contact_number = data.get("contact_number", officer.contact_number)
+    officer.shift = data.get("shift", officer.shift)
+
+    db.session.commit()
+    return jsonify({"success": True, "message": "Profile updated"}), 200
+
+@app.route("/security-face-verification")
+@officer_required
+def face_verification():
+    officer = SecurityOfficer.query.get(session['officer_id'])
+    return render_template("security-face-verification.html", officer=officer)
+
+@app.route("/security/logout")
+@officer_required
+def security_logout():
+    session.pop('officer_id', None)
+    session.pop('officer_name', None)
+    return redirect(url_for('security_login'))
+
+# Serve CSS and other static assets from frontend folder
+@app.route('/frontend/css/<path:filename>')
+def frontend_css(filename):
+    """Serve CSS files from frontend/css"""
+    return send_from_directory('frontend/css', filename)
+
+@app.route('/templates/css/<path:filename>')
+def template_css(filename):
+    return send_from_directory(os.path.join(app.root_path, 'templates', 'css'), filename)
+
+@app.route('/frontend/js/<path:filename>')
+def frontend_js(filename):
+    """Serve JavaScript files from frontend/js"""
+    return send_from_directory('frontend/js', filename)
+
+@app.route('/frontend/<path:filename>')
+def frontend_static(filename):
+    """Serve other static files from frontend folder"""
+    return send_from_directory('frontend', filename)
+
+
+# ============================================
+# AUTH ROUTES (from auth_routes.py)
+# ============================================
+
+@app.route("/api/auth/login", methods=["POST"])
+def auth_login():
+    """UC-R6 Login - Resident authentication"""
+    data = request.get_json(silent=True) or {}
+    username = data.get("username")
+    password = data.get("password")
+
+    if not username or not password:
+        return jsonify({"error": "Username and password are required"}), 400
+
+    # Authenticate against real database
+    user = User.authenticate(username, password)
+
+    if not user:
+        return jsonify({"error": "Invalid username or password"}), 401
+
+    # Check if user is a resident
+    if user["role"] not in ["Resident", "RESIDENT"]:
+        return jsonify({"error": "Invalid username or password"}), 401
+
+    # In future generate JWT here
+    token = "fake-token-123"
+
+    return jsonify({
+        "user_id": user["id"],
+        "resident_id": user.get("resident_id"),
+        "username": user["username"],
+        "role": user["role"],
+        "token": token,
+        "message": "Login successful",
+    }), 200
+
+@app.route("/api/auth/logout", methods=["POST"])
+def auth_logout():
+    """UC-R7 Logout"""
+    return jsonify({"message": "Logout successful (mock)"}), 200
+
+@app.route("/api/staff/login", methods=["POST"])
+def staff_login():
+    """Staff authentication"""
+    data = request.get_json(silent=True) or {}
+    username = data.get("username")
+    password = data.get("password")
+
+    if not username or not password:
+        return jsonify({"error": "Username and password are required"}), 400
+
+    # Authenticate against real database
+    user = User.authenticate(username, password)
+
+    if not user:
+        return jsonify({"error": "Invalid username or password"}), 401
+
+    # Check if user is internal staff
+    if user["role"] not in ["Internal_Staff", "INTERNAL_STAFF", "Staff"]:
+        return jsonify({"error": "Invalid username or password"}), 401
+
+    # Generate token
+    token = "fake-staff-token-123"
+
+    return jsonify({
+        "user_id": user["id"],
+        "staff_id": user.get("id"),
+        "username": user["username"],
+        "role": user["role"],
+        "token": token,
+        "message": "Login successful",
+        "name": user.get("username"),
+        "email": user.get("email", "")
+    }), 200
+
+
+# ============================================
+# VISITOR ROUTES (from visitor_routes.py)
+# ============================================
+
+@app.route("/api/visitor/visitors", methods=["POST"])
+def create_visitor_entry():
+    """UC-R8 Create Visitor Entry (stub)"""
+    payload = request.get_json() or {}
+    return jsonify({"message": "Visitor entry created (stub)", "payload": payload}), 201
+
+@app.route("/api/visitor/visitors", methods=["GET"])
+def view_registered_visitors():
+    """UC-R10 View Registered Visitors (stub)"""
+    demo_visitors = [
+        {
+            "visitor_id": 1,
+            "full_name": "Mary Lee",
+            "visiting_unit": "B-12-05",
+            "check_in": "2025-11-12T11:06:13",
+        }
+    ]
+    return jsonify(demo_visitors), 200
+
+
+# ============================================
+# RESIDENT ROUTES (from resident_routes.py)
+# ============================================
+
+def parse_iso(dt_str):
+    """Parse ISO datetime string safely; return None if invalid."""
+    if not dt_str:
+        return None
+    try:
+        return datetime.fromisoformat(dt_str)
+    except ValueError:
+        return None
+
+
+@app.route("/api/resident/register-face", methods=["POST"])
+def register_face():
+    """UC-R1: Register Face Data"""
+    data = request.get_json() or {}
+    resident_id = data.get("resident_id")
+    image_data = data.get("image_data")
+
+    if not resident_id or not image_data:
+        return jsonify({
+            "error": "Missing fields",
+            "required": ["resident_id", "image_data"]
+        }), 400
+
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+
+        cur.execute(
+            "SELECT resident_id FROM residents WHERE resident_id = %s;",
+            (resident_id,)
+        )
+        row = cur.fetchone()
+        if not row:
+            cur.close()
+            conn.close()
+            return jsonify({"error": "Resident not found"}), 404
+
+        cur.execute(
+            """
+            INSERT INTO face_embeddings (user_type, reference_id, embedding)
+            VALUES ('resident', %s, NULL)
+            RETURNING embedding_id;
+            """,
+            (resident_id,)
+        )
+        embedding_id = cur.fetchone()[0]
+        conn.commit()
+        cur.close()
+        conn.close()
+
+        return jsonify({
+            "message": "Face data registered (placeholder, no embedding yet)",
+            "resident_id": resident_id,
+            "embedding_id": embedding_id
+        }), 201
+
+    except Exception as e:
+        return jsonify({"error": "DB error while saving face data", "details": str(e)}), 500
+
+@app.route("/api/resident/<int:resident_id>", methods=["GET"])
+def view_personal_data(resident_id):
+    """UC-R2: View Personal Data"""
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute(
+            """
+            SELECT r.resident_id,
+                   r.full_name,
+                   r.unit_number,
+                   r.contact_number,
+                   r.registered_at,
+                   u.email
+            FROM residents r
+            LEFT JOIN users u ON r.user_id = u.user_id
+            WHERE r.resident_id = %s;
+            """,
+            (resident_id,)
+        )
+        row = cur.fetchone()
+        cur.close()
+        conn.close()
+
+        if not row:
+            return jsonify({"error": "Resident not found"}), 404
+
+        resident = {
+            "resident_id": row[0],
+            "full_name": row[1],
+            "unit_number": row[2],
+            "contact_number": row[3],
+            "registered_at": row[4].isoformat() if row[4] else None,
+            "email": row[5],
+        }
+        return jsonify(resident), 200
+
+    except Exception as e:
+        return jsonify({"error": "DB error while reading resident", "details": str(e)}), 500
+
+@app.route("/api/resident/<int:resident_id>", methods=["PUT"])
+def update_personal_data(resident_id):
+    """UC-R3: Update Personal Data"""
+    data = request.get_json() or {}
+
+    allowed_fields = {
+        "full_name": "full_name",
+        "contact_number": "contact_number",
+        "unit_number": "unit_number",
+    }
+
+    sets = []
+    params = []
+    for json_key, col in allowed_fields.items():
+        if json_key in data:
+            sets.append(f"{col} = %s")
+            params.append(data[json_key])
+
+    if not sets:
+        return jsonify({"error": "No updatable fields provided"}), 400
+
+    params.append(resident_id)
+
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute(
+            f"""
+            UPDATE residents
+            SET {", ".join(sets)}
+            WHERE resident_id = %s
+            RETURNING resident_id;
+            """,
+            tuple(params)
+        )
+        row = cur.fetchone()
+        conn.commit()
+        cur.close()
+        conn.close()
+
+        if not row:
+            return jsonify({"error": "Resident not found"}), 404
+
+        return jsonify({
+            "message": "Personal data updated",
+            "resident_id": resident_id,
+            "updated_fields": {k: v for k, v in data.items() if k in allowed_fields}
+        }), 200
+
+    except Exception as e:
+        return jsonify({"error": "DB error while updating resident", "details": str(e)}), 500
+
+@app.route("/api/resident/<int:resident_id>", methods=["DELETE"])
+def delete_personal_data(resident_id):
+    """UC-R4: Delete Personal Data"""
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute(
+            "DELETE FROM residents WHERE resident_id = %s RETURNING resident_id;",
+            (resident_id,)
+        )
+        row = cur.fetchone()
+        conn.commit()
+        cur.close()
+        conn.close()
+
+        if not row:
+            return jsonify({"error": "Resident not found"}), 404
+
+        return jsonify({
+            "message": "Resident account deleted",
+            "resident_id": resident_id
+        }), 200
+
+    except Exception as e:
+        return jsonify({"error": "DB error while deleting resident", "details": str(e)}), 500
+
+@app.route("/api/resident/<int:user_id>/access-history", methods=["GET"])
+def view_personal_access_history(resident_id):
+    """UC-R22: View Personal Access History"""
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+
+        cur.execute(
+            "SELECT full_name FROM residents WHERE resident_id = %s;",
+            (resident_id,)
+        )
+        row = cur.fetchone()
+        if not row:
+            cur.close()
+            conn.close()
+            return jsonify({"error": "Resident not found"}), 404
+        full_name = row[0]
+
+        cur.execute(
+            """
+            SELECT access_time,
+                   person_type,
+                   confidence,
+                   access_result
+            FROM access_logs
+            WHERE person_type = 'resident' AND recognized_person = %s
+            ORDER BY access_time DESC;
+            """,
+            (full_name,)
+        )
+        logs = cur.fetchall()
+        cur.close()
+        conn.close()
+
+        records = [
+            {
+                "timestamp": r[0].isoformat() if r[0] else None,
+                "person_type": r[1],
+                "confidence": r[2],
+                "result": r[3],
+            }
+            for r in logs
+        ]
+
+        return jsonify({
+            "resident_id": resident_id,
+            "resident_name": full_name,
+            "records": records
+        }), 200
+
+    except Exception as e:
+        return jsonify({"error": "DB error while reading access history", "details": str(e)}), 500
+
+@app.route("/api/resident/<int:user_id>/visitors", methods=["POST"])
+def create_visitor(resident_id):
+    """UC-R8: Create Visitor Entry"""
+    data = request.get_json() or {}
+    required = ["full_name", "contact_number", "visiting_unit"]
+    missing = [f for f in required if f not in data]
+    if missing:
+        return jsonify({"error": "Missing fields", "missing": missing}), 400
+
+    check_in_str = data.get("check_in")
+    check_out_str = data.get("check_out")
+
+    check_in = parse_iso(check_in_str) if check_in_str else None
+    check_out = parse_iso(check_out_str) if check_out_str else None
+
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+
+        cur.execute(
+            "SELECT resident_id FROM residents WHERE resident_id = %s;",
+            (resident_id,)
+        )
+        if not cur.fetchone():
+            cur.close()
+            conn.close()
+            return jsonify({"error": "Resident not found"}), 404
+
+        cur.execute(
+            """
+            INSERT INTO visitors (full_name, contact_number, visiting_unit, check_in, check_out, approved_by)
+            VALUES (%s, %s, %s, %s, %s, %s)
+            RETURNING visitor_id;
+            """,
+            (
+                data["full_name"],
+                data["contact_number"],
+                data["visiting_unit"],
+                check_in,
+                check_out,
+                resident_id
+            )
+        )
+        visitor_id = cur.fetchone()[0]
+        conn.commit()
+        cur.close()
+        conn.close()
+
+        return jsonify({
+            "message": "Visitor entry created",
+            "resident_id": resident_id,
+            "visitor_id": visitor_id,
+            "full_name": data["full_name"]
+        }), 201
+
+    except Exception as e:
+        return jsonify({"error": "DB error while creating visitor", "details": str(e)}), 500
+
+@app.route("/api/resident/<int:user_id>/visitors", methods=["GET"])
+def view_registered_visitors_for_resident(resident_id):
+    """UC-R10: View Registered Visitors"""
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+
+        cur.execute(
+            "SELECT resident_id FROM residents WHERE resident_id = %s;",
+            (resident_id,)
+        )
+        if not cur.fetchone():
+            cur.close()
+            conn.close()
+            return jsonify({"error": "Resident not found"}), 404
+
+        cur.execute(
+            """
+            SELECT visitor_id,
+                   full_name,
+                   contact_number,
+                   visiting_unit,
+                   check_in,
+                   check_out
+            FROM visitors
+            WHERE approved_by = %s
+            ORDER BY check_in DESC;
+            """,
+            (resident_id,)
+        )
+        rows = cur.fetchall()
+        cur.close()
+        conn.close()
+
+        visitors = [
+            {
+                "visitor_id": r[0],
+                "full_name": r[1],
+                "contact_number": r[2],
+                "visiting_unit": r[3],
+                "check_in": r[4].isoformat() if r[4] else None,
+                "check_out": r[5].isoformat() if r[5] else None,
+            }
+            for r in rows
+        ]
+
+        return jsonify({
+            "resident_id": resident_id,
+            "visitors": visitors
+        }), 200
+
+    except Exception as e:
+        return jsonify({"error": "DB error while reading visitors", "details": str(e)}), 500
+
+@app.route("/api/resident/<int:user_id>/visitors/<int:visitor_id>", methods=["PUT"])
+def update_visitor_info(resident_id, visitor_id):
+    """UC-R12: Update Visitor Information"""
+    data = request.get_json() or {}
+
+    allowed_fields = {
+        "full_name": "full_name",
+        "contact_number": "contact_number",
+        "visiting_unit": "visiting_unit",
+    }
+
+    sets = []
+    params = []
+    for json_key, col in allowed_fields.items():
+        if json_key in data:
+            sets.append(f"{col} = %s")
+            params.append(data[json_key])
+
+    if not sets:
+        return jsonify({"error": "No updatable fields provided"}), 400
+
+    params.extend([resident_id, visitor_id])
+
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute(
+            f"""
+            UPDATE visitors
+            SET {", ".join(sets)}
+            WHERE approved_by = %s AND visitor_id = %s
+            RETURNING visitor_id;
+            """,
+            tuple(params)
+        )
+        row = cur.fetchone()
+        conn.commit()
+        cur.close()
+        conn.close()
+
+        if not row:
+            return jsonify({"error": "Visitor not found for this resident"}), 404
+
+        return jsonify({
+            "message": "Visitor information updated",
+            "resident_id": resident_id,
+            "visitor_id": visitor_id,
+            "updated_fields": {k: v for k, v in data.items() if k in allowed_fields}
+        }), 200
+
+    except Exception as e:
+        return jsonify({"error": "DB error while updating visitor", "details": str(e)}), 500
+
+@app.route("/api/resident/<int:user_id>/visitors/<int:visitor_id>", methods=["DELETE"])
+def cancel_visitor_access(resident_id, visitor_id):
+    """UC-R13: Cancel Visitor Access"""
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute(
+            """
+            DELETE FROM visitors
+            WHERE approved_by = %s AND visitor_id = %s
+            RETURNING visitor_id;
+            """,
+            (resident_id, visitor_id)
+        )
+        row = cur.fetchone()
+        conn.commit()
+        cur.close()
+        conn.close()
+
+        if not row:
+            return jsonify({"error": "Visitor not found for this resident"}), 404
+
+        return jsonify({
+            "message": "Visitor access cancelled",
+            "resident_id": resident_id,
+            "visitor_id": visitor_id
+        }), 200
+
+    except Exception as e:
+        return jsonify({"error": "DB error while deleting visitor", "details": str(e)}), 500
+
+@app.route("/api/resident/<int:user_id>/visitors/<int:visitor_id>/time-window", methods=["PUT"])
+def set_visitor_time_period(resident_id, visitor_id):
+    """UC-R9: Set Visitor Time Period"""
+    data = request.get_json() or {}
+    required = ["start_time", "end_time"]
+    missing = [f for f in required if f not in data]
+    if missing:
+        return jsonify({"error": "Missing fields", "missing": missing}), 400
+
+    start_ts = parse_iso(data["start_time"])
+    end_ts = parse_iso(data["end_time"])
+    if not start_ts or not end_ts:
+        return jsonify({"error": "Invalid datetime format (use ISO 8601)"}), 400
+
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute(
+            """
+            UPDATE visitors
+            SET check_in = %s,
+                check_out = %s
+            WHERE approved_by = %s AND visitor_id = %s
+            RETURNING visitor_id;
+            """,
+            (start_ts, end_ts, resident_id, visitor_id)
+        )
+        row = cur.fetchone()
+        conn.commit()
+        cur.close()
+        conn.close()
+
+        if not row:
+            return jsonify({"error": "Visitor not found for this resident"}), 404
+
+        return jsonify({
+            "message": "Visitor time window updated",
+            "resident_id": resident_id,
+            "visitor_id": visitor_id,
+            "start_time": data["start_time"],
+            "end_time": data["end_time"]
+        }), 200
+
+    except Exception as e:
+        return jsonify({"error": "DB error while updating time window", "details": str(e)}), 500
+
+@app.route("/api/resident/<int:user_id>/visitors/<int:visitor_id>/face-image", methods=["POST"])
+def upload_visitor_facial_image(resident_id, visitor_id):
+    """UC-R14: Upload Visitor Facial Image"""
+    data = request.get_json() or {}
+    image_data = data.get("image_data")
+
+    if not image_data:
+        return jsonify({
+            "error": "Missing field",
+            "required": ["image_data"]
+        }), 400
+
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+
+        cur.execute(
+            """
+            SELECT visitor_id, full_name
+            FROM visitors
+            WHERE approved_by = %s AND visitor_id = %s;
+            """,
+            (resident_id, visitor_id)
+        )
+        row = cur.fetchone()
+        if not row:
+            cur.close()
+            conn.close()
+            return jsonify({"error": "Visitor not found for this resident"}), 404
+
+        cur.execute(
+            """
+            INSERT INTO face_embeddings (user_type, reference_id, embedding)
+            VALUES ('visitor', %s, NULL)
+            RETURNING embedding_id;
+            """,
+            (visitor_id,)
+        )
+        embedding_id = cur.fetchone()[0]
+        conn.commit()
+        cur.close()
+        conn.close()
+
+        return jsonify({
+            "message": "Visitor facial image stored (placeholder, no embedding yet)",
+            "resident_id": resident_id,
+            "visitor_id": visitor_id,
+            "embedding_id": embedding_id
+        }), 201
+
+    except Exception as e:
+        return jsonify({"error": "DB error while saving visitor face", "details": str(e)}), 500
+
+@app.route("/api/resident/<int:user_id>/visitors/<int:visitor_id>/access-history", methods=["GET"])
+def view_visitor_access_history(resident_id, visitor_id):
+    """UC-R23: View Visitor Access History"""
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+
+        cur.execute(
+            """
+            SELECT full_name
+            FROM visitors
+            WHERE approved_by = %s AND visitor_id = %s;
+            """,
+            (resident_id, visitor_id)
+        )
+        row = cur.fetchone()
+        if not row:
+            cur.close()
+            conn.close()
+            return jsonify({"error": "Visitor not found for this resident"}), 404
+        full_name = row[0]
+
+        cur.execute(
+            """
+            SELECT access_time,
+                   person_type,
+                   confidence,
+                   access_result
+            FROM access_logs
+            WHERE person_type = 'visitor' AND recognized_person = %s
+            ORDER BY access_time DESC;
+            """,
+            (full_name,)
+        )
+        logs = cur.fetchall()
+        cur.close()
+        conn.close()
+
+        records = [
+            {
+                "timestamp": r[0].isoformat() if r[0] else None,
+                "person_type": r[1],
+                "confidence": r[2],
+                "result": r[3],
+            }
+            for r in logs
+        ]
+
+        return jsonify({
+            "resident_id": resident_id,
+            "visitor_id": visitor_id,
+            "visitor_name": full_name,
+            "records": records
+        }), 200
+
+    except Exception as e:
+        return jsonify({"error": "DB error while reading visitor history", "details": str(e)}), 500
+
+@app.route("/api/resident/<int:user_id>/face-access/disable", methods=["POST"])
+def temporarily_disable_face_access(resident_id):
+    """UC-R19: Temporarily Disable Face Access (mock)"""
+    return jsonify({
+        "message": "Face access disabled temporarily (mock)",
+        "resident_id": resident_id,
+        "status": "DISABLED"
+    }), 200
+
+@app.route("/api/resident/<int:user_id>/alerts", methods=["GET"])
+def receive_unauthorized_access_alert(resident_id):
+    """UC-R20: Receive Unauthorized Access Alert (mock)"""
+    recent_time = (datetime.now()).isoformat(timespec="seconds")
+    alerts = [
+        {
+            "alert_id": 1,
+            "timestamp": recent_time,
+            "description": "Multiple failed face attempts at lobby door",
+            "status": "UNREAD"
+        }
+    ]
+    return jsonify({
+        "resident_id": resident_id,
+        "alerts": alerts
+    }), 200
+
+@app.route("/api/resident/offline/recognize", methods=["POST"])
+def offline_recognition_mode():
+    """UC-R21: Offline Recognition Mode (mock)"""
+    data = request.get_json() or {}
+    device_id = data.get("device_id")
+    image_data = data.get("image_data")
+
+    if not device_id or not image_data:
+        return jsonify({
+            "error": "Missing fields",
+            "required": ["device_id", "image_data"]
+        }), 400
+
+    return jsonify({
+        "message": "Offline recognition successful (mock)",
+        "device_id": device_id,
+        "matched_resident_id": 1,
+        "confidence": 0.95,
+        "name": "John Tan"
+    }), 200
+
+@app.route("/api/resident/test-db", methods=["GET"])
+def test_db():
+    """Test database connection"""
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute("SELECT NOW();")
+    result = cur.fetchone()
+    cur.close()
+    conn.close()
+
+    return jsonify({
+        "db_connection": "OK",
+        "server_time": str(result[0])
+    }), 200
+
+
+# ============================================
+# SECURITY OFFICER ROUTES (from security_officer_routes.py)
+# ============================================
+
+if False:
+    @app.route("/api/security_officer/manual_override", methods=["POST"])
+    def route_manual_override():
+        data = request.get_json() or {}
+        officer_id = data.get("officer_id")
+        result = manual_override(officer_id)
+        return jsonify(result)
+
+    @app.route("/api/security_officer/profile/<int:officer_id>", methods=["GET"])
+    def get_profile(officer_id):
+        officer = SecurityOfficer.query.get(officer_id)
+        if not officer:
+            return {"status": "error", "message": "Officer not found"}, 404
+        return {
+            "status": "success",
+            "officer": {
+                "officer_id": officer.officer_id,
+                "full_name": officer.full_name,
+                "contact_number": officer.contact_number,
+                "shift": officer.shift
+            }
+        }
+
+    @app.route("/api/security_officer/profile/<int:officer_id>", methods=["PUT"])
+    def route_update_profile(officer_id):
+        return update_profile(officer_id, request.json)
+
+    @app.route("/api/security_officer/account/<int:officer_id>", methods=["DELETE"])
+    def route_delete_account(officer_id):
+        return delete_account(officer_id)
+
+    @app.route("/api/security_officer/face_verify", methods=["POST"])
+    def verify_face_route():
+        return face_verify()
+
+    @app.route("/api/security_officer/deactivate_account/<int:officer_id>", methods=["POST"])
+    def route_deactivate_account(officer_id):
+        return deactivate_account(officer_id)
+
+    @app.route("/api/security_officer/monitor_camera")
+    def route_monitor_camera():
+        return monitor_camera()
+
+    @app.route("/api/security_officer/test", methods=["GET"])
+    def security_officer_test_route():
+        return jsonify({"status": "ok"})
+
+    @app.route("/api/security_officer/register_officer", methods=["POST"])
+    def register_officer():
+        """Completes registration for new officer"""
+        data = request.get_json()
+        officer_id = data.get("officer_id")
+        full_name = data.get("full_name")
+        contact_number = data.get("contact_number")
+        shift = data.get("shift")
+        image_base64 = data.get("image")
+
+        if not all([officer_id, full_name, image_base64]):
+            return jsonify({"status": "error", "message": "Missing required fields"}), 400
+
+        officer = SecurityOfficer.query.get(officer_id)
+        if not officer:
+            return jsonify({"status": "error", "message": "Officer not found"}), 404
+
+        officer.full_name = full_name
+        officer.contact_number = contact_number
+        officer.shift = shift
+        db.session.commit()
+
+        embedding_vector = image_to_embedding(image_base64)
+        new_embedding = FaceEmbedding(
+            user_type="security_officer",
+            reference_id=officer_id,
+            embedding=embedding_vector
+        )
+        db.session.add(new_embedding)
+        db.session.commit()
+
+        log_access(
+            recognized_person=full_name,
+            person_type="security_officer",
+            confidence=1.0,
+            result="granted",
+            embedding_id=new_embedding.embedding_id
+        )
+
+        return jsonify({
+            "status": "success",
+            "message": f"Officer {full_name} registered",
+            "officer_id": officer_id
+        }), 200
+
+    @app.route("/api/security_officer/verify_face", methods=["POST"])
+    def verify_face():
+        """Verify face or create new officer"""
+        data = request.get_json()
+        image_base64 = data.get("image")
+        officer_id = data.get("officer_id")
+
+        if not image_base64:
+            return jsonify({"status":"error","message":"No image provided"}), 400
+
+        embedding_vector = image_to_embedding(image_base64)
+
+        all_embeddings = FaceEmbedding.query.filter_by(user_type="security_officer").all()
+        threshold = 0.8
+
+        def cosine_similarity(a, b):
+            return np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b))
+
+        matched_officer = None
+        for fe in all_embeddings:
+            sim = cosine_similarity(embedding_vector, fe.embedding)
+            if sim > threshold:
+                matched_officer = SecurityOfficer.query.get(fe.reference_id)
+                log_access(
+                    recognized_person=matched_officer.full_name,
+                    person_type="security_officer",
+                    confidence=float(sim),
+                    result="granted",
+                    embedding_id=fe.embedding_id
+                )
+                break
+
+        if matched_officer:
+            return jsonify({
+                "status": "success",
+                "message": f"Face verified for {matched_officer.full_name}",
+                "officer_id": matched_officer.officer_id
+            })
+
+        new_officer = SecurityOfficer(full_name="New Officer")
+        db.session.add(new_officer)
+        db.session.commit()
+        officer_id = new_officer.officer_id
+
+        new_embedding = FaceEmbedding(
+            user_type="security_officer",
+            reference_id=officer_id,
+            embedding=embedding_vector
+        )
+        db.session.add(new_embedding)
+        db.session.commit()
+
+        log_access(
+            recognized_person=new_officer.full_name,
+            person_type="security_officer",
+            confidence=1.0,
+            result="granted",
+            embedding_id=new_embedding.embedding_id
+        )
+
+        return jsonify({
+            "status": "success",
+            "message": f"New officer registered: {new_officer.full_name}",
+            "officer_id": officer_id
+        })
+
+    @app.route("/api/security_officer/upload_face_embedding", methods=["POST"])
+    def upload_face_embedding():
+        try:
+            image_file = request.files['image']
+            user_type = request.form['user_type']
+            reference_id = int(request.form['reference_id'])
+
+            filename = secure_filename(image_file.filename)
+            save_path = os.path.join("static/uploads", filename)
+            os.makedirs(os.path.dirname(save_path), exist_ok=True)
+            image_file.save(save_path)
+
+            embedding_vector = [0.0]*512
+
+            new_embedding = FaceEmbedding(
+                user_type=user_type,
+                reference_id=reference_id,
+                embedding=embedding_vector,
+                image_filename=filename
+            )
+            db.session.add(new_embedding)
+            db.session.commit()
+
+            return jsonify({"status": "success", "message": "Face embedding stored", "embedding_id": new_embedding.embedding_id})
+
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({"status": "error", "message": str(e)}), 500
+
+    @app.route("/api/security_officer/login", methods=["POST"])
+    def security_officer_login():
+        data = request.get_json()
+        user_type = data.get("user_type")
+        user_id = data.get("user_id")
+
+        if not user_type or not user_id:
+            return jsonify({"success": False, "message": "Missing login data"}), 400
+
+        if user_type == "security_officer":
+            user = SecurityOfficer.query.get(user_id)
+            if not user:
+                return jsonify({"success": False, "message": "Officer ID not found"}), 404
+
+            return jsonify({
+                "success": True,
+                "message": "Login successful",
+                "user_type": "security_officer",
+                "id": user.officer_id,
+                "name": user.full_name
+            }), 200
+
+        elif user_type == "resident":
+            from routes.security_officer.security_officer_model import Resident as SOResident
+            user = SOResident.query.get(user_id)
+            if not user:
+                return jsonify({"success": False, "message": "Resident ID not found"}), 404
+
+            return jsonify({
+                "success": True,
+                "message": "Login successful",
+                "user_type": "resident",
+                "id": user.resident_id,
+                "name": user.full_name
+            }), 200
+
+        elif user_type == "visitor":
+            user = Visitor.query.get(user_id)
+            if not user:
+                return jsonify({"success": False, "message": "Visitor ID not found"}), 404
+
+            return jsonify({
+                "success": True,
+                "message": "Login successful",
+                "user_type": "visitor",
+                "id": user.visitor_id,
+                "name": user.full_name
+            }), 200
+
+        else:
+            return jsonify({"success": False, "message": "Invalid user type"}), 400
 
 
 # ============================================
@@ -120,9 +1359,48 @@ def admin_dashboard():
 @app.route('/admin/profile')
 @admin_required
 def admin_profile():
+    try:
+        user = User.get_by_id(session['user_id'])
+        if not user:
+            logger.error(f"admin_profile: User not found for session_id {session['user_id']}")
+            return "User not found", 404
+
+        user['face_encoding_path'] = check_user_has_face_embedding(user)
+        return render_template('admin_profile.html', user=user)
+
+    except Exception as e:
+        logger.error(f"admin_profile error: {e}")
+        return f"Internal Server Error: {e}", 500
+
+@app.route('/admin/profile/update', methods=['POST'])
+@admin_required
+def admin_profile_update():
+    """Update admin profile information"""
     user = User.get_by_id(session['user_id'])
-    user['face_encoding_path'] = check_user_has_face_embedding(user)
-    return render_template('admin_profile.html', user=user)
+    if not user:
+        return jsonify({'success': False, 'message': 'User not found'}), 404
+
+    data = request.json
+    try:
+        # Update user information
+        update_data = {}
+        if 'full_name' in data:
+            update_data['full_name'] = data['full_name']
+        if 'email' in data:
+            update_data['email'] = data['email']
+        if 'phone' in data:
+            update_data['phone'] = data['phone']
+
+        if update_data:
+            User.update(session['user_id'], update_data)
+            logger.info(f"Profile updated for user {user['id']}")
+            return jsonify({'success': True, 'message': 'Profile updated successfully!'})
+        else:
+            return jsonify({'success': False, 'message': 'No fields to update'}), 400
+
+    except Exception as e:
+        logger.error(f"Profile update error: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
 
 @app.route('/admin/profile/upload', methods=['POST'])
 @admin_required
@@ -131,351 +1409,295 @@ def admin_profile_upload():
     user = User.get_by_id(session['user_id'])
     if not user:
         return jsonify({'success': False, 'message': 'User not found'}), 404
-    
+
     if 'photo' not in request.files:
         return jsonify({'success': False, 'message': 'No photo provided'}), 400
-    
+
     photo = request.files['photo']
-    
+
     if not photo or not allowed_file(photo.filename):
         return jsonify({'success': False, 'message': 'Invalid file type. Please use JPG or PNG.'}), 400
-    
+
     try:
         filename = f"user_{user['id']}_{uuid.uuid4().hex}.jpg"
         photo_path = os.path.join(Config.FACE_RECOGNITION['upload_dir'], filename)
         photo.save(photo_path)
-        
+
         from model import register_face_from_photo
-        from psycopg2.extras import RealDictCursor
-        
-        resident_id = user.get('resident_id')
-        
-        # Auto-create resident record if not exists
-        if not resident_id:
-            conn = get_db_connection()
-            cursor = conn.cursor(cursor_factory=RealDictCursor)
-            try:
-                # First check if resident already exists for this user
-                cursor.execute("SELECT resident_id FROM residents WHERE user_id = %s", (user['id'],))
-                existing = cursor.fetchone()
-                
-                if existing:
-                    resident_id = existing['resident_id']
-                    logger.info(f"Found existing resident record: resident_id={resident_id}")
-                else:
-                    # Create new resident record
-                    cursor.execute("""
-                        INSERT INTO residents (full_name, unit_number, contact_number, user_id)
-                        VALUES (%s, %s, %s, %s)
-                        RETURNING resident_id
-                    """, (
-                        user.get('full_name') or user.get('username') or 'Admin',
-                        'ADMIN',
-                        user.get('phone') or '',
-                        user['id']
-                    ))
-                    result = cursor.fetchone()
-                    resident_id = result['resident_id']
-                    conn.commit()
-                    logger.info(f"Created resident record for user: resident_id={resident_id}")
-            except Exception as e:
-                conn.rollback()
-                os.remove(photo_path)
-                logger.error(f"Database error: {str(e)}")
-                return jsonify({'success': False, 'message': f'Failed to create resident record: {str(e)}'}), 400
-            finally:
-                cursor.close()
-                conn.close()
-        
-        embedding_id, error = register_face_from_photo(photo_path, resident_id, 'resident')
-        
+
+        # For admin users, store face embedding directly with admin type
+        # No need to create a resident record
+        user_type = 'ADMIN'
+        reference_id = user['id']
+
+        embedding_id, error = register_face_from_photo(photo_path, reference_id, user_type)
+
         if error:
             os.remove(photo_path)
             return jsonify({'success': False, 'message': f'Face registration failed: {error}'}), 400
-        
-        logger.info(f"Face photo uploaded for user {user['id']}, embedding_id: {embedding_id}")
+
+        logger.info(f"Face photo uploaded for admin user {user['id']}, embedding_id: {embedding_id}")
         return jsonify({'success': True, 'message': 'Photo uploaded and face registered successfully!', 'embedding_id': embedding_id})
-    
+
     except Exception as e:
         logger.error(f"Profile photo upload error: {e}")
         return jsonify({'success': False, 'message': str(e)}), 500
 
 
-
+# ============================================
+# USER MANAGEMENT ROUTES
+# ============================================
 
 @app.route('/admin/users')
 @admin_required
 def admin_users():
-    """View all users - User Story: View user accounts to manage information"""
+    """View all users - User Story: View all residents/temp workers"""
     role_filter = request.args.get('role', '')
     status_filter = request.args.get('status', '')
-    search_query = request.args.get('search', '')
-    
-    if search_query:
-        users = User.search(
-            search_query, 
-            role=role_filter if role_filter else None,
-            status=status_filter if status_filter else None
-        )
-    else:
-        users = User.get_all(
-            role=role_filter if role_filter else None,
-            status=status_filter if status_filter else None
-        )
-    
-    return render_template('admin_users.html', 
-                         users=users, 
-                         role_filter=role_filter,
-                         status_filter=status_filter,
-                         search_query=search_query)
 
-@app.route('/admin/users/add', methods=['GET', 'POST'])
+    users = User.get_all()
+
+    if role_filter:
+        users = [u for u in users if u.get('role') == role_filter]
+    if status_filter:
+        users = [u for u in users if u.get('status') == status_filter]
+
+    return render_template('admin_users.html', users=users)
+
+@app.route('/admin/users/<int:user_id>/edit', methods=["GET", "POST"])
 @admin_required
-def admin_add_user():
-    """Add new user - User Story: Create user accounts"""
-    if request.method == 'GET':
-        return render_template('admin_add_user.html')
-    
-    try:
-        data = request.json
-        
-        # Validate required fields
-        if not data:
-            return jsonify({'success': False, 'message': 'No data provided'}), 400
-        
-        if not data.get('username'):
-            return jsonify({'success': False, 'message': 'Username is required'}), 400
-        
-        if not data.get('email'):
-            return jsonify({'success': False, 'message': 'Email is required'}), 400
-        
-        if not data.get('password'):
-            return jsonify({'success': False, 'message': 'Password is required'}), 400
-        
-        # Check if username already exists
-        existing_user = User.get_by_username(data.get('username'))
-        if existing_user:
-            return jsonify({'success': False, 'message': 'Username already exists'}), 400
-        
-        user_data = {
-            'username': data.get('username'),
-            'email': data.get('email'),
-            'password': data.get('password'),
-            'full_name': data.get('full_name', data.get('username')),
-            'phone': data.get('phone', ''),
-            'role': data.get('role', 'Resident'),
-            'unit_number': data.get('unit_number', 'N/A'),
-            'access_level': data.get('access_level', 'standard'),
-            'status': 'active'
-        }
-        
-        # Add temp worker fields if applicable
-        if data.get('role') == 'TEMP_WORKER':
-            user_data['work_start_date'] = data.get('work_start_date')
-            user_data['work_end_date'] = data.get('work_end_date')
-            user_data['work_schedule'] = data.get('work_schedule', '')
-            user_data['work_details'] = data.get('work_details', '')
-        
-        user_id = User.create(user_data)
-        
-        if not user_id or user_id == 0:
-            return jsonify({'success': False, 'message': 'Failed to create user - invalid user_id'}), 500
-        
-        logger.info(f"Successfully created user with ID: {user_id}")
-        return jsonify({'success': True, 'user_id': user_id})
-    
-    except ValueError as ve:
-        logger.error(f"Validation error: {str(ve)}")
-        return jsonify({'success': False, 'message': str(ve)}), 400
-    except Exception as e:
-        logger.error(f"Add user error: {type(e).__name__}: {str(e)}")
-        import traceback
-        logger.error(f"Traceback: {traceback.format_exc()}")
-        return jsonify({'success': False, 'message': f'{type(e).__name__}: {str(e)}'}), 500
-    
-@app.route('/admin/users/<int:user_id>/edit', methods=['GET', 'POST'])
-@admin_required
-def admin_edit_user(user_id):
-    """Edit user - User Story: Update user information and access permissions"""
-    user = User.get_by_id(user_id)
-    if not user:
-        return redirect(url_for('admin_users'))
-    
-    if request.method == 'GET':
-        user['face_encoding_path'] = check_user_has_face_embedding(user)
+def admin_users_edit(user_id):
+    if request.method == "GET":
+        user = User.get_by_id(user_id)
+        if not user:
+            return "User not found", 404
         return render_template('admin_edit_user.html', user=user)
+    """Edit user page - User Story: Edit user details"""
+
+    print("request.json", request.json)
+    data = request.json
+
+    data_dict = {
+        'email': data['email'],
+        'password': data['password'],
+        'role': data['role'],
+        'access_level': data.get('access_level', 'standard'),
+        'full_name': data.get('full_name'),
+        'phone': data.get('phone', ''),
+        'unit_number': data.get('unit_number', 'N/A')
+    }
+
+    # Include temp worker fields if applicable
+    if data['role'] == 'TEMP_WORKER':
+        data_dict.update({
+            'role': "temp_staff",
+            'work_start_date': data.get('work_start_date'),
+            'work_end_date': data.get('work_end_date'),
+            'work_schedule': data.get('work_schedule', ''),
+            'work_details': data.get('work_details', ''),
+        })
+
+    # Filter out None, empty strings, and other falsy values
+    data_dict = {k: v for k, v in data_dict.items() if v not in (None, '', 'N/A')}
+    print("data_dict", data_dict)
+
+    User.update(user_id, data_dict)
+    # print("user", user_id)
+    user = User.get_by_id(user_id)
+
+    print("user", user)
+    if not user:
+        return "User not found", 404
+
+    return jsonify({'success': True, 'message': 'User updated successfully'})
+    # return render_template('admin_edit_user.html', user=user)
+
+@app.route('/admin/users/create', methods=['GET'])
+@admin_required
+def admin_users_add_page():
+    """Render Add User form"""
+    return render_template('admin_add_user.html')
+
+@app.route('/admin/users/create', methods=['POST'])
+@admin_required
+def admin_users_create():
+    """Create new user - User Story: Register new residents/temp workers"""
+    data = request.json
+    required = ['username', 'password', 'role']
+    
+    if not all(k in data for k in required):
+        return jsonify({'success': False, 'message': 'Missing required fields'}), 400
     
     try:
-        data = request.json
         
-        update_data = {
-            'email': data.get('email'),
-            'full_name': data.get('full_name'),
-            'phone': data.get('phone'),
-            'role': data.get('role'),
-            'unit_number': data.get('unit_number'),
-            'access_level': data.get('access_level'),
-            'status': data.get('status')
+        # Prepare dictionary for User.create
+        data_dict = {
+            'username': data['username'],
+            'email': data['email'],
+            'password': data['password'],
+            'role': data['role'],
+            'access_level': data.get('access_level', 'standard'),
+            'full_name': data.get('full_name', data['username']),
+            'phone': data.get('phone', ''),
+            'unit_number': data.get('unit_number', 'N/A')
         }
-        
-        if data.get('password'):
-            update_data['password'] = data.get('password')
-        
-        # Add temp worker fields if applicable
-        if data.get('role') == 'TEMP_WORKER':
-            update_data['work_start_date'] = data.get('work_start_date')
-            update_data['work_end_date'] = data.get('work_end_date')
-            update_data['work_schedule'] = data.get('work_schedule')
-            update_data['work_details'] = data.get('work_details')
-        
-        User.update(user_id, update_data)
-        return jsonify({'success': True})
-    
+
+        # Include temp worker fields if applicable
+        if data['role'] == 'TEMP_WORKER':
+            data_dict.update({
+                'work_start_date': data.get('work_start_date'),
+                'work_end_date': data.get('work_end_date'),
+                'work_schedule': data.get('work_schedule', ''),
+                'work_details': data.get('work_details', ''),
+                'id_document_path': data.get('id_document_path')
+            })
+
+        user_id = User.create(data_dict)        
+        # user_id = User.create(
+        #     username=data['username'],
+        #     password=data['password'],
+        #     role=data['role'],
+        #     full_name=data.get('full_name'),
+        #     phone=data.get('phone'),
+        #     unit_number=data.get('unit_number'),
+        #     start_date=data.get('start_date'),
+        #     end_date=data.get('end_date')
+        # )
+        return jsonify({'success': True, 'user_id': user_id})
     except Exception as e:
-        logger.error(f"Edit user error: {e}")
+        logger.error(f"Create user error: {e}")
         return jsonify({'success': False, 'message': str(e)}), 500
 
-@app.route('/admin/users/<int:user_id>/delete', methods=['POST'])
+@app.route('/admin/users/<int:user_id>', methods=['PUT'])
 @admin_required
-def admin_delete_user(user_id):
-    """Delete user - User Story: Delete user accounts to remove access"""
+def admin_users_update(user_id):
+    """Update user - User Story: Edit resident/temp worker info"""
+    data = request.json
     try:
-        # Prevent deleting yourself
-        if user_id == session['user_id']:
-            return jsonify({'success': False, 'message': 'Cannot delete your own account'}), 400
-        
+        User.update(user_id, data)
+        return jsonify({'success': True})
+    except Exception as e:
+        logger.error(f"Update user error: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+@app.route('/admin/users/<int:user_id>', methods=['DELETE'])
+@admin_required
+def admin_users_delete(user_id):
+    """Delete user - User Story: Remove resident/temp worker"""
+    try:
         User.delete(user_id)
         return jsonify({'success': True})
     except Exception as e:
-        return jsonify({'success': False, 'message': str(e)}), 500
-
-@app.route('/admin/users/bulk-delete', methods=['POST'])
-@admin_required
-def admin_bulk_delete():
-    """Bulk delete - User Story: Delete multiple accounts in one action"""
-    try:
-        data = request.json
-        user_ids = data.get('user_ids', [])
-        
-        if not user_ids:
-            return jsonify({'success': False, 'message': 'No users selected'}), 400
-        
-        # Remove admin's own ID if present
-        admin_id = session['user_id']
-        if admin_id in user_ids:
-            user_ids.remove(admin_id)
-        
-        if not user_ids:
-            return jsonify({'success': False, 'message': 'Cannot delete your own account'}), 400
-        
-        count = User.bulk_delete(user_ids)
-        return jsonify({'success': True, 'deleted_count': count})
-    except Exception as e:
+        logger.error(f"Delete user error: {e}")
         return jsonify({'success': False, 'message': str(e)}), 500
 
 @app.route('/admin/users/<int:user_id>/deactivate', methods=['POST'])
 @admin_required
-def admin_deactivate_user(user_id):
-    """Deactivate user - User Story: Temporarily suspend access without deleting data"""
+def admin_users_deactivate(user_id):
+    """Deactivate user - User Story: Temporarily revoke access"""
     try:
-        if user_id == session['user_id']:
-            return jsonify({'success': False, 'message': 'Cannot deactivate your own account'}), 400
-        
-        success = User.deactivate(user_id)
-        if success:
-            return jsonify({'success': True, 'message': 'User deactivated successfully'})
-        return jsonify({'success': False, 'message': 'User not found'}), 404
+        User.update(user_id, {'status': 'inactive'})
+        return jsonify({'success': True})
     except Exception as e:
+        logger.error(f"Deactivate user error: {e}")
         return jsonify({'success': False, 'message': str(e)}), 500
 
-@app.route('/admin/users/<int:user_id>/activate', methods=['POST'])
+@app.route('/admin/users/<int:user_id>/reactivate', methods=['POST'])
 @admin_required
-def admin_activate_user(user_id):
-    """Activate user - Reactivate a previously deactivated user"""
+def admin_users_reactivate(user_id):
+    """Reactivate user - User Story: Restore access"""
     try:
-        success = User.activate(user_id)
-        if success:
-            return jsonify({'success': True, 'message': 'User activated successfully'})
-        return jsonify({'success': False, 'message': 'User not found'}), 404
+        User.update(user_id, {'status': 'active'})
+        return jsonify({'success': True})
     except Exception as e:
+        logger.error(f"Reactivate user error: {e}")
         return jsonify({'success': False, 'message': str(e)}), 500
-
-
-# ============================================
-# PHOTO & DOCUMENT UPLOAD ROUTES
-# ============================================
 
 @app.route('/admin/users/<int:user_id>/upload-photo', methods=['POST'])
 @admin_required
-def admin_upload_user_photo(user_id):
-    """Upload user face photo for recognition"""
-    user = User.get_by_id(user_id)
-    if not user:
-        return jsonify({'success': False, 'message': 'User not found'}), 404
-    
+def admin_users_upload_photo(user_id):
+    """Upload face photo for a user - User Story: Register face for facial recognition"""
     if 'photo' not in request.files:
         return jsonify({'success': False, 'message': 'No photo provided'}), 400
-    
+
     photo = request.files['photo']
-    
+
     if not photo or not allowed_file(photo.filename):
-        return jsonify({'success': False, 'message': 'Invalid file type'}), 400
-    
+        return jsonify({'success': False, 'message': 'Invalid file type. Please use JPG or PNG.'}), 400
+
     try:
+        user = User.get_by_id(user_id)
+        if not user:
+            return jsonify({'success': False, 'message': 'User not found'}), 404
+
         filename = f"user_{user_id}_{uuid.uuid4().hex}.jpg"
         photo_path = os.path.join(Config.FACE_RECOGNITION['upload_dir'], filename)
         photo.save(photo_path)
-        
+
         from model import register_face_from_photo
         from psycopg2.extras import RealDictCursor
-        
-        resident_id = user.get('resident_id')
-        
-        # Auto-create resident record if not exists
-        if not resident_id:
-            conn = get_db_connection()
-            cursor = conn.cursor(cursor_factory=RealDictCursor)
-            try:
-                # First check if resident already exists for this user
-                cursor.execute("SELECT resident_id FROM residents WHERE user_id = %s", (user_id,))
-                existing = cursor.fetchone()
-                
-                if existing:
-                    resident_id = existing['resident_id']
-                    logger.info(f"Found existing resident record: resident_id={resident_id}")
-                else:
-                    # Create new resident record
-                    cursor.execute("""
-                        INSERT INTO residents (full_name, unit_number, contact_number, user_id)
-                        VALUES (%s, %s, %s, %s)
-                        RETURNING resident_id
-                    """, (
-                        user.get('full_name') or user.get('username') or f'User {user_id}',
-                        user.get('unit_number') or 'N/A',
-                        user.get('phone') or '',
-                        user_id
-                    ))
-                    result = cursor.fetchone()
-                    resident_id = result['resident_id']
-                    conn.commit()
-                    logger.info(f"Created resident record for user {user_id}: resident_id={resident_id}")
-            except Exception as e:
-                conn.rollback()
-                os.remove(photo_path)
-                logger.error(f"Database error: {str(e)}")
-                return jsonify({'success': False, 'message': f'Failed to create resident record: {str(e)}'}), 400
-            finally:
-                cursor.close()
-                conn.close()
-        
-        embedding_id, error = register_face_from_photo(photo_path, resident_id, 'resident')
-        
+
+        user_role = user.get('role', '').lower()
+
+        # Determine user type and reference ID based on role
+        if user_role == 'admin':
+            user_type = 'admin'
+            reference_id = user_id
+            embedding_id, error = register_face_from_photo(photo_path, reference_id, user_type)
+        elif user_role in ['internal_staff', 'staff', 'temp_worker']:
+            user_type = 'staff'
+            reference_id = user_id
+            embedding_id, error = register_face_from_photo(photo_path, reference_id, user_type)
+        elif user_role == 'resident':
+            # Only for residents, we need to ensure a resident record exists
+            resident_id = user.get('resident_id')
+
+            if not resident_id:
+                conn = get_db_connection()
+                cursor = conn.cursor(cursor_factory=RealDictCursor)
+                try:
+                    cursor.execute("SELECT resident_id FROM residents WHERE user_id = %s", (user_id,))
+                    existing = cursor.fetchone()
+
+                    if existing:
+                        resident_id = existing['resident_id']
+                        logger.info(f"Found existing resident record: resident_id={resident_id}")
+                    else:
+                        cursor.execute("""
+                            INSERT INTO residents (full_name, unit_number, contact_number, user_id)
+                            VALUES (%s, %s, %s, %s)
+                            RETURNING resident_id
+                        """, (
+                            user.get('full_name') or user.get('username') or f'User {user_id}',
+                            user.get('unit_number') or 'N/A',
+                            user.get('phone') or '',
+                            user_id
+                        ))
+                        result = cursor.fetchone()
+                        resident_id = result['resident_id']
+                        conn.commit()
+                        logger.info(f"Created resident record for user {user_id}: resident_id={resident_id}")
+                except Exception as e:
+                    conn.rollback()
+                    os.remove(photo_path)
+                    logger.error(f"Database error: {str(e)}")
+                    return jsonify({'success': False, 'message': f'Failed to create resident record: {str(e)}'}), 400
+                finally:
+                    cursor.close()
+                    conn.close()
+
+            embedding_id, error = register_face_from_photo(photo_path, resident_id, 'resident')
+        else:
+            os.remove(photo_path)
+            return jsonify({'success': False, 'message': f'Unsupported user role: {user_role}'}), 400
+
         if error:
             os.remove(photo_path)
             return jsonify({'success': False, 'message': f'Face registration failed: {error}'}), 400
-        
+
+        logger.info(f"Face photo uploaded for user {user_id} (role: {user_role}), embedding_id: {embedding_id}")
         return jsonify({'success': True, 'message': 'Photo uploaded successfully!', 'embedding_id': embedding_id})
-    
+
     except Exception as e:
         logger.error(f"Upload error: {e}")
         return jsonify({'success': False, 'message': str(e)}), 500
@@ -498,7 +1720,6 @@ def admin_upload_id_doc(user_id):
         doc_path = os.path.join(Config.FACE_RECOGNITION['id_doc_dir'], filename)
         doc.save(doc_path)
         
-        # Update user record with document path
         User.update(user_id, {'id_document_path': filename})
         
         return jsonify({'success': True, 'message': 'ID document uploaded successfully!'})
@@ -515,6 +1736,7 @@ def admin_upload_id_doc(user_id):
 @app.route('/admin/logs')
 @admin_required
 def admin_logs():
+    from access_log import AccessLog
     """View access logs - User Story: View entry and exit history"""
     user_filter = request.args.get('user_id', '')
     date_from = request.args.get('date_from', '')
@@ -544,11 +1766,10 @@ def admin_logs():
 # ============================================
 
 @app.route('/admin/temp-workers')
-@app.route('/admin/temp-workers')
 @admin_required
 def admin_temp_workers():
     """View temporary workers with their schedules"""
-    users = User.get_all(role='TEMP_WORKER')
+    users = User.get_all(role='temp_staff')
     expiring_soon = User.get_expiring_temp_workers(days=7)
     from datetime import date
     today = date.today()
@@ -556,7 +1777,8 @@ def admin_temp_workers():
     return render_template('admin_tempworker.html', 
                          users=users, 
                          expiring_soon=expiring_soon,
-                         today=today) 
+                         today=today)
+
 @app.route('/admin/temp-workers/check-expired', methods=['POST'])
 @admin_required
 def admin_check_expired_temp_workers():
@@ -608,7 +1830,6 @@ def api_dashboard_stats():
     try:
         stats = AccessLog.get_stats(days=30)
         
-        # Get user counts
         all_users = User.get_all()
         active_users = len([u for u in all_users if u.get('status') == 'active'])
         inactive_users = len([u for u in all_users if u.get('status') == 'inactive'])
@@ -628,31 +1849,291 @@ def api_dashboard_stats():
 # INITIALIZATION
 # ============================================
 
-def init_app():
+def init_app(app):
+    # Create necessary folders
     os.makedirs(Config.FACE_RECOGNITION['upload_dir'], exist_ok=True)
     os.makedirs(Config.FACE_RECOGNITION['encoding_dir'], exist_ok=True)
     os.makedirs(Config.FACE_RECOGNITION['id_doc_dir'], exist_ok=True)
-    
+
+    # # Build DB URI from environment
+    # dbname = os.getenv("DB_NAME", "CSIT321: Face Recognition")
+    # user = os.getenv("DB_USER", "postgres")
+    # password = os.getenv("DB_PASSWORD", "joshua1102")
+    # host = os.getenv("DB_HOST", "localhost")
+    # port = os.getenv("DB_PORT", "5432")
+
+    # db_uri = f"postgresql://{user}:{password}@{host}:{port}/{dbname}"
+    # app.config['SQLALCHEMY_DATABASE_URI'] = db_uri
+    # app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+    app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL
+    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+    # Bind SQLAlchemy
+    # db.init_app(app)
+
+    # Test database connection
     try:
-        conn = get_db_connection()
-        conn.close()
-        logger.info("Database connection successful")
+        with app.app_context():
+            conn = get_db_connection()
+            conn.close()
+            logger.info("Database connection successful")
     except Exception as e:
         logger.error(f"Database connection failed: {e}")
         raise e
-    
-    # Check for expired temp workers on startup
+
+    # Check expired temp workers
     try:
-        expired_count = User.check_expired_temp_workers()
-        if expired_count > 0:
-            logger.info(f"Deactivated {expired_count} expired temporary workers on startup")
+        with app.app_context():
+            expired_count = User.check_expired_temp_workers()
+            if expired_count > 0:
+                logger.info(f"Deactivated {expired_count} expired temporary workers on startup")
     except Exception as e:
         logger.warning(f"Could not check expired temp workers: {e}")
-    
+
     logger.info("Application initialized")
 
+
+
+# ============================================
+# STAFF SCHEDULE MANAGEMENT ROUTES
+# ============================================
+
+# THAY THẾ TẤT CẢ STAFF SCHEDULE ROUTES trong app.py
+# Bắt đầu từ dòng ~1169
+
+@app.route('/admin/staff-schedules')
+@admin_required
+def admin_staff_schedules():
+    """Admin page for managing staff schedules"""
+    # Get all internal staff users
+    conn = get_db_connection()
+    cursor = conn.cursor(cursor_factory=RealDictCursor)
+
+    cursor.execute("""
+        SELECT u.user_id, u.username, u.email, r.role_name
+        FROM users u
+        JOIN roles r ON u.role_id = r.role_id
+        WHERE r.role_id IN (8, 13)
+        AND u.status = 'active'
+        ORDER BY u.username
+    """)
+    staff_users = cursor.fetchall()
+
+    cursor.close()
+    conn.close()
+
+    return render_template('admin_staff_schedules.html', staff_users=staff_users)
+
+
+@app.route('/api/admin/staff-schedules', methods=['GET'])
+@admin_required
+def get_staff_schedules():
+    """Get all staff schedules or schedules for a specific staff member"""
+    staff_id = request.args.get('staff_id')
+
+    conn = get_db_connection()
+    cursor = conn.cursor(cursor_factory=RealDictCursor)
+
+    if staff_id:
+        cursor.execute("""
+            SELECT s.*, u.username, u.email
+            FROM staff_schedules s
+            JOIN users u ON s.staff_id = u.user_id
+            WHERE s.staff_id = %s
+            ORDER BY s.shift_date DESC, s.shift_start
+        """, (staff_id,))
+    else:
+        cursor.execute("""
+            SELECT s.*, u.username, u.email
+            FROM staff_schedules s
+            JOIN users u ON s.staff_id = u.user_id
+            ORDER BY s.shift_date DESC, s.shift_start
+        """)
+
+    schedules = cursor.fetchall()
+    cursor.close()
+    conn.close()
+
+    # Convert to list of dicts and format dates
+    schedules_list = []
+    for schedule in schedules:
+        schedule_dict = dict(schedule)
+        # Convert date and time objects to strings
+        if schedule_dict.get('shift_date'):
+            schedule_dict['shift_date'] = schedule_dict['shift_date'].strftime('%Y-%m-%d')
+        if schedule_dict.get('shift_start'):
+            schedule_dict['shift_start'] = str(schedule_dict['shift_start'])
+        if schedule_dict.get('shift_end'):
+            schedule_dict['shift_end'] = str(schedule_dict['shift_end'])
+        if schedule_dict.get('created_at'):
+            schedule_dict['created_at'] = schedule_dict['created_at'].strftime('%Y-%m-%d %H:%M:%S')
+        schedules_list.append(schedule_dict)
+
+    return jsonify({'success': True, 'schedules': schedules_list})
+
+
+@app.route('/api/admin/staff-schedules', methods=['POST'])
+@admin_required
+def create_staff_schedule():
+    """Create a new staff schedule"""
+    data = request.get_json()
+
+    required_fields = ['staff_id', 'shift_date', 'shift_start', 'shift_end']
+    for field in required_fields:
+        if not data.get(field):
+            return jsonify({'success': False, 'message': f'Missing required field: {field}'}), 400
+
+    conn = get_db_connection()
+    cursor = conn.cursor(cursor_factory=RealDictCursor)
+
+    try:
+        cursor.execute("""
+            INSERT INTO staff_schedules
+            (staff_id, shift_date, shift_start, shift_end, task_description)
+            VALUES (%s, %s, %s, %s, %s)
+            RETURNING schedule_id
+        """, (
+            data['staff_id'],
+            data['shift_date'],
+            data['shift_start'],
+            data['shift_end'],
+            data.get('task_description', '')
+        ))
+
+        result = cursor.fetchone()
+        schedule_id = result['schedule_id']
+        conn.commit()
+
+        return jsonify({
+            'success': True,
+            'message': 'Schedule created successfully',
+            'schedule_id': schedule_id
+        })
+
+    except Exception as e:
+        conn.rollback()
+        logger.error(f"Error creating schedule: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+    finally:
+        cursor.close()
+        conn.close()
+
+
+@app.route('/api/admin/staff-schedules/<int:schedule_id>', methods=['PUT'])
+@admin_required
+def update_staff_schedule(schedule_id):
+    """Update an existing staff schedule"""
+    data = request.get_json()
+
+    conn = get_db_connection()
+    cursor = conn.cursor(cursor_factory=RealDictCursor)
+
+    try:
+        cursor.execute("""
+            UPDATE staff_schedules
+            SET shift_date = %s,
+                shift_start = %s,
+                shift_end = %s,
+                task_description = %s
+            WHERE schedule_id = %s
+        """, (
+            data.get('shift_date'),
+            data.get('shift_start'),
+            data.get('shift_end'),
+            data.get('task_description', ''),
+            schedule_id
+        ))
+
+        conn.commit()
+
+        if cursor.rowcount == 0:
+            return jsonify({'success': False, 'message': 'Schedule not found'}), 404
+
+        return jsonify({'success': True, 'message': 'Schedule updated successfully'})
+
+    except Exception as e:
+        conn.rollback()
+        logger.error(f"Error updating schedule: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+    finally:
+        cursor.close()
+        conn.close()
+
+
+@app.route('/api/admin/staff-schedules/<int:schedule_id>', methods=['DELETE'])
+@admin_required
+def delete_staff_schedule(schedule_id):
+    """Delete a staff schedule"""
+    conn = get_db_connection()
+    cursor = conn.cursor(cursor_factory=RealDictCursor)
+
+    try:
+        cursor.execute("DELETE FROM staff_schedules WHERE schedule_id = %s", (schedule_id,))
+        conn.commit()
+
+        if cursor.rowcount == 0:
+            return jsonify({'success': False, 'message': 'Schedule not found'}), 404
+
+        return jsonify({'success': True, 'message': 'Schedule deleted successfully'})
+
+    except Exception as e:
+        conn.rollback()
+        logger.error(f"Error deleting schedule: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+    finally:
+        cursor.close()
+        conn.close()
+
+
+# Staff view their own schedules
+@app.route('/api/staff/schedules', methods=['GET'])
+def get_my_schedules():
+    """Get schedules for the logged-in staff member"""
+    # For now, get staff_id from query params since we don't have full auth yet
+    staff_id = request.args.get('staff_id')
+
+    if not staff_id:
+        return jsonify({'success': False, 'message': 'Staff ID required'}), 400
+
+    conn = get_db_connection()
+    cursor = conn.cursor(cursor_factory=RealDictCursor)
+
+    try:
+        cursor.execute("""
+            SELECT s.*, u.username, u.email
+            FROM staff_schedules s
+            JOIN users u ON s.staff_id = u.user_id
+            WHERE s.staff_id = %s
+            ORDER BY s.shift_date DESC, s.shift_start
+        """, (staff_id,))
+
+        schedules = cursor.fetchall()
+
+        # Convert to list of dicts and format dates
+        schedules_list = []
+        for schedule in schedules:
+            schedule_dict = dict(schedule)
+            if schedule_dict.get('shift_date'):
+                schedule_dict['shift_date'] = schedule_dict['shift_date'].strftime('%Y-%m-%d')
+            if schedule_dict.get('shift_start'):
+                schedule_dict['shift_start'] = str(schedule_dict['shift_start'])
+            if schedule_dict.get('shift_end'):
+                schedule_dict['shift_end'] = str(schedule_dict['shift_end'])
+            schedules_list.append(schedule_dict)
+
+        return jsonify({'success': True, 'schedules': schedules_list})
+
+    except Exception as e:
+        logger.error(f"Error fetching staff schedules: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+    finally:
+        cursor.close()
+        conn.close()
+
 if __name__ == '__main__':
-    init_app()
+    from app import app
+    init_app(app)
     print("\n" + "=" * 60)
     print("FACE RECOGNITION - ADMIN PANEL")
     print("=" * 60)

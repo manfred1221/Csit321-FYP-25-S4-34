@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Staff Schedules - Admin Panel</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background: #f5f5f5;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+        }
+
+        h1 {
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        .back-link {
+            display: inline-block;
+            margin-bottom: 20px;
+            color: #4CAF50;
+            text-decoration: none;
+        }
+
+        .back-link:hover {
+            text-decoration: underline;
+        }
+
+        .header-actions {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #45a049;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #c82333;
+        }
+
+        .btn-small {
+            padding: 6px 12px;
+            font-size: 12px;
+            margin: 0 5px;
+        }
+
+        .filter-section {
+            margin-bottom: 20px;
+        }
+
+        .filter-section select {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        th,
+        td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+
+        th {
+            background: #f8f9fa;
+            font-weight: 600;
+        }
+
+        tr:hover {
+            background: #f9f9f9;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+        }
+
+        .modal.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .modal-header h2 {
+            margin: 0;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #666;
+        }
+
+        .close-btn:hover {
+            color: #333;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 6px;
+            color: #333;
+            font-weight: 600;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .form-group textarea {
+            min-height: 80px;
+            resize: vertical;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .message {
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .message.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .message.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <a href="/admin/profile" class="back-link">← Back to Admin Panel</a>
+
+        <div class="header-actions">
+            <div>
+                <h1>Staff Schedules</h1>
+                <p>Manage and assign schedules for internal staff</p>
+            </div>
+            <button class="btn btn-primary" onclick="openCreateModal()">+ Assign New Schedule</button>
+        </div>
+
+        <div id="message" class="message"></div>
+
+        <div class="filter-section">
+            <label for="staffFilter">Filter by Staff:</label>
+            <select id="staffFilter" onchange="loadSchedules()">
+                <option value="">All Staff</option>
+                {% for staff in staff_users %}
+                <option value="{{ staff.user_id }}">{{ staff.username }} ({{ staff.email }})</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <table id="schedulesTable">
+            <thead>
+                <tr>
+                    <th>Staff Member</th>
+                    <th>Shift Date</th>
+                    <th>Shift Time</th>
+                    <th>Task Description</th>
+                    <th>Created At</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="schedulesBody">
+                <tr>
+                    <td colspan="6" class="empty-state">Loading schedules...</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Create/Edit Schedule Modal -->
+    <div id="scheduleModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalTitle">Assign New Schedule</h2>
+                <button class="close-btn" onclick="closeModal()">&times;</button>
+            </div>
+
+            <form id="scheduleForm" onsubmit="saveSchedule(event)">
+                <input type="hidden" id="scheduleId">
+
+                <div class="form-group">
+                    <label for="staffId">Staff Member *</label>
+                    <select id="staffId" required>
+                        <option value="">Select Staff</option>
+                        {% for staff in staff_users %}
+                        <option value="{{ staff.user_id }}">{{ staff.username }} ({{ staff.email }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="shiftDate">Shift Date *</label>
+                    <input type="date" id="shiftDate" required>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="shiftStart">Start Time *</label>
+                        <input type="time" id="shiftStart" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="shiftEnd">End Time *</label>
+                        <input type="time" id="shiftEnd" required>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="taskDescription">Task Description</label>
+                    <textarea id="taskDescription" placeholder="Describe the tasks for this shift"></textarea>
+                </div>
+
+                <div style="text-align: right; margin-top: 20px;">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Schedule</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        let currentSchedules = [];
+
+        // Load schedules on page load
+        window.addEventListener('DOMContentLoaded', () => {
+            loadSchedules();
+        });
+
+        async function loadSchedules() {
+            const staffId = document.getElementById('staffFilter').value;
+            const url = staffId ? `/api/admin/staff-schedules?staff_id=${staffId}` : '/api/admin/staff-schedules';
+
+            try {
+                const response = await fetch(url);
+                const data = await response.json();
+
+                if (data.success) {
+                    currentSchedules = data.schedules;
+                    renderSchedules(data.schedules);
+                } else {
+                    showMessage('Failed to load schedules', 'error');
+                }
+            } catch (error) {
+                showMessage('Error loading schedules: ' + error.message, 'error');
+            }
+        }
+
+        function renderSchedules(schedules) {
+            const tbody = document.getElementById('schedulesBody');
+
+            if (schedules.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="empty-state">No schedules found</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = schedules.map(schedule => `
+                <tr>
+                    <td>${schedule.username}</td>
+                    <td>${schedule.shift_date}</td>
+                    <td>${schedule.shift_start} - ${schedule.shift_end}</td>
+                    <td>${schedule.task_description || '-'}</td>
+                    <td>${schedule.created_at || '-'}</td>
+                    <td>
+                        <button class="btn btn-secondary btn-small" onclick="editSchedule(${schedule.schedule_id})">Edit</button>
+                        <button class="btn btn-danger btn-small" onclick="deleteSchedule(${schedule.schedule_id})">Delete</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function openCreateModal() {
+            document.getElementById('modalTitle').textContent = 'Assign New Schedule';
+            document.getElementById('scheduleForm').reset();
+            document.getElementById('scheduleId').value = '';
+            document.getElementById('scheduleModal').classList.add('active');
+        }
+
+        function editSchedule(scheduleId) {
+            const schedule = currentSchedules.find(s => s.schedule_id === scheduleId);
+            if (!schedule) return;
+
+            document.getElementById('modalTitle').textContent = 'Edit Schedule';
+            document.getElementById('scheduleId').value = schedule.schedule_id;
+            document.getElementById('staffId').value = schedule.staff_id;
+            document.getElementById('shiftDate').value = schedule.shift_date;
+            document.getElementById('shiftStart').value = schedule.shift_start;
+            document.getElementById('shiftEnd').value = schedule.shift_end;
+            document.getElementById('taskDescription').value = schedule.task_description || '';
+
+            document.getElementById('scheduleModal').classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('scheduleModal').classList.remove('active');
+        }
+
+        async function saveSchedule(event) {
+            event.preventDefault();
+
+            const scheduleId = document.getElementById('scheduleId').value;
+            const isEdit = !!scheduleId;
+
+            const data = {
+                staff_id: document.getElementById('staffId').value,
+                shift_date: document.getElementById('shiftDate').value,
+                shift_start: document.getElementById('shiftStart').value,
+                shift_end: document.getElementById('shiftEnd').value,
+                task_description: document.getElementById('taskDescription').value
+            };
+
+            try {
+                const url = isEdit ? `/api/admin/staff-schedules/${scheduleId}` : '/api/admin/staff-schedules';
+                const method = isEdit ? 'PUT' : 'POST';
+
+                const response = await fetch(url, {
+                    method: method,
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showMessage(result.message, 'success');
+                    closeModal();
+                    loadSchedules();
+                } else {
+                    showMessage(result.message || 'Failed to save schedule', 'error');
+                }
+            } catch (error) {
+                showMessage('Error: ' + error.message, 'error');
+            }
+        }
+
+        async function deleteSchedule(scheduleId) {
+            if (!confirm('Are you sure you want to delete this schedule?')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/admin/staff-schedules/${scheduleId}`, {
+                    method: 'DELETE'
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showMessage(result.message, 'success');
+                    loadSchedules();
+                } else {
+                    showMessage(result.message || 'Failed to delete schedule', 'error');
+                }
+            } catch (error) {
+                showMessage('Error: ' + error.message, 'error');
+            }
+        }
+
+        function showMessage(text, type) {
+            const messageDiv = document.getElementById('message');
+            messageDiv.textContent = text;
+            messageDiv.className = 'message ' + type;
+            messageDiv.style.display = 'block';
+
+            setTimeout(() => {
+                messageDiv.style.display = 'none';
+            }, 5000);
+        }
+    </script>
+</body>
+
+</html>

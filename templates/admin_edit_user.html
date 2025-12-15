@@ -18,7 +18,7 @@
         }
 
         .navbar {
-            background: #1e293b;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: #fff;
             padding: 18px 30px;
             display: flex;
@@ -79,7 +79,7 @@
 
         .card-header h2 {
             font-size: 18px;
-            color: #1e293b;
+            color: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         }
 
         .card-body {
@@ -372,7 +372,8 @@
                                 <option value="Admin" {% if user.role=='Admin' %}selected{% endif %}>Admin</option>
                                 <option value="Security" {% if user.role=='Security' %}selected{% endif %}>Security
                                 </option>
-                                <option value="Guest" {% if user.role=='Guest' %}selected{% endif %}>Guest</option>
+                                <option value="internal_staff" {% if user.role=='internal_staff' %}selected{% endif %}>
+                                    Internal Staff</option>
                                 <option value="TEMP_WORKER" {% if user.role=='TEMP_WORKER' %}selected{% endif %}>
                                     Temporary Worker</option>
                             </select>
@@ -428,7 +429,6 @@
                                 <p class="help-text">Access will be automatically revoked after this date</p>
                             </div>
                         </div>
-                        
                         <div class="form-group">
                             <label>Work Schedule</label>
                             <input type="text" id="work_schedule" value="{{ user.work_schedule or '' }}"
@@ -493,7 +493,8 @@
                 <button class="btn btn-primary btn-block" id="uploadDocBtn" onclick="uploadDoc()" disabled
                     style="margin-top:15px;">Upload Document</button>
             </div>
-        </main>
+        </div>
+        {% endif %}
     </div>
 
     <script>
@@ -623,6 +624,8 @@
             }
 
             try {
+                console.log("data", data)
+                console.log("data", JSON.stringify(data))
                 const response = await fetch('/admin/users/{{ user.id }}/edit', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -630,6 +633,7 @@
                 });
 
                 const result = await response.json();
+                console.log("result", result)
 
                 if (result.success) {
                     successDiv.textContent = 'User updated successfully!';
@@ -640,6 +644,8 @@
                     errorDiv.style.display = 'block';
                 }
             } catch (err) {
+                console.log("error la gi day", err)
+
                 errorDiv.textContent = 'Network error';
                 errorDiv.style.display = 'block';
             }
