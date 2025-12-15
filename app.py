@@ -8,7 +8,7 @@ import logging
 from werkzeug.utils import secure_filename
 import uuid
 from jinja2 import ChoiceLoader, FileSystemLoader
-from datetime import datetime
+from datetime import datetime, timedelta
 import numpy as np
 
 
@@ -276,7 +276,8 @@ def security_login():
 def security_dashboard():
     officer = SecurityOfficer.query.get(session['officer_id'])
     access_logs = AccessLog.query.order_by(AccessLog.log_id.asc()).all()
-    return render_template("security-dashboard.html", officer=officer, logs=access_logs)
+    granted_count = AccessLog.query.filter_by(access_result='granted').count()
+    return render_template("security-dashboard.html", officer=officer, logs=access_logs, granted_count=granted_count)
 
 
 @app.route("/security-deactivate")
@@ -321,7 +322,55 @@ def api_update_officer():
 @officer_required
 def face_verification():
     officer = SecurityOfficer.query.get(session['officer_id'])
-    return render_template("security-face-verification.html", officer=officer)
+
+    logs = AccessLog.query.order_by(AccessLog.access_time.desc()).limit(10).all()
+    threshold = 0.65
+
+    # Fetch all logs for today
+    today_start = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+    logs = AccessLog.query.filter(AccessLog.access_time >= today_start).order_by(AccessLog.access_time.desc()).all()
+
+    success_count = 0
+    fail_count = 0
+    total_time = 0.0
+    count_time = 0
+
+    # Prepare data for template
+    log_data = []
+    for log in logs:
+        confidence = log.confidence or 0
+        verified = confidence >= threshold
+
+        if verified:
+            success_count += 1
+        else:
+            fail_count += 1
+
+        # optional: track average verification time if stored
+        if hasattr(log, "verification_time") and log.verification_time:
+            total_time += log.verification_time
+            count_time += 1
+
+        log_data.append({
+            "time": log.access_time.strftime("%H:%M:%S"),
+            "person": log.recognized_person,
+            "type": log.person_type.capitalize(),
+            "confidence": round(confidence * 100, 2),
+            "verified": verified,
+            "officer": officer.full_name
+        })
+
+    avg_time = round(total_time / count_time, 2) if count_time else 0
+
+    return render_template(
+        "security-face-verification.html",
+        officer=officer,
+        access_logs=log_data,
+        success_count=success_count,
+        fail_count=fail_count,
+        avg_time=avg_time,
+        threshold=threshold
+    )
 
 @app.route("/security/logout")
 @officer_required
@@ -1197,71 +1246,136 @@ if SECURITY_OFFICER_AVAILABLE:
             "officer_id": officer_id
         }), 200
 
+    RATE_LIMIT = {}
+    MAX_ATTEMPTS = 10
+    WINDOW_SECONDS = 60
+
+
+    def normalize(vec):
+        vec = np.array(vec, dtype=np.float32)
+        return vec / np.linalg.norm(vec)
+
+
+    def cosine_similarity(a, b):
+        return float(np.dot(a, b))
+
+
     @app.route("/api/security_officer/verify_face", methods=["POST"])
     def verify_face():
-        """Verify face or create new officer"""
-        data = request.get_json()
-        image_base64 = data.get("image")
-        officer_id = data.get("officer_id")
 
-        if not image_base64:
-            return jsonify({"status":"error","message":"No image provided"}), 400
+        try:
+            data = request.get_json(force=True)
+            image_base64 = data.get("image")
 
-        embedding_vector = image_to_embedding(image_base64)
+            officer_id = session.get("officer_id")
 
-        all_embeddings = FaceEmbedding.query.filter_by(user_type="security_officer").all()
-        threshold = 0.8
+            if not officer_id:
+                return jsonify({
+                    "status": "error",
+                    "message": "Session expired. Please login again."
+                }), 401
 
-        def cosine_similarity(a, b):
-            return np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b))
+            if not image_base64:
+                return jsonify({
+                    "status": "error",
+                    "message": "Missing image"
+                }), 400
 
-        matched_officer = None
-        for fe in all_embeddings:
-            sim = cosine_similarity(embedding_vector, fe.embedding)
-            if sim > threshold:
-                matched_officer = SecurityOfficer.query.get(fe.reference_id)
+            officer = SecurityOfficer.query.get(officer_id)
+            if not officer or not officer.active:
+                return jsonify({
+                    "status": "error",
+                    "message": "Unauthorized officer"
+                }), 403
+
+            # --- Generate embedding ---
+            # raw_embedding = image_to_embedding(image_base64)
+            # query_embedding = raw_embedding / np.linalg.norm(raw_embedding)
+
+            raw_embedding = image_to_embedding(image_base64)
+
+            if raw_embedding is None:
+                return jsonify({
+                    "status": "error",
+                    "message": "No face detected. Please try again."
+                }), 400
+
+            query_embedding = normalize(raw_embedding)
+
+            embeddings = FaceEmbedding.query.filter(
+                FaceEmbedding.user_type.in_(["resident", "visitor"])
+            ).all()
+
+            threshold = 0.65
+            best_match = None
+            best_score = 0.0
+
+            for fe in embeddings:
+
+                if fe.embedding is None:
+                    continue   # ⛔ skip broken rows
+
+                db_embedding = np.array(fe.embedding, dtype=np.float32)
+
+                if db_embedding.size != 512:
+                    continue   # ⛔ corrupted vector
+
+                db_embedding = normalize(db_embedding)
+
+                score = cosine_similarity(query_embedding, db_embedding)
+
+                if score > best_score:
+                    best_score = score
+                    best_match = fe
+
+            if best_match and best_score >= threshold:
+
+                if best_match.user_type == "resident":
+                    from routes.security_officer.security_officer_model import Resident
+                    person = Resident.query.get(best_match.reference_id)
+                else:
+                    person = Visitor.query.get(best_match.reference_id)
+
                 log_access(
-                    recognized_person=matched_officer.full_name,
-                    person_type="security_officer",
-                    confidence=float(sim),
+                    
+                    recognized_person=person.full_name,
+                    person_type=best_match.user_type,
+                    confidence=best_score,
                     result="granted",
-                    embedding_id=fe.embedding_id
+                    embedding_id=best_match.embedding_id,
                 )
-                break
 
-        if matched_officer:
+                return jsonify({
+                    "status": "success",
+                    "result": "granted",
+                    "person_type": best_match.user_type,
+                    "name": person.full_name,
+                    "message": "Face recognized",   
+                    "confidence": float(round(best_score * 100, 2))
+                })
+
+            # No match
+            log_access(
+                recognized_person="Unknown",
+                person_type="unknown",
+                confidence=best_score,
+                result="denied",
+                embedding_id=None,
+            )
+
             return jsonify({
-                "status": "success",
-                "message": f"Face verified for {matched_officer.full_name}",
-                "officer_id": matched_officer.officer_id
-            })
+                "status": "error",
+                "result": "denied",
+                "message": "Face not recognized",
+                "confidence": float(round(best_score * 100, 2))
+            }), 401
 
-        new_officer = SecurityOfficer(full_name="New Officer")
-        db.session.add(new_officer)
-        db.session.commit()
-        officer_id = new_officer.officer_id
-
-        new_embedding = FaceEmbedding(
-            user_type="security_officer",
-            reference_id=officer_id,
-            embedding=embedding_vector
-        )
-        db.session.add(new_embedding)
-        db.session.commit()
-
-        log_access(
-            recognized_person=new_officer.full_name,
-            person_type="security_officer",
-            confidence=1.0,
-            result="granted",
-            embedding_id=new_embedding.embedding_id
-        )
-
-        return jsonify({
-            "status": "success",
-            "message": f"New officer registered: {new_officer.full_name}",
-            "officer_id": officer_id
-        })
+        except Exception as e:
+            print("VERIFY FACE ERROR:", str(e))
+            return jsonify({
+                "status": "error",
+                "message": "Internal server error during face verification"
+            }), 500
 
     @app.route("/api/security_officer/upload_face_embedding", methods=["POST"])
     def upload_face_embedding():

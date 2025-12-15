@@ -66,15 +66,15 @@
                 <div class="card-body">
                     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:20px;">
                         <div style="text-align:center;padding:20px;background:#f9fafb;border-radius:8px;">
-                            <div style="font-size:32px;font-weight:bold;color:#10b981;" id="successCount">45</div>
+                            <div style="font-size:32px;font-weight:bold;color:#10b981;" id="successCount">{{success_count}}</div>
                             <div style="color:#6b7280;">Successful Verifications Today</div>
                         </div>
                         <div style="text-align:center;padding:20px;background:#f9fafb;border-radius:8px;">
-                            <div style="font-size:32px;font-weight:bold;color:#ef4444;" id="failCount">3</div>
+                            <div style="font-size:32px;font-weight:bold;color:#ef4444;" id="failCount">{{fail_count}}</div>
                             <div style="color:#6b7280;">Failed Verifications Today</div>
                         </div>
                         <div style="text-align:center;padding:20px;background:#f9fafb;border-radius:8px;">
-                            <div style="font-size:32px;font-weight:bold;color:#2563eb;" id="avgTime">1.2s</div>
+                            <div style="font-size:32px;font-weight:bold;color:#2563eb;" id="avgTime">{{avg_time}}</div>
                             <div style="color:#6b7280;">Average Verification Time</div>
                         </div>
                     </div>
@@ -96,40 +96,33 @@
                                     <th>Officer</th>
                                 </tr>
                             </thead>
-                            <tbody>
+                                <tbody>
+                                {% for log in access_logs %}
                                 <tr>
-                                    <td>14:32:15</td>
-                                    <td>John Tan</td>
-                                    <td><span class="badge badge-info">Resident</span></td>
-                                    <td>98.5%</td>
-                                    <td><span class="badge badge-success">VERIFIED</span></td>
-                                    <td>Officer Wong</td>
+                                    <td>{{ log.time }}</td>
+                                    <td>{{ log.person }}</td>
+                                    <td>
+                                        {% if log.type == "Resident" %}
+                                            <span class="badge badge-info">{{ log.type }}</span>
+                                        {% elif log.type == "Visitor" %}
+                                            <span class="badge badge-warning">{{ log.type }}</span>
+                                        {% else %}
+                                            <span class="badge badge-danger">{{ log.type }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ log.confidence }}</td>
+                                    <td>
+                                        {% if log.confidence is not none and log.confidence >= threshold %}
+                                            <span class="badge badge-success">VERIFIED</span>
+                                        {% else %}
+                                            <span class="badge badge-danger">FAILED</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ log.officer }}</td>
                                 </tr>
-                                <tr>
-                                    <td>14:28:42</td>
-                                    <td>Mary Lee</td>
-                                    <td><span class="badge badge-warning">Visitor</span></td>
-                                    <td>95.2%</td>
-                                    <td><span class="badge badge-success">VERIFIED</span></td>
-                                    <td>Officer Wong</td>
-                                </tr>
-                                <tr>
-                                    <td>14:25:01</td>
-                                    <td>Unknown Person</td>
-                                    <td><span class="badge badge-danger">Unknown</span></td>
-                                    <td>42.1%</td>
-                                    <td><span class="badge badge-danger">FAILED</span></td>
-                                    <td>Officer Wong</td>
-                                </tr>
-                                <tr>
-                                    <td>14:20:33</td>
-                                    <td>Sarah Kim</td>
-                                    <td><span class="badge badge-info">Resident</span></td>
-                                    <td>97.8%</td>
-                                    <td><span class="badge badge-success">VERIFIED</span></td>
-                                    <td>Officer Wong</td>
-                                </tr>
-                            </tbody>
+                                {% endfor %}
+                                </tbody>
+
                         </table>
                     </div>
                 </div>
@@ -178,6 +171,9 @@
                 showMessage('Camera stopped', 'success');
             }
         }
+
+        let totalTime = 0;
+        let attempts = 0;
         
         async function verifyFace() {
             if (!stream) {
@@ -191,8 +187,9 @@
             canvas.height = videoElement.videoHeight;
             context.drawImage(videoElement, 0, 0);
 
-        //    const imageBase64 = canvas.toDataURL("image/jpeg").split(",")[1]; // Remove prefix
-            const imageBase64 = canvas.toDataURL("image/jpeg"); // includes "data:image/jpeg;base64,"
+            const imageBase64 = canvas.toDataURL("image/jpeg");
+
+            const startTime = performance.now();  // start timer
 
             try {
                 const res = await fetch("/api/security_officer/verify_face", {
@@ -201,8 +198,29 @@
                     body: JSON.stringify({ image: imageBase64 })
                 });
                 const data = await res.json();
-                console.log(data);
+
+                const endTime = performance.now(); // end timer
+                const duration = (endTime - startTime) / 1000; // seconds
+
+                // update global totals
+                totalTime += duration;
+                attempts += 1;
+                const avgTime = (totalTime / attempts).toFixed(2);
+
+                // update the dashboard
+                document.getElementById('avgTime').textContent = avgTime + "s";
+
                 showMessage(data.message, data.status === "success" ? "success" : "error");
+
+                // Optionally update success/fail counts
+                if (data.status === "success") {
+                    let current = parseInt(document.getElementById('successCount').textContent);
+                    document.getElementById('successCount').textContent = current + 1;
+                } else {
+                    let current = parseInt(document.getElementById('failCount').textContent);
+                    document.getElementById('failCount').textContent = current + 1;
+                }
+
             } catch (err) {
                 showMessage("Error verifying face: " + err.message, "error");
             }
