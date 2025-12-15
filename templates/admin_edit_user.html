@@ -623,6 +623,8 @@
             }
 
             try {
+                console.log("data", data)
+                console.log("data", JSON.stringify(data))
                 const response = await fetch('/admin/users/{{ user.id }}/edit', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -630,6 +632,7 @@
                 });
 
                 const result = await response.json();
+                console.log("result", result)
 
                 if (result.success) {
                     successDiv.textContent = 'User updated successfully!';
@@ -640,6 +643,8 @@
                     errorDiv.style.display = 'block';
                 }
             } catch (err) {
+                console.log("error la gi day", err)
+
                 errorDiv.textContent = 'Network error';
                 errorDiv.style.display = 'block';
             }

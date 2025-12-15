@@ -47,7 +47,7 @@ class User:
                 'RESIDENT': 2, 'Resident': 2, 'USER': 2,
                 'VISITOR': 3, 'Visitor': 3,
                 'SECURITY': 4, 'Security': 4,
-                'GUEST': 5, 'Guest': 5,
+                'INTERNAL_STAFF': 5, 'Internal Staff': 5,
                 'TEMP_WORKER': 6, 'TempWorker': 6
             }
             role_id = role_map.get(role_name, 2)
@@ -162,7 +162,6 @@ class User:
 
             user_id, db_username, db_password = row
 
-            # ❗ PLAIN TEXT CHECK — NO HASHING
             if password != db_password:
                 print("[DEBUG] Incorrect password (plain-text check failed)")
                 return None
@@ -369,15 +368,27 @@ class User:
                 user_params.append(data['password'])
                         
             if 'role' in data:
-                role_map = {
-                    'ADMIN': 1, 'Admin': 1,
-                    'RESIDENT': 2, 'Resident': 2, 'USER': 2,
-                    'VISITOR': 3, 'Visitor': 3,
-                    'SECURITY': 4, 'Security': 4,
-                    'GUEST': 5, 'Guest': 5,
-                    'TEMP_WORKER': 6, 'TempWorker': 6
-                }
-                role_id = role_map.get(data['role'], 2)
+                # Get role_id from database
+                cursor.execute("""
+                    SELECT role_id FROM roles
+                    WHERE LOWER(role_name) = LOWER(%s)
+                    LIMIT 1
+                """, (data['role'],))
+                role_result = cursor.fetchone()
+                print("role_result", role_result)
+
+                if role_result:
+                    role_id = role_result[0]
+                else:
+                    # Default to Resident role if not found
+                    cursor.execute("""
+                        SELECT role_id FROM roles
+                        WHERE LOWER(role_name) = 'resident'
+                        LIMIT 1
+                    """)
+                    default_role = cursor.fetchone()
+                    role_id = default_role[0] if default_role else 2
+
                 user_fields.append("role_id = %s")
                 user_params.append(role_id)
             

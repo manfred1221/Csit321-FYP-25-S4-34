@@ -1,4 +1,6 @@
 import os
+
+from routes.security_officer.security_officer_model import SecurityOfficer
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 from flask import Flask, request, jsonify, session, render_template, redirect, url_for, send_from_directory, Response
@@ -1581,6 +1583,8 @@ def admin_users():
 def admin_users_edit(user_id):
     """Edit user page - User Story: Edit user details"""
     user = User.get_by_id(user_id)
+
+    print("user", user)
     if not user:
         return "User not found", 404
 
@@ -1843,7 +1847,7 @@ def admin_logs():
 @admin_required
 def admin_temp_workers():
     """View temporary workers with their schedules"""
-    users = User.get_all(role='TEMP_WORKER')
+    users = User.get_all(role='temp_staff')
     expiring_soon = User.get_expiring_temp_workers(days=7)
     from datetime import date
     today = date.today()
