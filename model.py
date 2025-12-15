@@ -181,148 +181,46 @@ def save_embedding_to_db(embedding, reference_id, user_type='resident'):
     try:
         conn = get_db_connection()
         cursor = conn.cursor(cursor_factory=RealDictCursor)
-        
+
         # Convert embedding to list for PostgreSQL vector type
         embedding_list = embedding.tolist() if isinstance(embedding, np.ndarray) else list(embedding)
-        
+
         logger.info(f"Embedding dimensions: {len(embedding_list)}")
         logger.info(f"Saving for reference_id={reference_id}, user_type={user_type}")
-        
+
         # Format as PostgreSQL vector string
         embedding_str = '[' + ','.join(map(str, embedding_list)) + ']'
 
-        # Normalize user_type to match database constraint
-        user_type_normalized = user_type.lower().strip()
-        
-        # First, try to determine what values are actually allowed by checking existing data
-        cursor.execute("SELECT DISTINCT user_type FROM face_embeddings LIMIT 10")
-        existing_types = [row['user_type'] for row in cursor.fetchall()]
-        logger.info(f"Existing user_types in database: {existing_types}")
-        
-        # Map various user type names to database-accepted values
-        # Try multiple possible mappings based on common patterns
-        user_type_mappings = [
-            # First try: lowercase versions
-            {
-                'ADMIN': 'admin',
-                'admin': 'admin',
-                'internal_staff': 'internal_staff',
-                'staff': 'staff',
-                'temp_staff': 'staff',
-                'temp_worker': 'staff',
-                'resident': 'resident',
-                'visitor': 'visitor',
-                'security': 'security_officer',
-                'security_officer': 'security_officer'
-            },
-            # Second try: all lowercase, no underscore variations
-            {
-                'ADMIN': 'staff',
-                'admin': 'staff',
-                'internal_staff': 'staff',
-                'staff': 'staff',
-                'temp_staff': 'staff',
-                'temp_worker': 'staff',
-                'resident': 'resident',
-                'visitor': 'visitor',
-                'security': 'security',
-                'security_officer': 'security'
-            },
-            # Third try: match existing types if available
-            {
-                'ADMIN': existing_types[0] if existing_types else 'resident',
-                'admin': existing_types[0] if existing_types else 'resident',
-                'internal_staff': existing_types[0] if existing_types else 'resident',
-                'staff': existing_types[0] if existing_types else 'resident',
-                'temp_staff': existing_types[0] if existing_types else 'resident',
-                'temp_worker': existing_types[0] if existing_types else 'resident',
-                'resident': 'resident',
-                'visitor': 'visitor',
-                'security': 'security',
-                'security_officer': 'security'
-            }
-        ]
-        
-        # Try each mapping until one works
-        db_user_type = None
-        for mapping in user_type_mappings:
-            db_user_type = mapping.get(user_type_normalized, user_type_normalized)
-            logger.info(f"Trying user_type: '{db_user_type}'")
-            
-            # Test if this value would be accepted
-            try:
-                cursor.execute("""
-                    SELECT 1 FROM face_embeddings 
-                    WHERE user_type = %s 
-                    LIMIT 1
-                """, (db_user_type,))
-                # If we can query it, it's a valid value
-                break
-            except:
-                continue
-        
-        if not db_user_type:
-            db_user_type = user_type_normalized
-        
-        logger.info(f"Final user_type for database: '{db_user_type}'")
-
-        # Verify the reference_id exists based on original user type
-        if user_type_normalized in ['ADMIN', 'admin', 'internal_staff', 'staff', 'temp_staff', 'temp_worker']:
-            cursor.execute("SELECT user_id FROM users WHERE user_id = %s", (reference_id,))
-            check_result = cursor.fetchone()
-            if not check_result:
-                raise ValueError(f"User {reference_id} does not exist in users table")
-        elif user_type_normalized == 'resident':
+        # Verify the reference_id exists in the appropriate table based on user_type
+        if user_type == 'resident':
             cursor.execute("SELECT resident_id FROM residents WHERE resident_id = %s", (reference_id,))
             check_result = cursor.fetchone()
             if not check_result:
-                raise ValueError(f"Resident {reference_id} does not exist")
-        elif user_type_normalized == 'visitor':
+                raise ValueError(f"reference_id {reference_id} does not exist in residents table")
+        elif user_type == 'visitor':
             cursor.execute("SELECT visitor_id FROM visitors WHERE visitor_id = %s", (reference_id,))
             check_result = cursor.fetchone()
             if not check_result:
-                raise ValueError(f"Visitor {reference_id} does not exist")
-        elif user_type_normalized in ['security', 'security_officer']:
-            cursor.execute("SELECT officer_id FROM security_officers WHERE officer_id = %s", (reference_id,))
+                raise ValueError(f"reference_id {reference_id} does not exist in visitors table")
+        elif user_type in ['ADMIN', 'internal_staff', 'temp_staff', 'security_officer']:
+            cursor.execute("SELECT user_id FROM users WHERE user_id = %s", (reference_id,))
             check_result = cursor.fetchone()
             if not check_result:
-                raise ValueError(f"Security officer {reference_id} does not exist")
+                raise ValueError(f"reference_id {reference_id} does not exist in users table")
+        # For other user types, skip validation (or add more checks as needed)
 
-        # Check if embedding already exists for this user
-        # Try to find with any user_type for this reference_id
         cursor.execute("""
-            SELECT embedding_id, user_type FROM face_embeddings 
-            WHERE reference_id = %s
-            ORDER BY created_at DESC
-            LIMIT 1
-        """, (reference_id,))
-        existing = cursor.fetchone()
-        
-        if existing:
-            # Update existing embedding, keeping the same user_type that was already accepted
-            existing_user_type = existing['user_type']
-            logger.info(f"Updating existing record with user_type='{existing_user_type}'")
-            cursor.execute("""
-                UPDATE face_embeddings 
-                SET embedding = %s::vector, created_at = CURRENT_TIMESTAMP
-                WHERE embedding_id = %s
-                RETURNING embedding_id
-            """, (embedding_str, existing['embedding_id']))
-            logger.info(f"Updated existing embedding_id={existing['embedding_id']}")
-        else:
-            # Insert new embedding - try the db_user_type we determined
-            cursor.execute("""
-                INSERT INTO face_embeddings (user_type, reference_id, embedding)
-                VALUES (%s, %s, %s::vector)
-                RETURNING embedding_id
-            """, (db_user_type, reference_id, embedding_str))
-        
+            INSERT INTO face_embeddings (user_type, reference_id, embedding)
+            VALUES (%s, %s, %s::vector)
+            RETURNING embedding_id
+        """, (user_type, reference_id, embedding_str))
+
         result = cursor.fetchone()
         if not result:
-            raise ValueError("INSERT/UPDATE did not return embedding_id")
-        
+            raise ValueError("INSERT did not return embedding_id")
+
         embedding_id = result['embedding_id']
-        
+
         conn.commit()
         logger.info(f"✓ Saved embedding to database: embedding_id={embedding_id}")
         return embedding_id
@@ -364,12 +262,20 @@ def get_all_embeddings():
     try:
         cursor.execute("""
             SELECT fe.embedding_id, fe.user_type, fe.reference_id, fe.embedding,
-                   r.full_name as resident_name, r.unit_number,
-                   u.username, u.email, u.full_name as user_name
+                   CASE
+                       WHEN fe.user_type = 'resident' THEN r.full_name
+                       WHEN fe.user_type IN ('ADMIN', 'internal_staff', 'temp_staff', 'security_officer') THEN u.username
+                       WHEN fe.user_type = 'visitor' THEN v.full_name
+                       ELSE 'Unknown'
+                   END as full_name,
+                   CASE
+                       WHEN fe.user_type = 'resident' THEN r.unit_number
+                       ELSE NULL
+                   END as unit_number
             FROM face_embeddings fe
             LEFT JOIN residents r ON fe.reference_id = r.resident_id AND fe.user_type = 'resident'
-            LEFT JOIN users u ON fe.reference_id = u.user_id 
-    AND fe.user_type IN ('ADMIN', 'admin', 'staff', 'internal_staff', 'temp_staff')
+            LEFT JOIN users u ON fe.reference_id = u.user_id AND fe.user_type IN ('ADMIN', 'internal_staff', 'temp_staff', 'security_officer')
+            LEFT JOIN visitors v ON fe.reference_id = v.visitor_id AND fe.user_type = 'visitor'
         """)
         results = []
         for row in cursor.fetchall():

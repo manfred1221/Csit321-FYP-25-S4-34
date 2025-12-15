@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -108,8 +107,7 @@
             margin-top: 20px;
         }
 
-        th,
-        td {
+        th, td {
             padding: 12px;
             text-align: left;
             border-bottom: 1px solid #ddd;
@@ -124,6 +122,29 @@
             background: #f9f9f9;
         }
 
+        .badge {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .badge-active {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .badge-completed {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+
+        .badge-cancelled {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        /* Modal Styles */
         .modal {
             display: none;
             position: fixed;
@@ -232,17 +253,16 @@
         }
     </style>
 </head>
-
 <body>
     <div class="container">
-        <a href="/admin/profile" class="back-link">← Back to Admin Panel</a>
+        <a href="/admin/profile" class="back-link">Back to Admin Panel</a>
 
         <div class="header-actions">
             <div>
                 <h1>Staff Schedules</h1>
                 <p>Manage and assign schedules for internal staff</p>
             </div>
-            <button class="btn btn-primary" onclick="openCreateModal()">+ Assign New Schedule</button>
+            <button class="btn btn-primary" onclick="openCreateModal()">Assign New Schedule</button>
         </div>
 
         <div id="message" class="message"></div>
@@ -261,16 +281,18 @@
             <thead>
                 <tr>
                     <th>Staff Member</th>
-                    <th>Shift Date</th>
-                    <th>Shift Time</th>
-                    <th>Task Description</th>
-                    <th>Created At</th>
+                    <th>Shift Name</th>
+                    <th>Start Date</th>
+                    <th>End Date</th>
+                    <th>Time</th>
+                    <th>Location</th>
+                    <th>Status</th>
                     <th>Actions</th>
                 </tr>
             </thead>
             <tbody id="schedulesBody">
                 <tr>
-                    <td colspan="6" class="empty-state">Loading schedules...</td>
+                    <td colspan="8" class="empty-state">Loading schedules...</td>
                 </tr>
             </tbody>
         </table>
@@ -288,8 +310,8 @@
                 <input type="hidden" id="scheduleId">
 
                 <div class="form-group">
-                    <label for="staffId">Staff Member *</label>
-                    <select id="staffId" required>
+                    <label for="staffUserId">Staff Member *</label>
+                    <select id="staffUserId" required>
                         <option value="">Select Staff</option>
                         {% for staff in staff_users %}
                         <option value="{{ staff.user_id }}">{{ staff.username }} ({{ staff.email }})</option>
@@ -298,24 +320,54 @@
                 </div>
 
                 <div class="form-group">
-                    <label for="shiftDate">Shift Date *</label>
-                    <input type="date" id="shiftDate" required>
+                    <label for="shiftName">Shift Name</label>
+                    <input type="text" id="shiftName" placeholder="e.g., Morning Shift, Night Watch">
                 </div>
 
                 <div class="form-row">
                     <div class="form-group">
-                        <label for="shiftStart">Start Time *</label>
-                        <input type="time" id="shiftStart" required>
+                        <label for="startDate">Start Date *</label>
+                        <input type="date" id="startDate" required>
                     </div>
                     <div class="form-group">
-                        <label for="shiftEnd">End Time *</label>
-                        <input type="time" id="shiftEnd" required>
+                        <label for="endDate">End Date *</label>
+                        <input type="date" id="endDate" required>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="startTime">Start Time *</label>
+                        <input type="time" id="startTime" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="endTime">End Time *</label>
+                        <input type="time" id="endTime" required>
                     </div>
                 </div>
 
                 <div class="form-group">
-                    <label for="taskDescription">Task Description</label>
-                    <textarea id="taskDescription" placeholder="Describe the tasks for this shift"></textarea>
+                    <label for="daysOfWeek">Days of Week</label>
+                    <input type="text" id="daysOfWeek" placeholder="e.g., Mon-Fri, Weekends">
+                </div>
+
+                <div class="form-group">
+                    <label for="location">Location</label>
+                    <input type="text" id="location" placeholder="e.g., Main Entrance, Lobby">
+                </div>
+
+                <div class="form-group">
+                    <label for="notes">Notes</label>
+                    <textarea id="notes" placeholder="Additional notes or instructions"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="status">Status</label>
+                    <select id="status">
+                        <option value="active">Active</option>
+                        <option value="completed">Completed</option>
+                        <option value="cancelled">Cancelled</option>
+                    </select>
                 </div>
 
                 <div style="text-align: right; margin-top: 20px;">
@@ -357,17 +409,19 @@
             const tbody = document.getElementById('schedulesBody');
 
             if (schedules.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="6" class="empty-state">No schedules found</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="8" class="empty-state">No schedules found</td></tr>';
                 return;
             }
 
             tbody.innerHTML = schedules.map(schedule => `
                 <tr>
                     <td>${schedule.username}</td>
-                    <td>${schedule.shift_date}</td>
-                    <td>${schedule.shift_start} - ${schedule.shift_end}</td>
-                    <td>${schedule.task_description || '-'}</td>
-                    <td>${schedule.created_at || '-'}</td>
+                    <td>${schedule.shift_name || '-'}</td>
+                    <td>${schedule.start_date}</td>
+                    <td>${schedule.end_date}</td>
+                    <td>${schedule.start_time} - ${schedule.end_time}</td>
+                    <td>${schedule.location || '-'}</td>
+                    <td><span class="badge badge-${schedule.status}">${schedule.status}</span></td>
                     <td>
                         <button class="btn btn-secondary btn-small" onclick="editSchedule(${schedule.schedule_id})">Edit</button>
                         <button class="btn btn-danger btn-small" onclick="deleteSchedule(${schedule.schedule_id})">Delete</button>
@@ -389,11 +443,16 @@
 
             document.getElementById('modalTitle').textContent = 'Edit Schedule';
             document.getElementById('scheduleId').value = schedule.schedule_id;
-            document.getElementById('staffId').value = schedule.staff_id;
-            document.getElementById('shiftDate').value = schedule.shift_date;
-            document.getElementById('shiftStart').value = schedule.shift_start;
-            document.getElementById('shiftEnd').value = schedule.shift_end;
-            document.getElementById('taskDescription').value = schedule.task_description || '';
+            document.getElementById('staffUserId').value = schedule.staff_user_id;
+            document.getElementById('shiftName').value = schedule.shift_name || '';
+            document.getElementById('startDate').value = schedule.start_date;
+            document.getElementById('endDate').value = schedule.end_date;
+            document.getElementById('startTime').value = schedule.start_time;
+            document.getElementById('endTime').value = schedule.end_time;
+            document.getElementById('daysOfWeek').value = schedule.days_of_week || '';
+            document.getElementById('location').value = schedule.location || '';
+            document.getElementById('notes').value = schedule.notes || '';
+            document.getElementById('status').value = schedule.status;
 
             document.getElementById('scheduleModal').classList.add('active');
         }
@@ -409,11 +468,16 @@
             const isEdit = !!scheduleId;
 
             const data = {
-                staff_id: document.getElementById('staffId').value,
-                shift_date: document.getElementById('shiftDate').value,
-                shift_start: document.getElementById('shiftStart').value,
-                shift_end: document.getElementById('shiftEnd').value,
-                task_description: document.getElementById('taskDescription').value
+                staff_user_id: document.getElementById('staffUserId').value,
+                shift_name: document.getElementById('shiftName').value,
+                start_date: document.getElementById('startDate').value,
+                end_date: document.getElementById('endDate').value,
+                start_time: document.getElementById('startTime').value,
+                end_time: document.getElementById('endTime').value,
+                days_of_week: document.getElementById('daysOfWeek').value,
+                location: document.getElementById('location').value,
+                notes: document.getElementById('notes').value,
+                status: document.getElementById('status').value
             };
 
             try {
@@ -477,5 +541,4 @@
         }
     </script>
 </body>
-
 </html>

@@ -161,9 +161,7 @@ class User:
                 return None
 
             user_id, db_username, db_password = row
-            print("db_password", db_password)
 
-            # ❗ PLAIN TEXT CHECK — NO HASHING
             if password != db_password:
                 print("[DEBUG] Incorrect password (plain-text check failed)")
                 return None

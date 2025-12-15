@@ -1,11 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Resident Dashboard - Condo Access</title>
-    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="/frontend/css/styles.css">
 </head>
+
 <body>
     <div class="dashboard">
         <!-- Sidebar -->
@@ -14,44 +16,33 @@
                 <h2>🏢 Condo Access</h2>
                 <div class="user-info">
                     <strong id="userName">Loading...</strong>
-                    <p id="userEmail"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="c3b1a6b0aaa7a6adb783a6bba2aeb3afa6eda0acae">[email&#160;protected]</a></p>
+                    <p id="userEmail"><a href="/cdn-cgi/l/email-protection" class="__cf_email__"
+                            data-cfemail="c3b1a6b0aaa7a6adb783a6bba2aeb3afa6eda0acae">[email&#160;protected]</a></p>
                 </div>
             </div>
-            
+
             <nav>
                 <ul class="nav-menu">
                     <li class="nav-item">
-                        <a href="resident-dashboard.html" class="nav-link active">
-                            📊 Dashboard
-                        </a>
+                        <a href="/resident/dashboard" class="nav-link active">📊 Dashboard</a>
                     </li>
                     <li class="nav-item">
-                        <a href="resident-profile.html" class="nav-link">
-                            👤 My Profile
-                        </a>
+                        <a href="/resident/profile" class="nav-link">My Profile</a>
                     </li>
                     <li class="nav-item">
-                        <a href="resident-face-registration.html" class="nav-link">
-                            📸 Face Registration
-                        </a>
+                        <a href="/resident/face-registration" class="nav-link">Face Registration</a>
                     </li>
                     <li class="nav-item">
-                        <a href="resident-visitors.html" class="nav-link">
-                            👥 Manage Visitors
-                        </a>
+                        <a href="/resident/visitors" class="nav-link">👥 Manage Visitors</a>
                     </li>
                     <li class="nav-item">
-                        <a href="resident-access-history.html" class="nav-link">
-                            📜 Access History
-                        </a>
+                        <a href="/resident/access-history" class="nav-link">📜 Access History</a>
                     </li>
                     <li class="nav-item">
-                        <a href="resident-alerts.html" class="nav-link">
-                            🔔 Alerts
-                        </a>
+                        <a href="/resident/alerts" class="nav-link">🔔 Alerts</a>
                     </li>
                     <li class="nav-item">
-                        <a href="#" class="nav-link" onclick="logout()">
+                        <a href="/admin/logout" class="nav-link" onclick="logout()">
                             🚪 Logout
                         </a>
                     </li>
@@ -90,7 +81,7 @@
             <div class="card">
                 <div class="card-header">
                     <h2>Recent Visitors</h2>
-                    <a href="resident-visitors.html" class="btn btn-sm btn-primary">View All</a>
+                    <a href="/resident/visitors" class="btn btn-sm btn-primary">View All</a>
                 </div>
                 <div class="card-body">
                     <div class="table-container">
@@ -117,7 +108,7 @@
             <div class="card">
                 <div class="card-header">
                     <h2>Recent Access History</h2>
-                    <a href="resident-access-history.html" class="btn btn-sm btn-primary">View All</a>
+                    <a href="/resident/access-history" class="btn btn-sm btn-primary">View All</a>
                 </div>
                 <div class="card-body">
                     <div class="table-container">
@@ -146,11 +137,11 @@
                 </div>
                 <div class="card-body">
                     <div class="flex gap-10">
-                        <a href="resident-visitors.html?action=add" class="btn btn-primary">
-                            + Add New Visitor
+                        <a href="/resident/visitors?action=add" class="btn btn-primary">+ Add New Visitor</a>
+                            
                         </a>
-                        <a href="resident-face-registration.html" class="btn btn-secondary">
-                            Update Face Data
+                        <a href="/resident/face-registration" class="btn btn-secondary">Update Face Data</a>
+                           
                         </a>
                         <button onclick="toggleFaceAccess()" class="btn btn-danger" id="toggleAccessBtn">
                             Disable Face Access
@@ -158,13 +149,12 @@
                     </div>
                 </div>
             </div>
-        </main>    </div>
+        </main>
+    </div>
 
-    <script src="js/config.js"></script>
-    <script src="js/resident-dashboard.js"></script>
+    <script src="/frontend/js/config.js"></script>
+    <script src="/frontend/js/resident-dashboard.js"></script>
 </body>
+
 </html>
-pt><script src="js/config.js"></script>
-    <script src="js/resident-dashboard.js"></script>
-</body>
 </html>

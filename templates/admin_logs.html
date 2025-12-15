@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Profile</title>
+    <title>Access Logs</title>
     <style>
         * {
             margin: 0;
@@ -48,7 +48,7 @@
         }
 
         .container {
-            max-width: 800px;
+            max-width: 1400px;
             margin: 0 auto;
             padding: 30px;
         }
@@ -56,165 +56,66 @@
         .card {
             background: #fff;
             border-radius: 8px;
-            margin-bottom: 25px;
             overflow: hidden;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
         }
 
         .card-header {
             padding: 20px 25px;
             border-bottom: 1px solid #e2e8f0;
-            background: #f8fafc;
         }
 
         .card-header h2 {
             font-size: 18px;
-            color: #1e293b;
+            color: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin-bottom: 15px;
         }
 
         .card-body {
-            padding: 25px;
+            padding: 0;
+            overflow-x: auto;
         }
 
-        .user-info {
+        .filters {
             display: flex;
+            gap: 10px;
             align-items: center;
-            gap: 20px;
+            flex-wrap: wrap;
         }
 
-        .avatar {
-            width: 80px;
-            height: 80px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 32px;
-            color: #fff;
-            overflow: hidden;
-            flex-shrink: 0;
-        }
-
-        .avatar img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-
-        .user-details h3 {
-            font-size: 20px;
-            color: #1e293b;
-            margin-bottom: 5px;
-        }
-
-        .user-details p {
-            color: #64748b;
-            font-size: 14px;
-        }
-
-        .status-badge {
-            display: inline-block;
-            padding: 6px 14px;
-            border-radius: 4px;
+        .filters label {
             font-size: 13px;
-            font-weight: 600;
-            margin-top: 10px;
+            color: #64748b;
+            font-weight: 500;
         }
 
-        .status-badge.success {
-            background: #dcfce7;
-            color: #166534;
-        }
-
-        .status-badge.warning {
-            background: #fef3c7;
-            color: #92400e;
-        }
-
-        .form-group {
-            margin-bottom: 20px;
-        }
-
-        .form-group label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: 600;
-            color: #334155;
-            font-size: 14px;
-        }
-
-        .form-group input {
-            width: 100%;
-            padding: 12px 15px;
+        .filters input,
+        .filters select {
+            padding: 10px 14px;
             border: 2px solid #e2e8f0;
             border-radius: 6px;
             font-size: 14px;
-            transition: border-color 0.3s;
         }
 
-        .form-group input:focus {
+        .filters input:focus,
+        .filters select:focus {
             outline: none;
             border-color: #3b82f6;
         }
 
-        .form-row {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-        }
-
-        .upload-area {
-            border: 3px dashed #cbd5e1;
-            border-radius: 8px;
-            padding: 40px 30px;
+        .btn {
+            padding: 10px 18px;
+            border: none;
+            border-radius: 6px;
             cursor: pointer;
-            transition: all 0.3s;
-            background: #f8fafc;
-            text-align: center;
-        }
-
-        .upload-area:hover {
-            border-color: #3b82f6;
-            background: #f0f7ff;
-        }
-
-        .upload-area.has-image {
-            border-style: solid;
-            border-color: #10b981;
-            background: #ecfdf5;
-        }
-
-        .upload-area h3 {
-            color: #334155;
-            font-size: 16px;
-            margin-bottom: 8px;
-        }
-
-        .upload-area p {
-            color: #64748b;
+            text-decoration: none;
+            display: inline-block;
+            font-weight: 500;
             font-size: 14px;
         }
 
-        .upload-area img {
-            max-width: 200px;
-            max-height: 200px;
-            border-radius: 8px;
-        }
-
-        #photoInput {
-            display: none;
-        }
-
-        .btn {
-            padding: 14px 30px;
-            border: none;
-            border-radius: 6px;
-            font-size: 15px;
-            font-weight: 600;
-            cursor: pointer;
-            margin-top: 20px;
-            transition: all 0.3s;
+        .btn-sm {
+            padding: 7px 14px;
+            font-size: 13px;
         }
 
         .btn-primary {
@@ -226,308 +127,179 @@
             background: #2563eb;
         }
 
-        .btn-primary:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
+        table {
+            width: 100%;
+            border-collapse: collapse;
         }
 
-        .btn-secondary {
-            background: #64748b;
-            color: #fff;
+        th,
+        td {
+            padding: 14px 16px;
+            text-align: left;
+            border-bottom: 1px solid #e2e8f0;
         }
 
-        .btn-secondary:hover {
-            background: #475569;
+        th {
+            background: #f8fafc;
+            font-weight: 600;
+            color: #64748b;
+            font-size: 12px;
+            text-transform: uppercase;
         }
 
-        .alert {
-            padding: 16px;
-            border-radius: 6px;
-            margin-bottom: 20px;
-            font-size: 14px;
-            display: none;
+        .badge {
+            padding: 5px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
         }
 
-        .alert.show {
-            display: block;
-        }
-
-        .alert-success {
+        .badge-success {
             background: #dcfce7;
             color: #166534;
-            border-left: 4px solid #10b981;
         }
 
-        .alert-error {
+        .badge-danger {
             background: #fee2e2;
             color: #dc2626;
-            border-left: 4px solid #ef4444;
         }
 
-        .alert-info {
+        .badge-info {
             background: #dbeafe;
             color: #1e40af;
-            border-left: 4px solid #3b82f6;
         }
 
-        .tips {
-            margin-top: 20px;
-            padding: 16px;
-            background: #f8fafc;
-            border-radius: 6px;
+        .empty {
+            text-align: center;
+            color: #94a3b8;
+            padding: 50px;
         }
 
-        .tips h4 {
-            color: #334155;
-            margin-bottom: 10px;
-            font-size: 14px;
-        }
-
-        .tips ul {
-            list-style: none;
-            color: #64748b;
-            font-size: 13px;
-        }
-
-        .tips li {
-            padding: 4px 0;
-        }
-
-        @media (max-width: 768px) {
-            .form-row {
-                grid-template-columns: 1fr;
-            }
-
-            .container {
-                padding: 15px;
-            }
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
         }
     </style>
 </head>
 
 <body>
     <nav class="navbar">
-        <h1>🔐 Admin Panel</h1>
+        <h1>Admin Panel</h1>
         <div class="navbar-links">
-            <a href="/admin/profile" class="active">Profile</a>
+            <a href="/admin/profile">Profile</a>
             <a href="/admin/users">Users</a>
             <a href="/admin/staff-schedules">Staff Schedules</a>
-            <a href="/admin/logs">Logs</a>
+            <a href="/admin/logs" class="active">Logs</a>
             <a href="/admin/logout">Logout</a>
         </div>
     </nav>
 
     <div class="container">
-        <!-- Profile Overview Card -->
         <div class="card">
             <div class="card-header">
-                <h2>👤 Your Profile</h2>
-            </div>
-            <div class="card-body">
-                <div class="user-info">
-                    <div class="avatar">
-                        {% if user.photo_path %}
-                        <img src="/uploads/{{ user.photo_path.split('/')[-1] }}" alt="Photo">
-                        {% else %}
-                        {{ user.full_name[0] if user.full_name else '?' }}
-                        {% endif %}
+                <h2>Access Logs</h2>
+                <form class="filters" method="GET">
+                    <div class="filter-group">
+                        <label>User</label>
+                        <select name="user_id">
+                            <option value="">All Users</option>
+                            {% for u in users_for_filter %}
+                            <option value="{{ u.id }}" {% if user_filter==u.id|string %}selected{% endif %}>
+                                {{ u.full_name }} (@{{ u.username }})
+                            </option>
+                            {% endfor %}
+                        </select>
                     </div>
-                    <div class="user-details">
-                        <h3>{{ user.full_name }}</h3>
-                        <p>@{{ user.username }} • {{ user.email }}</p>
-                        <span class="status-badge {% if user.face_encoding_path %}success{% else %}warning{% endif %}"
-                            id="faceStatusBadge">
-                            {% if user.face_encoding_path %}
-                            ✓ Face Verified
-                            {% else %}
-                            ⚠ Photo Required
+                    <div class="filter-group">
+                        <label>From Date</label>
+                        <input type="date" name="date_from" value="{{ date_from }}">
+                    </div>
+                    <div class="filter-group">
+                        <label>To Date</label>
+                        <input type="date" name="date_to" value="{{ date_to }}">
+                    </div>
+                    <div class="filter-group">
+                        <label>Status</label>
+                        <select name="status">
+                            <option value="">All Status</option>
+                            <option value="granted" {% if status_filter=='granted' %}selected{% endif %}>Granted
+                            </option>
+                            <option value="denied" {% if status_filter=='denied' %}selected{% endif %}>Denied</option>
+                        </select>
+                    </div>
+                    <div class="filter-group" style="justify-content: flex-end;">
+                        <label>&nbsp;</label>
+                        <div style="display:flex;gap:10px;">
+                            <button type="submit" class="btn btn-primary btn-sm">Filter</button>
+                            {% if user_filter or date_from or date_to or status_filter %}
+                            <a href="/admin/logs" class="btn btn-sm" style="background:#e2e8f0;color:#334155;">Clear</a>
                             {% endif %}
-                        </span>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Update Personal Information Card -->
-        <div class="card">
-            <div class="card-header">
-                <h2>📝 Update Personal Information</h2>
-            </div>
-            <div class="card-body">
-                <div id="infoAlertBox"></div>
-
-                <form id="updateInfoForm">
-                    <div class="form-group">
-                        <label>Full Name</label>
-                        <input type="text" id="fullName" value="{{ user.full_name }}" required>
-                    </div>
-
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Email Address</label>
-                            <input type="email" id="email" value="{{ user.email }}" required>
-                        </div>
-                        <div class="form-group">
-                            <label>Phone Number</label>
-                            <input type="tel" id="phone" value="{{ user.phone if user.phone else '' }}"
-                                placeholder="+65 1234 5678">
                         </div>
                     </div>
-
-                    <div class="form-group">
-                        <label>Username</label>
-                        <input type="text" value="{{ user.username }}" disabled
-                            style="background: #f1f5f9; cursor: not-allowed;">
-                        <p style="color: #64748b; font-size: 12px; margin-top: 5px;">Username cannot be changed</p>
-                    </div>
-
-                    <button type="submit" class="btn btn-primary">Save Changes</button>
                 </form>
-            </div>
-        </div>
-
-        <!-- Upload Face Photo Card -->
-        <div class="card">
-            <div class="card-header">
-                <h2>📸 Upload Face Photo</h2>
             </div>
             <div class="card-body">
-                <div id="uploadAlertBox"></div>
-
-                {% if not user.face_encoding_path %}
-                <div class="alert alert-info show">
-                    📷 Upload your photo to enable face recognition at the camera gate.
-                </div>
-                {% endif %}
-
-                <form id="uploadForm" enctype="multipart/form-data">
-                    <div class="upload-area" id="uploadArea" onclick="document.getElementById('photoInput').click()">
-                        <h3>📁 Click to select photo</h3>
-                        <p>JPG or PNG - Clear front-facing photo</p>
-                    </div>
-                    <input type="file" id="photoInput" name="photo" accept="image/*">
-                    <button type="submit" class="btn btn-primary" id="uploadBtn" disabled>Upload Photo</button>
-                </form>
-
-                <div class="tips">
-                    <h4>💡 Photo Tips for Best Results:</h4>
-                    <ul>
-                        <li>✓ Face clearly visible, front-facing</li>
-                        <li>✓ Good lighting, no shadows</li>
-                        <li>✓ Only one face in the photo</li>
-                        <li>✓ No sunglasses or face masks</li>
-                        <li>✓ Neutral expression recommended</li>
-                        <li>✓ High resolution image (at least 640x480)</li>
-                    </ul>
-                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Date/Time</th>
+                            <th>User</th>
+                            <th>Role</th>
+                            <th>Type</th>
+                            <th>Access Point</th>
+                            <th>Status</th>
+                            <th>Confidence</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for log in logs %}
+                        <tr>
+                            <td>{{ log.id }}</td>
+                            <td>{{ log.created_at.strftime('%Y-%m-%d %H:%M:%S') if log.created_at else '-' }}</td>
+                            <td>
+                                {% if log.full_name %}
+                                <strong>{{ log.full_name }}</strong>
+                                <br><small style="color:#64748b;">@{{ log.username }}</small>
+                                {% else %}
+                                <em style="color:#94a3b8;">Unknown</em>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if log.role %}
+                                <span class="badge badge-info">{{ log.role }}</span>
+                                {% else %}
+                                -
+                                {% endif %}
+                            </td>
+                            <td>{{ log.access_type or 'entry' }}</td>
+                            <td>{{ log.access_point or 'Main Gate' }}</td>
+                            <td>
+                                <span
+                                    class="badge {{ 'badge-success' if log.status == 'granted' else 'badge-danger' }}">
+                                    {{ log.status }}
+                                </span>
+                            </td>
+                            <td>
+                                {% if log.confidence %}
+                                {{ '%d%%' % (log.confidence * 100) }}
+                                {% else %}
+                                -
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="8" class="empty">No access logs found</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>
-
-    <script>
-        // Photo Upload
-        const photoInput = document.getElementById('photoInput');
-        const uploadArea = document.getElementById('uploadArea');
-        const uploadBtn = document.getElementById('uploadBtn');
-        const uploadAlertBox = document.getElementById('uploadAlertBox');
-        const faceStatusBadge = document.getElementById('faceStatusBadge');
-
-        photoInput.onchange = (e) => {
-            const file = e.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    uploadArea.innerHTML = '<img src="' + e.target.result + '" alt="Preview">';
-                    uploadArea.classList.add('has-image');
-                    uploadBtn.disabled = false;
-                };
-                reader.readAsDataURL(file);
-            }
-        };
-
-        document.getElementById('uploadForm').onsubmit = async (e) => {
-            e.preventDefault();
-
-            uploadAlertBox.innerHTML = '';
-            uploadBtn.disabled = true;
-            uploadBtn.textContent = 'Processing face...';
-
-            const formData = new FormData();
-            formData.append('photo', photoInput.files[0]);
-
-            try {
-                const response = await fetch('/admin/profile/upload', {
-                    method: 'POST',
-                    body: formData
-                });
-
-                const data = await response.json();
-
-                if (data.success) {
-                    showAlert(uploadAlertBox, '✓ ' + data.message + ' Refreshing page...', 'success');
-
-                    // Update badge immediately
-                    faceStatusBadge.className = 'status-badge success';
-                    faceStatusBadge.textContent = '✓ Face Verified';
-
-                    // Reload page after short delay
-                    setTimeout(() => location.reload(), 1500);
-                } else {
-                    showAlert(uploadAlertBox, '✗ ' + data.message, 'error');
-                    uploadBtn.disabled = false;
-                    uploadBtn.textContent = 'Upload Photo';
-                }
-            } catch (err) {
-                showAlert(uploadAlertBox, '✗ Network error. Please try again.', 'error');
-                uploadBtn.disabled = false;
-                uploadBtn.textContent = 'Upload Photo';
-            }
-        };
-
-        // Update Personal Information
-        document.getElementById('updateInfoForm').onsubmit = async (e) => {
-            e.preventDefault();
-
-            const infoAlertBox = document.getElementById('infoAlertBox');
-            infoAlertBox.innerHTML = '';
-
-            const data = {
-                full_name: document.getElementById('fullName').value,
-                email: document.getElementById('email').value,
-                phone: document.getElementById('phone').value
-            };
-
-            try {
-                const response = await fetch('/admin/profile/update', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(data)
-                });
-
-                const result = await response.json();
-
-                if (result.success) {
-                    showAlert(infoAlertBox, '✓ Profile updated successfully!', 'success');
-                    setTimeout(() => location.reload(), 1500);
-                } else {
-                    showAlert(infoAlertBox, '✗ ' + (result.message || 'Failed to update profile'), 'error');
-                }
-            } catch (err) {
-                showAlert(infoAlertBox, '✗ Network error. Please try again.', 'error');
-            }
-        };
-
-        // Helper function to show alerts
-        function showAlert(container, message, type) {
-            container.innerHTML = '<div class="alert alert-' + type + ' show">' + message + '</div>';
-            setTimeout(() => {
-                const alert = container.querySelector('.alert');
-                if (alert) alert.classList.remove('show');
-            }, 5000);
-        }
-    </script>
 </body>
 
+</html>
 </html>

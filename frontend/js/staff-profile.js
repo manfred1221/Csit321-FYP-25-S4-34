@@ -39,7 +39,7 @@ function setupEventListeners() {
         if (confirm('Are you sure you want to logout?')) {
             localStorage.removeItem('user');
             localStorage.removeItem('auth_token');
-            window.location.href = 'index.html';
+            window.location.href = '/admin/login';
         }
     });
     

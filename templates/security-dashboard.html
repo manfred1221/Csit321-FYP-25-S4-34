@@ -4,7 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Security Dashboard - Condo Access</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <link rel="stylesheet" href="/frontend/css/styles.css">
+
 </head>
 <body>
     <div class="dashboard">
@@ -21,37 +22,37 @@
             <nav>
                 <ul class="nav-menu">
                     <li class="nav-item">
-                        <a href="/?officer_id={{ officer.officer_id }}" class="nav-link active">
+                        <a href="/security-dashboard?officer_id={{ officer.id }}" class="nav-link active">
                             📹 Monitor Cameras
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a href="/security-override?officer_id={{ officer.officer_id }}" class="nav-link">
+                        <a href="/security-override?officer_id={{ officer.id }}" class="nav-link">
                             🚪 Manual Override
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a href="/security-view-profile?officer_id={{ officer.officer_id }}" class="nav-link">
+                        <a href="/security-view-profile?officer_id={{ officer.id }}" class="nav-link">
                             👤 View Profile
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a href="/security-update-profile?officer_id={{ officer.officer_id }}" class="nav-link">
+                        <a href="/security-update-profile?officer_id={{ officer.id }}" class="nav-link">
                             ✏️ Update Profile
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a href="/security-deactivate?officer_id={{ officer.officer_id }}" class="nav-link">
+                        <a href="/security-deactivate?officer_id={{ officer.id }}" class="nav-link">
                             ⚠️ Deactivate Account
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a href="/security-face-verification?officer_id={{ officer.officer_id }}" class="nav-link">
+                        <a href="/security-face-verification?officer_id={{ officer.id }}" class="nav-link">
                             🔍 Face Verification
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a href="/" class="nav-link" style="margin-top: 20px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 20px;">
+                        <a href="/security/logout" class="nav-link" style="margin-top: 20px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 20px;">
                             🚪 Logout
                         </a>
                     </li>
@@ -74,11 +75,11 @@
                 </div>
                 <div class="stat-card">
                     <h3>Today's Access Events</h3>
-                    <div class="stat-value" id="todayEvents">127</div>
+                    <div class="stat-value" id="todayEvents">{{ logs|length }}</div>
                 </div>
                 <div class="stat-card">
                     <h3>Active Visitors</h3>
-                    <div class="stat-value" id="activeVisitors">8</div>
+                    <div class="stat-value" id="activeVisitors">{{ granted_count }}</div>
                 </div>
                 <div class="stat-card">
                     <h3>Recent Alerts</h3>
@@ -224,7 +225,7 @@
                                 <td>Main Entrance</td>  <!-- optional: remove if your DB has a location column later -->
                                 <td>{{ officer.full_name }}</td>  <!-- because recognized_person = officer 1 -->
                                 <td><span class="badge badge-info">{{ log.user_type }}</span></td>
-                                <td>{{ "%.2f"|format(log.confidence) }}</td>
+                                <td>{{ "%.2f"|format(log.confidence) if log.confidence is not none else "N/A" }}</td>
                                 {% if log.access_result == "granted" %}
                                     <td><span class="badge badge-success">GRANTED</span></td>
                                 {% else %}

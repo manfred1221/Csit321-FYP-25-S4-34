@@ -14,7 +14,7 @@ import base64
 import numpy as np
 from PIL import Image
 from facenet_pytorch import InceptionResnetV1, MTCNN
-from sqlalchemy import select
+from sqlalchemy import select, create_engine
 from sqlalchemy.orm import load_only
 
 # initialize MTCNN and FaceNet once (module-level)
@@ -28,6 +28,7 @@ CORS(backend_security, resources={r"/api/*": {"origins": "*"}}, supports_credent
 # PostgreSQL config
 backend_security.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:joshua1102@localhost:5432/CSIT321: Face Recognition'
 backend_security.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
 
 db.init_app(backend_security)
 with backend_security.app_context():
@@ -146,10 +147,17 @@ def api_update_officer():
     data = request.json
     print("DEBUG JSON:", data)
 
-    # Read officer_id from query: /api/update-officer?officer_id=7
+    # Try query params first
     officer_id = request.args.get("officer_id", type=int)
+
+    # If not found, try JSON body
+    if not officer_id:
+        officer_id = data.get("officer_id")
+
+    # Final check
     if not officer_id:
         return jsonify({"success": False, "message": "Missing officer_id"}), 400
+
 
     officer = db.session.get(SecurityOfficer, officer_id)
     if not officer:
@@ -165,7 +173,6 @@ def api_update_officer():
     print("DEBUG OFFICER AFTER:", officer.full_name, officer.contact_number, officer.shift)
 
     return jsonify({"success": True, "message": "Profile updated"}), 200
-
 
 
 @backend_security.route("/security-face-verification")
@@ -276,23 +283,49 @@ def api_verify_face():
         if user_type == "security_officer":
             so = SecurityOfficer.query.filter_by(officer_id=reference_id).first()
             name = so.full_name if so else "Unknown Officer"
-        else:
-            # attempt residents / visitors tables if they exist
-            # graceful fallback if model not present
+        elif user_type == "resident":
             try:
                 from routes.security_officer.security_officer_model import Resident
                 res = Resident.query.get(reference_id)
                 if res:
                     name = getattr(res, "full_name", getattr(res, "name", str(reference_id)))
             except Exception:
-                # visitor model
-                try:
-                    from routes.security_officer.security_officer_model import Visitor
-                    vis = Visitor.query.get(reference_id)
-                    if vis:
-                        name = getattr(vis, "full_name", getattr(vis, "name", str(reference_id)))
-                except Exception:
-                    name = f"{user_type}:{reference_id}"
+                name = f"Resident:{reference_id}"
+        elif user_type == "visitor":
+            try:
+                from routes.security_officer.security_officer_model import Visitor
+                vis = Visitor.query.get(reference_id)
+                if vis:
+                    name = getattr(vis, "full_name", getattr(vis, "name", str(reference_id)))
+            except Exception:
+                name = f"Visitor:{reference_id}"
+        elif user_type in ["internal_staff", "temp_staff", "TEMP_STAFF", "Internal_Staff"]:
+            # Try to get staff name from internal_staff table or temp_staff table
+            try:
+                # Try internal_staff table
+                from sqlalchemy import text
+                result = db.session.execute(
+                    text("SELECT full_name FROM internal_staff WHERE staff_id = :ref_id"),
+                    {"ref_id": reference_id}
+                ).fetchone()
+                if result:
+                    name = result[0]
+                else:
+                    # Try temp_staff table
+                    result = db.session.execute(
+                        text("SELECT full_name FROM temp_staff WHERE temp_id = :ref_id"),
+                        {"ref_id": reference_id}
+                    ).fetchone()
+                    if result:
+                        name = result[0]
+                    else:
+                        name = f"Staff:{reference_id}"
+            except Exception as e:
+                name = f"Staff:{reference_id}"
+        elif user_type == "ADMIN":
+            name = "Administrator"
+        else:
+            name = f"{user_type}:{reference_id}"
     except Exception:
         name = f"{user_type}:{reference_id}"
 
@@ -372,3 +405,4 @@ def test_list_users():
 
 if __name__ == "__main__":
     backend_security.run(debug=True, port=5001)
+

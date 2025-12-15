@@ -10,34 +10,34 @@ import logging
 from werkzeug.utils import secure_filename
 import uuid
 from jinja2 import ChoiceLoader, FileSystemLoader
-from datetime import datetime
+from datetime import datetime, timedelta
 import numpy as np
 
 
 from config import Config
-from db import get_db_connection
+# from db import get_db_connection
 from user import User, Resident
 from access_log import AccessLog
 from psycopg2.extras import RealDictCursor
 from database import DATABASE_URL, get_db_connection
 
-# # Security Officer imports
-# try:
-#     from routes.security_officer.security_officer_model import SecurityOfficer, db, FaceEmbedding, log_access, Visitor, AccessLog
-#     from routes.security_officer.security_officer_controller import (
-#         image_to_embedding,
-#         monitor_camera,
-#         manual_override,
-#         view_profile,
-#         update_profile,
-#         delete_account,
-#         deactivate_account,
-#         verify_face as face_verify
-#     )
-#     SECURITY_OFFICER_AVAILABLE = True
-# except ImportError as e:
-#     logging.warning(f"Security officer modules not available: {e}")
-#     SECURITY_OFFICER_AVAILABLE = False
+# Security Officer imports
+try:
+    from routes.security_officer.security_officer_model import SecurityOfficer, db, FaceEmbedding, log_access, Visitor, AccessLog
+    from routes.security_officer.security_officer_controller import (
+        image_to_embedding,
+        monitor_camera,
+        manual_override,
+        view_profile,
+        update_profile,
+        delete_account,
+        deactivate_account,
+        verify_face as face_verify
+    )
+    SECURITY_OFFICER_AVAILABLE = True
+except ImportError as e:
+    logging.warning(f"Security officer modules not available: {e}")
+    SECURITY_OFFICER_AVAILABLE = False
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
@@ -278,7 +278,8 @@ def security_login():
 def security_dashboard():
     officer = SecurityOfficer.query.get(session['officer_id'])
     access_logs = AccessLog.query.order_by(AccessLog.log_id.asc()).all()
-    return render_template("security-dashboard.html", officer=officer, logs=access_logs)
+    granted_count = AccessLog.query.filter_by(access_result='granted').count()
+    return render_template("security-dashboard.html", officer=officer, logs=access_logs, granted_count=granted_count)
 
 
 @app.route("/security-deactivate")
@@ -323,7 +324,55 @@ def api_update_officer():
 @officer_required
 def face_verification():
     officer = SecurityOfficer.query.get(session['officer_id'])
-    return render_template("security-face-verification.html", officer=officer)
+
+    logs = AccessLog.query.order_by(AccessLog.access_time.desc()).limit(10).all()
+    threshold = 0.65
+
+    # Fetch all logs for today
+    today_start = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+    logs = AccessLog.query.filter(AccessLog.access_time >= today_start).order_by(AccessLog.access_time.desc()).all()
+
+    success_count = 0
+    fail_count = 0
+    total_time = 0.0
+    count_time = 0
+
+    # Prepare data for template
+    log_data = []
+    for log in logs:
+        confidence = log.confidence or 0
+        verified = confidence >= threshold
+
+        if verified:
+            success_count += 1
+        else:
+            fail_count += 1
+
+        # optional: track average verification time if stored
+        if hasattr(log, "verification_time") and log.verification_time:
+            total_time += log.verification_time
+            count_time += 1
+
+        log_data.append({
+            "time": log.access_time.strftime("%H:%M:%S"),
+            "person": log.recognized_person,
+            "type": log.person_type.capitalize(),
+            "confidence": round(confidence * 100, 2),
+            "verified": verified,
+            "officer": officer.full_name
+        })
+
+    avg_time = round(total_time / count_time, 2) if count_time else 0
+
+    return render_template(
+        "security-face-verification.html",
+        officer=officer,
+        access_logs=log_data,
+        success_count=success_count,
+        fail_count=fail_count,
+        avg_time=avg_time,
+        threshold=threshold
+    )
 
 @app.route("/security/logout")
 @officer_required
@@ -1107,7 +1156,7 @@ def test_db():
 # SECURITY OFFICER ROUTES (from security_officer_routes.py)
 # ============================================
 
-if False:
+if SECURITY_OFFICER_AVAILABLE:
     @app.route("/api/security_officer/manual_override", methods=["POST"])
     def route_manual_override():
         data = request.get_json() or {}
@@ -1199,71 +1248,136 @@ if False:
             "officer_id": officer_id
         }), 200
 
+    RATE_LIMIT = {}
+    MAX_ATTEMPTS = 10
+    WINDOW_SECONDS = 60
+
+
+    def normalize(vec):
+        vec = np.array(vec, dtype=np.float32)
+        return vec / np.linalg.norm(vec)
+
+
+    def cosine_similarity(a, b):
+        return float(np.dot(a, b))
+
+
     @app.route("/api/security_officer/verify_face", methods=["POST"])
     def verify_face():
-        """Verify face or create new officer"""
-        data = request.get_json()
-        image_base64 = data.get("image")
-        officer_id = data.get("officer_id")
 
-        if not image_base64:
-            return jsonify({"status":"error","message":"No image provided"}), 400
+        try:
+            data = request.get_json(force=True)
+            image_base64 = data.get("image")
 
-        embedding_vector = image_to_embedding(image_base64)
+            officer_id = session.get("officer_id")
 
-        all_embeddings = FaceEmbedding.query.filter_by(user_type="security_officer").all()
-        threshold = 0.8
+            if not officer_id:
+                return jsonify({
+                    "status": "error",
+                    "message": "Session expired. Please login again."
+                }), 401
 
-        def cosine_similarity(a, b):
-            return np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b))
+            if not image_base64:
+                return jsonify({
+                    "status": "error",
+                    "message": "Missing image"
+                }), 400
 
-        matched_officer = None
-        for fe in all_embeddings:
-            sim = cosine_similarity(embedding_vector, fe.embedding)
-            if sim > threshold:
-                matched_officer = SecurityOfficer.query.get(fe.reference_id)
+            officer = SecurityOfficer.query.get(officer_id)
+            if not officer or not officer.active:
+                return jsonify({
+                    "status": "error",
+                    "message": "Unauthorized officer"
+                }), 403
+
+            # --- Generate embedding ---
+            # raw_embedding = image_to_embedding(image_base64)
+            # query_embedding = raw_embedding / np.linalg.norm(raw_embedding)
+
+            raw_embedding = image_to_embedding(image_base64)
+
+            if raw_embedding is None:
+                return jsonify({
+                    "status": "error",
+                    "message": "No face detected. Please try again."
+                }), 400
+
+            query_embedding = normalize(raw_embedding)
+
+            embeddings = FaceEmbedding.query.filter(
+                FaceEmbedding.user_type.in_(["resident", "visitor"])
+            ).all()
+
+            threshold = 0.65
+            best_match = None
+            best_score = 0.0
+
+            for fe in embeddings:
+
+                if fe.embedding is None:
+                    continue   # ⛔ skip broken rows
+
+                db_embedding = np.array(fe.embedding, dtype=np.float32)
+
+                if db_embedding.size != 512:
+                    continue   # ⛔ corrupted vector
+
+                db_embedding = normalize(db_embedding)
+
+                score = cosine_similarity(query_embedding, db_embedding)
+
+                if score > best_score:
+                    best_score = score
+                    best_match = fe
+
+            if best_match and best_score >= threshold:
+
+                if best_match.user_type == "resident":
+                    from routes.security_officer.security_officer_model import Resident
+                    person = Resident.query.get(best_match.reference_id)
+                else:
+                    person = Visitor.query.get(best_match.reference_id)
+
                 log_access(
-                    recognized_person=matched_officer.full_name,
-                    person_type="security_officer",
-                    confidence=float(sim),
+                    
+                    recognized_person=person.full_name,
+                    person_type=best_match.user_type,
+                    confidence=best_score,
                     result="granted",
-                    embedding_id=fe.embedding_id
+                    embedding_id=best_match.embedding_id,
                 )
-                break
 
-        if matched_officer:
+                return jsonify({
+                    "status": "success",
+                    "result": "granted",
+                    "person_type": best_match.user_type,
+                    "name": person.full_name,
+                    "message": "Face recognized",   
+                    "confidence": float(round(best_score * 100, 2))
+                })
+
+            # No match
+            log_access(
+                recognized_person="Unknown",
+                person_type="unknown",
+                confidence=best_score,
+                result="denied",
+                embedding_id=None,
+            )
+
             return jsonify({
-                "status": "success",
-                "message": f"Face verified for {matched_officer.full_name}",
-                "officer_id": matched_officer.officer_id
-            })
+                "status": "error",
+                "result": "denied",
+                "message": "Face not recognized",
+                "confidence": float(round(best_score * 100, 2))
+            }), 401
 
-        new_officer = SecurityOfficer(full_name="New Officer")
-        db.session.add(new_officer)
-        db.session.commit()
-        officer_id = new_officer.officer_id
-
-        new_embedding = FaceEmbedding(
-            user_type="security_officer",
-            reference_id=officer_id,
-            embedding=embedding_vector
-        )
-        db.session.add(new_embedding)
-        db.session.commit()
-
-        log_access(
-            recognized_person=new_officer.full_name,
-            person_type="security_officer",
-            confidence=1.0,
-            result="granted",
-            embedding_id=new_embedding.embedding_id
-        )
-
-        return jsonify({
-            "status": "success",
-            "message": f"New officer registered: {new_officer.full_name}",
-            "officer_id": officer_id
-        })
+        except Exception as e:
+            print("VERIFY FACE ERROR:", str(e))
+            return jsonify({
+                "status": "error",
+                "message": "Internal server error during face verification"
+            }), 500
 
     @app.route("/api/security_officer/upload_face_embedding", methods=["POST"])
     def upload_face_embedding():
@@ -1427,7 +1541,7 @@ def admin_profile_upload():
 
         # For admin users, store face embedding directly with admin type
         # No need to create a resident record
-        user_type = 'ADMIN'
+        user_type = 'admin'
         reference_id = user['id']
 
         embedding_id, error = register_face_from_photo(photo_path, reference_id, user_type)
@@ -1464,53 +1578,17 @@ def admin_users():
 
     return render_template('admin_users.html', users=users)
 
-@app.route('/admin/users/<int:user_id>/edit', methods=["GET", "POST"])
+@app.route('/admin/users/<int:user_id>/edit')
 @admin_required
 def admin_users_edit(user_id):
-    if request.method == "GET":
-        user = User.get_by_id(user_id)
-        if not user:
-            return "User not found", 404
-        return render_template('admin_edit_user.html', user=user)
     """Edit user page - User Story: Edit user details"""
-
-    print("request.json", request.json)
-    data = request.json
-
-    data_dict = {
-        'email': data['email'],
-        'password': data['password'],
-        'role': data['role'],
-        'access_level': data.get('access_level', 'standard'),
-        'full_name': data.get('full_name'),
-        'phone': data.get('phone', ''),
-        'unit_number': data.get('unit_number', 'N/A')
-    }
-
-    # Include temp worker fields if applicable
-    if data['role'] == 'TEMP_WORKER':
-        data_dict.update({
-            'role': "temp_staff",
-            'work_start_date': data.get('work_start_date'),
-            'work_end_date': data.get('work_end_date'),
-            'work_schedule': data.get('work_schedule', ''),
-            'work_details': data.get('work_details', ''),
-        })
-
-    # Filter out None, empty strings, and other falsy values
-    data_dict = {k: v for k, v in data_dict.items() if v not in (None, '', 'N/A')}
-    print("data_dict", data_dict)
-
-    User.update(user_id, data_dict)
-    # print("user", user_id)
     user = User.get_by_id(user_id)
 
     print("user", user)
     if not user:
         return "User not found", 404
 
-    return jsonify({'success': True, 'message': 'User updated successfully'})
-    # return render_template('admin_edit_user.html', user=user)
+    return render_template('admin_edit_user.html', user=user)
 
 @app.route('/admin/users/create', methods=['GET'])
 @admin_required
@@ -1870,7 +1948,7 @@ def init_app(app):
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
     # Bind SQLAlchemy
-    # db.init_app(app)
+    db.init_app(app)
 
     # Test database connection
     try:
@@ -1899,9 +1977,6 @@ def init_app(app):
 # STAFF SCHEDULE MANAGEMENT ROUTES
 # ============================================
 
-# THAY THẾ TẤT CẢ STAFF SCHEDULE ROUTES trong app.py
-# Bắt đầu từ dòng ~1169
-
 @app.route('/admin/staff-schedules')
 @admin_required
 def admin_staff_schedules():
@@ -1914,7 +1989,7 @@ def admin_staff_schedules():
         SELECT u.user_id, u.username, u.email, r.role_name
         FROM users u
         JOIN roles r ON u.role_id = r.role_id
-        WHERE r.role_id IN (8, 13)
+        WHERE r.role_name IN ('Internal_Staff', 'INTERNAL_STAFF', 'Staff')
         AND u.status = 'active'
         ORDER BY u.username
     """)
@@ -1924,7 +1999,6 @@ def admin_staff_schedules():
     conn.close()
 
     return render_template('admin_staff_schedules.html', staff_users=staff_users)
-
 
 @app.route('/api/admin/staff-schedules', methods=['GET'])
 @admin_required
@@ -1937,18 +2011,22 @@ def get_staff_schedules():
 
     if staff_id:
         cursor.execute("""
-            SELECT s.*, u.username, u.email
+            SELECT s.*, u.username, u.email,
+                   a.username as assigned_by_username
             FROM staff_schedules s
-            JOIN users u ON s.staff_id = u.user_id
-            WHERE s.staff_id = %s
-            ORDER BY s.shift_date DESC, s.shift_start
+            JOIN users u ON s.staff_user_id = u.user_id
+            LEFT JOIN users a ON s.assigned_by_user_id = a.user_id
+            WHERE s.staff_user_id = %s
+            ORDER BY s.start_date DESC, s.start_time
         """, (staff_id,))
     else:
         cursor.execute("""
-            SELECT s.*, u.username, u.email
+            SELECT s.*, u.username, u.email,
+                   a.username as assigned_by_username
             FROM staff_schedules s
-            JOIN users u ON s.staff_id = u.user_id
-            ORDER BY s.shift_date DESC, s.shift_start
+            JOIN users u ON s.staff_user_id = u.user_id
+            LEFT JOIN users a ON s.assigned_by_user_id = a.user_id
+            ORDER BY s.start_date DESC, s.start_time
         """)
 
     schedules = cursor.fetchall()
@@ -1960,18 +2038,19 @@ def get_staff_schedules():
     for schedule in schedules:
         schedule_dict = dict(schedule)
         # Convert date and time objects to strings
-        if schedule_dict.get('shift_date'):
-            schedule_dict['shift_date'] = schedule_dict['shift_date'].strftime('%Y-%m-%d')
-        if schedule_dict.get('shift_start'):
-            schedule_dict['shift_start'] = str(schedule_dict['shift_start'])
-        if schedule_dict.get('shift_end'):
-            schedule_dict['shift_end'] = str(schedule_dict['shift_end'])
+        if schedule_dict.get('start_date'):
+            schedule_dict['start_date'] = schedule_dict['start_date'].strftime('%Y-%m-%d')
+        if schedule_dict.get('end_date'):
+            schedule_dict['end_date'] = schedule_dict['end_date'].strftime('%Y-%m-%d')
+        if schedule_dict.get('start_time'):
+            schedule_dict['start_time'] = str(schedule_dict['start_time'])
+        if schedule_dict.get('end_time'):
+            schedule_dict['end_time'] = str(schedule_dict['end_time'])
         if schedule_dict.get('created_at'):
             schedule_dict['created_at'] = schedule_dict['created_at'].strftime('%Y-%m-%d %H:%M:%S')
         schedules_list.append(schedule_dict)
 
     return jsonify({'success': True, 'schedules': schedules_list})
-
 
 @app.route('/api/admin/staff-schedules', methods=['POST'])
 @admin_required
@@ -1979,7 +2058,7 @@ def create_staff_schedule():
     """Create a new staff schedule"""
     data = request.get_json()
 
-    required_fields = ['staff_id', 'shift_date', 'shift_start', 'shift_end']
+    required_fields = ['staff_user_id', 'start_date', 'end_date', 'start_time', 'end_time']
     for field in required_fields:
         if not data.get(field):
             return jsonify({'success': False, 'message': f'Missing required field: {field}'}), 400
@@ -1990,15 +2069,22 @@ def create_staff_schedule():
     try:
         cursor.execute("""
             INSERT INTO staff_schedules
-            (staff_id, shift_date, shift_start, shift_end, task_description)
-            VALUES (%s, %s, %s, %s, %s)
+            (staff_user_id, assigned_by_user_id, shift_name, start_date, end_date,
+             start_time, end_time, days_of_week, location, notes, status)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             RETURNING schedule_id
         """, (
-            data['staff_id'],
-            data['shift_date'],
-            data['shift_start'],
-            data['shift_end'],
-            data.get('task_description', '')
+            data['staff_user_id'],
+            session.get('user_id'),
+            data.get('shift_name', ''),
+            data['start_date'],
+            data['end_date'],
+            data['start_time'],
+            data['end_time'],
+            data.get('days_of_week', ''),
+            data.get('location', ''),
+            data.get('notes', ''),
+            data.get('status', 'active')
         ))
 
         result = cursor.fetchone()
@@ -2019,7 +2105,6 @@ def create_staff_schedule():
         cursor.close()
         conn.close()
 
-
 @app.route('/api/admin/staff-schedules/<int:schedule_id>', methods=['PUT'])
 @admin_required
 def update_staff_schedule(schedule_id):
@@ -2032,16 +2117,21 @@ def update_staff_schedule(schedule_id):
     try:
         cursor.execute("""
             UPDATE staff_schedules
-            SET shift_date = %s,
-                shift_start = %s,
-                shift_end = %s,
-                task_description = %s
+            SET shift_name = %s, start_date = %s, end_date = %s,
+                start_time = %s, end_time = %s, days_of_week = %s,
+                location = %s, notes = %s, status = %s,
+                updated_at = CURRENT_TIMESTAMP
             WHERE schedule_id = %s
         """, (
-            data.get('shift_date'),
-            data.get('shift_start'),
-            data.get('shift_end'),
-            data.get('task_description', ''),
+            data.get('shift_name', ''),
+            data.get('start_date'),
+            data.get('end_date'),
+            data.get('start_time'),
+            data.get('end_time'),
+            data.get('days_of_week', ''),
+            data.get('location', ''),
+            data.get('notes', ''),
+            data.get('status', 'active'),
             schedule_id
         ))
 
@@ -2059,7 +2149,6 @@ def update_staff_schedule(schedule_id):
     finally:
         cursor.close()
         conn.close()
-
 
 @app.route('/api/admin/staff-schedules/<int:schedule_id>', methods=['DELETE'])
 @admin_required
@@ -2085,7 +2174,6 @@ def delete_staff_schedule(schedule_id):
         cursor.close()
         conn.close()
 
-
 # Staff view their own schedules
 @app.route('/api/staff/schedules', methods=['GET'])
 def get_my_schedules():
@@ -2103,9 +2191,10 @@ def get_my_schedules():
         cursor.execute("""
             SELECT s.*, u.username, u.email
             FROM staff_schedules s
-            JOIN users u ON s.staff_id = u.user_id
-            WHERE s.staff_id = %s
-            ORDER BY s.shift_date DESC, s.shift_start
+            JOIN users u ON s.staff_user_id = u.user_id
+            WHERE s.staff_user_id = %s
+            AND s.status = 'active'
+            ORDER BY s.start_date DESC, s.start_time
         """, (staff_id,))
 
         schedules = cursor.fetchall()
@@ -2114,12 +2203,14 @@ def get_my_schedules():
         schedules_list = []
         for schedule in schedules:
             schedule_dict = dict(schedule)
-            if schedule_dict.get('shift_date'):
-                schedule_dict['shift_date'] = schedule_dict['shift_date'].strftime('%Y-%m-%d')
-            if schedule_dict.get('shift_start'):
-                schedule_dict['shift_start'] = str(schedule_dict['shift_start'])
-            if schedule_dict.get('shift_end'):
-                schedule_dict['shift_end'] = str(schedule_dict['shift_end'])
+            if schedule_dict.get('start_date'):
+                schedule_dict['start_date'] = schedule_dict['start_date'].strftime('%Y-%m-%d')
+            if schedule_dict.get('end_date'):
+                schedule_dict['end_date'] = schedule_dict['end_date'].strftime('%Y-%m-%d')
+            if schedule_dict.get('start_time'):
+                schedule_dict['start_time'] = str(schedule_dict['start_time'])
+            if schedule_dict.get('end_time'):
+                schedule_dict['end_time'] = str(schedule_dict['end_time'])
             schedules_list.append(schedule_dict)
 
         return jsonify({'success': True, 'schedules': schedules_list})
@@ -2130,6 +2221,8 @@ def get_my_schedules():
     finally:
         cursor.close()
         conn.close()
+
+
 
 if __name__ == '__main__':
     from app import app

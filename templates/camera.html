@@ -81,24 +81,6 @@
             height: 240px;
             border: 2px dashed rgba(255, 255, 255, 0.3);
             border-radius: 50%;
-            transition: border-color 0.3s;
-        }
-
-        .face-guide.detecting {
-            border-color: rgba(59, 130, 246, 0.8);
-            animation: pulse 1.5s infinite;
-        }
-
-        @keyframes pulse {
-
-            0%,
-            100% {
-                opacity: 1;
-            }
-
-            50% {
-                opacity: 0.5;
-            }
         }
 
         .status-bar {
@@ -109,7 +91,6 @@
             padding: 12px;
             background: rgba(0, 0, 0, 0.8);
             font-size: 14px;
-            transition: background 0.3s;
         }
 
         .status-bar.granted {
@@ -133,12 +114,10 @@
             font-weight: 600;
             background: #166534;
             color: #fff;
-            transition: all 0.3s;
         }
 
-        .btn:hover:not(:disabled) {
+        .btn:hover {
             background: #15803d;
-            transform: translateY(-2px);
         }
 
         .btn:disabled {
@@ -151,19 +130,6 @@
             padding: 20px;
             border-radius: 8px;
             display: none;
-            animation: slideIn 0.3s;
-        }
-
-        @keyframes slideIn {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
-
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
         }
 
         .result-box.show {
@@ -198,63 +164,6 @@
             font-size: 14px;
             color: #94a3b8;
         }
-
-        .tips {
-            background: rgba(59, 130, 246, 0.1);
-            border: 1px solid rgba(59, 130, 246, 0.3);
-            padding: 15px;
-            border-radius: 6px;
-            margin-top: 20px;
-            text-align: left;
-        }
-
-        .tips h4 {
-            margin-bottom: 10px;
-            color: #60a5fa;
-        }
-
-        .tips ul {
-            list-style: none;
-            font-size: 13px;
-            color: #94a3b8;
-        }
-
-        .tips li {
-            padding: 3px 0;
-            padding-left: 20px;
-            position: relative;
-        }
-
-        .tips li:before {
-            content: "✓";
-            position: absolute;
-            left: 0;
-            color: #60a5fa;
-        }
-
-        .quality-indicators {
-            display: flex;
-            gap: 10px;
-            justify-content: center;
-            margin-top: 15px;
-        }
-
-        .quality-indicator {
-            padding: 8px 16px;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 6px;
-            font-size: 12px;
-        }
-
-        .quality-indicator.good {
-            background: rgba(16, 185, 129, 0.2);
-            border: 1px solid rgba(16, 185, 129, 0.5);
-        }
-
-        .quality-indicator.poor {
-            background: rgba(239, 68, 68, 0.2);
-            border: 1px solid rgba(239, 68, 68, 0.5);
-        }
     </style>
 </head>
 
@@ -264,39 +173,23 @@
         <p class="subtitle">Face Recognition Access Control</p>
 
         <div class="instructions">
-            Position your face in the oval guide and ensure good lighting
+            Position your face in the oval and click Verify Access
         </div>
 
         <div class="camera-box">
             <video id="video" autoplay playsinline></video>
-            <canvas id="canvas" width="640" height="480"></canvas>
+            <canvas id="canvas" width="480" height="360"></canvas>
             <div class="overlay">
-                <div class="face-guide" id="faceGuide"></div>
+                <div class="face-guide"></div>
             </div>
             <div class="status-bar" id="statusBar">Starting camera...</div>
         </div>
 
         <button class="btn" id="verifyBtn" onclick="verify()" disabled>Verify Access</button>
 
-        <div class="quality-indicators" id="qualityIndicators" style="display: none;">
-            <div class="quality-indicator" id="lightingIndicator">Lighting: Checking...</div>
-            <div class="quality-indicator" id="resolutionIndicator">Resolution: OK</div>
-        </div>
-
         <div class="result-box" id="resultBox">
             <h2 id="resultTitle"></h2>
             <p id="resultMessage"></p>
-        </div>
-
-        <div class="tips">
-            <h4>Tips for Best Results:</h4>
-            <ul>
-                <li>Face the camera directly</li>
-                <li>Ensure adequate lighting</li>
-                <li>Remove sunglasses and masks</li>
-                <li>Keep face centered in the oval</li>
-                <li>Stay still during verification</li>
-            </ul>
         </div>
     </div>
 
@@ -307,72 +200,33 @@
         const statusBar = document.getElementById('statusBar');
         const verifyBtn = document.getElementById('verifyBtn');
         const resultBox = document.getElementById('resultBox');
-        const faceGuide = document.getElementById('faceGuide');
-
-        let stream = null;
-        let captureQuality = 'unknown';
 
         async function startCamera() {
             try {
-                // Request higher quality stream
-                stream = await navigator.mediaDevices.getUserMedia({
-                    video: {
-                        width: { ideal: 1280 },
-                        height: { ideal: 720 },
-                        facingMode: 'user',
-                        frameRate: { ideal: 30 }
-                    }
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: { width: 640, height: 480, facingMode: 'user' }
                 });
-
                 video.srcObject = stream;
                 verifyBtn.disabled = false;
-                statusBar.textContent = 'Camera ready - Click "Verify Access" when ready';
-                statusBar.style.background = 'rgba(22, 101, 52, 0.8)';
-
-                // Start quality monitoring
-                setTimeout(monitorQuality, 1000);
+                statusBar.textContent = 'Camera ready';
             } catch (error) {
-                console.error('Camera error:', error);
                 statusBar.textContent = 'Camera access denied - Please allow camera';
                 statusBar.className = 'status-bar denied';
             }
         }
 
-        function monitorQuality() {
-            const qualityIndicators = document.getElementById('qualityIndicators');
-            qualityIndicators.style.display = 'flex';
-
-            // Check video resolution
-            const actualWidth = video.videoWidth;
-            const actualHeight = video.videoHeight;
-            console.log(`Video resolution: ${actualWidth}x${actualHeight}`);
-
-            // Simplified quality check
-            document.getElementById('lightingIndicator').textContent = 'Lighting: OK';
-            document.getElementById('lightingIndicator').className = 'quality-indicator good';
-
-            document.getElementById('resolutionIndicator').textContent = `${actualWidth}x${actualHeight}`;
-            document.getElementById('resolutionIndicator').className = 'quality-indicator good';
-        }
-
         async function verify() {
             verifyBtn.disabled = true;
-            faceGuide.classList.add('detecting');
-            statusBar.textContent = 'Analyzing face...';
+            statusBar.textContent = 'Verifying face...';
             statusBar.className = 'status-bar processing';
             resultBox.className = 'result-box';
 
-            // Draw video frame to canvas (mirror it)
-            ctx.save();
             ctx.translate(canvas.width, 0);
             ctx.scale(-1, 1);
             ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-            ctx.restore();
+            ctx.setTransform(1, 0, 0, 1, 0, 0);
 
-            // Get high quality JPEG
-            const imageData = canvas.toDataURL('image/jpeg', 0.95);
-
-            console.log('Sending image for recognition...');
+            const imageData = canvas.toDataURL('image/jpeg', 0.9);
 
             try {
                 const response = await fetch('/api/recognize', {
@@ -382,7 +236,6 @@
                 });
 
                 const data = await response.json();
-                console.log('Response:', data);
 
                 if (data.recognized) {
                     statusBar.textContent = 'ACCESS GRANTED';
@@ -391,7 +244,7 @@
                     resultBox.className = 'result-box granted show';
                     document.getElementById('resultTitle').textContent = 'Welcome!';
                     document.getElementById('resultMessage').textContent =
-                        `${data.full_name}\nConfidence: ${data.confidence}%`;
+                        data.full_name + ' - Confidence: ' + data.confidence + '%';
                 } else {
                     statusBar.textContent = 'ACCESS DENIED';
                     statusBar.className = 'status-bar denied';
@@ -399,39 +252,22 @@
                     resultBox.className = 'result-box denied show';
                     document.getElementById('resultTitle').textContent = 'Access Denied';
                     document.getElementById('resultMessage').textContent =
-                        data.message || 'Face not recognized. Please try again or contact administrator.';
+                        data.message || 'Face not recognized';
                 }
             } catch (error) {
-                console.error('Verification error:', error);
                 statusBar.textContent = 'Error - Try again';
                 statusBar.className = 'status-bar denied';
-
-                resultBox.className = 'result-box denied show';
-                document.getElementById('resultTitle').textContent = 'Error';
-                document.getElementById('resultMessage').textContent =
-                    'Network error. Please check your connection and try again.';
             }
 
-            faceGuide.classList.remove('detecting');
-
-            // Re-enable button after delay
             setTimeout(() => {
                 verifyBtn.disabled = false;
-                statusBar.textContent = 'Ready for next verification';
+                statusBar.textContent = 'Ready';
                 statusBar.className = 'status-bar';
             }, 3000);
         }
 
-        // Auto-start camera when page loads
         window.onload = startCamera;
-
-        // Cleanup on page unload
-        window.onbeforeunload = () => {
-            if (stream) {
-                stream.getTracks().forEach(track => track.stop());
-            }
-        };
     </script>
 </body>
-
 </html>
+
