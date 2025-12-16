@@ -7,7 +7,7 @@ import base64
 from PIL import Image  
 import io
 from io import BytesIO
-from facenet_pytorch import InceptionResnetV1
+from facenet_pytorch import MTCNN, InceptionResnetV1
 import torch
 
 resnet = InceptionResnetV1(pretrained='vggface2').eval()
@@ -77,48 +77,35 @@ def deactivate_account(officer_id):
         return jsonify({"message": "Account deactivated"}), 200
     return jsonify({"error": "Officer not found"}), 404
 
-# def image_to_embedding(image_base64):
-#     """Convert base64 image to FaceNet embedding"""
-#     # Decode base64
-#     header, encoded = image_base64.split(",", 1)
-#     img_bytes = base64.b64decode(encoded)
-#     img = Image.open(BytesIO(img_bytes)).convert("RGB")
-#     # Preprocess
-#     import torchvision.transforms as transforms
-#     transform = transforms.Compose([
-#         transforms.Resize((160, 160)),
-#         transforms.ToTensor(),
-#         transforms.Normalize([0.5,0.5,0.5],[0.5,0.5,0.5])
-#     ])
-#     img_tensor = transform(img).unsqueeze(0)  # add batch
-#     with torch.no_grad():
-#         embedding = resnet(img_tensor)
-#     return embedding[0].numpy()  # 512-d vector
+# Set device
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+# FaceNet components
+mtcnn = MTCNN(image_size=160, margin=20, device=device)
+resnet = InceptionResnetV1(pretrained='vggface2').eval().to(device)
 
 def image_to_embedding(image_base64):
-    """Convert base64 image to FaceNet embedding"""
-    # Handle both full data URLs and raw base64
-    if "," in image_base64:
-        _, encoded = image_base64.split(",", 1)
-    else:
-        encoded = image_base64
+    """Convert base64 image to FaceNet embedding (512-D)"""
 
-    img_bytes = base64.b64decode(encoded)
+    # Remove data URL prefix if present
+    if "," in image_base64:
+        image_base64 = image_base64.split(",", 1)[1]
+
+    img_bytes = base64.b64decode(image_base64)
     img = Image.open(BytesIO(img_bytes)).convert("RGB")
 
-    # Preprocess
-    import torchvision.transforms as transforms
-    transform = transforms.Compose([
-        transforms.Resize((160, 160)),
-        transforms.ToTensor(),
-        transforms.Normalize([0.5,0.5,0.5],[0.5,0.5,0.5])
-    ])
-    img_tensor = transform(img).unsqueeze(0)  # add batch
+    # 🔑 Detect & align face
+    face = mtcnn(img)
+
+    if face is None:
+        return None  # no face detected
+
+    face = face.unsqueeze(0).to(device)
 
     with torch.no_grad():
-        embedding = resnet(img_tensor)
+        embedding = resnet(face)
 
-    return embedding[0].numpy()  # 512-d vector
+    return embedding.cpu().numpy().flatten()  # 512-D
 
 
 def verify_face():
