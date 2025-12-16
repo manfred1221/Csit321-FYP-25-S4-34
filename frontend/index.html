@@ -281,13 +281,29 @@
                 if (response.ok && (data.success || data.token || data.message?.includes('successful'))) {
                     // Store authentication data
                     if (userType !== 'admin') {
-                        // Store user data with standardized format
-                        const userData = {
-                            ...data,
-                            type: userType,
-                            id: data.user_id || data.resident_id || data.visitor_id || data.staff_id,
-                            full_name: data.full_name || data.name || data.username
-                        };
+                        // For STAFF - store complete data including staff_id
+                        let userData;
+                        if (userType === 'staff') {
+                            userData = {
+                                id: data.staff_id || data.user_id,
+                                staff_id: data.staff_id || data.user_id,
+                                user_id: data.user_id,
+                                username: data.username,
+                                full_name: data.name || data.username,
+                                position: data.role,
+                                type: 'staff',
+                                email: data.email || `${username}@condo.com`
+                            };
+                        } else {
+                            // For other user types (resident, visitor)
+                            userData = {
+                                ...data,
+                                type: userType,
+                                id: data.user_id || data.resident_id || data.visitor_id || data.staff_id,
+                                full_name: data.full_name || data.name || data.username
+                            };
+                        }
+                        
                         localStorage.setItem(config.storageKey, JSON.stringify(userData));
                         localStorage.setItem('user', JSON.stringify(userData)); // Also store in 'user' key for checkAuth
                         if (data.token) {

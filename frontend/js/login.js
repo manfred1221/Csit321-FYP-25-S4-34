@@ -16,27 +16,32 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
         // STAFF - Real Backend API 
         // ========================================
         if (userType === 'staff') {
-            const result = await staffApiCall(API_CONFIG.ENDPOINTS.STAFF.LOGIN, {
+            // Call the staff login API directly
+            const response = await fetch(API_CONFIG.BASE_URL + API_CONFIG.ENDPOINTS.STAFF.LOGIN, {
                 method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ username, password })
             });
             
-            if (result.success) {
+            const result = await response.json();
+            
+            if (response.ok && result.staff_id) {
                 const staffData = {
-                    id: result.data.staff_id,
-                    staff_id: result.data.staff_id,
-                    username: result.data.username,
-                    full_name: result.data.full_name,
-                    position: result.data.position,
+                    id: result.staff_id || result.user_id,
+                    staff_id: result.staff_id || result.user_id,
+                    user_id: result.user_id,
+                    username: result.username,
+                    full_name: result.name || result.username,
+                    position: result.role,
                     type: 'staff',
-                    email: result.data.email || `${username}@condo.com`
+                    email: result.email || `${username}@condo.com`
                 };
                 
                 localStorage.setItem('user', JSON.stringify(staffData));
-                localStorage.setItem('auth_token', result.data.token);
+                localStorage.setItem('auth_token', result.token);
                 
                 showMessage('message', 'Login successful!', 'success');
-                setTimeout(() => window.location.href = 'staff-dashboard.html', 1000);
+                setTimeout(() => window.location.href = '/staff/dashboard', 1000);
                 return;
             } else {
                 showMessage('message', result.error || 'Login failed', 'error');

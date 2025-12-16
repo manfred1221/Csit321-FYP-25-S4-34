@@ -63,12 +63,14 @@ async function loadSchedule() {
     }
     
     try {
-        const endpoint = API_CONFIG.ENDPOINTS.STAFF.GET_SCHEDULE(currentUser.staff_id) + 
-            `?start_date=${startDate}&end_date=${endDate}`;
+        const url = `http://192.168.0.113:5001/api/staff/${currentUser.staff_id}/schedule?start_date=${startDate}&end_date=${endDate}`;
         
-        const result = await staffApiCall(endpoint);
+        const response = await fetch(url);
+        const result = await response.json();
         
-        if (result.success && result.data.schedules && result.data.schedules.length > 0) {
+        console.log('Schedule API response:', result);
+        
+        if (result.success && result.data && result.data.schedules && result.data.schedules.length > 0) {
             displaySchedule(result.data.schedules);
         } else {
             document.getElementById('scheduleList').innerHTML = 
@@ -116,6 +118,7 @@ function displaySchedule(schedules) {
         
         groupedByDate[date].forEach(schedule => {
             const duration = calculateDuration(schedule.shift_start, schedule.shift_end);
+            const taskDesc = schedule.task_description || 'No task description';
             
             html += `
                 <div style="background: #f9fafb; border-left: 4px solid #10b981; padding: 20px; margin-bottom: 15px; border-radius: 4px;">
@@ -125,7 +128,8 @@ function displaySchedule(schedules) {
                             <p style="margin: 5px 0;"><strong>⌛ Duration:</strong> ${duration}</p>
                         </div>
                     </div>
-                    <p style="margin: 5px 0;"><strong>📋 Task:</strong> ${schedule.task_description}</p>
+                    <p style="margin: 5px 0;"><strong>📋 Task:</strong> ${taskDesc}</p>
+                    ${schedule.location ? `<p style="margin: 5px 0;"><strong>📍 Location:</strong> ${schedule.location}</p>` : ''}
                 </div>
             `;
         });

@@ -209,7 +209,7 @@ def visitor_dashboard():
     """Serve visitor dashboard"""
     return send_from_directory('frontend', 'visitor-dashboard.html')
 
-# Staff Routes
+# Staff Routes 
 @app.route('/frontend/staff-dashboard.html')
 @app.route('/staff/dashboard')
 def staff_dashboard():
@@ -1482,6 +1482,127 @@ if SECURITY_OFFICER_AVAILABLE:
         return jsonify({"message": "Password updated successfully"})
 
 
+@app.route('/api/staff/<int:staff_id>/schedule', methods=['GET'])
+def get_staff_schedule(staff_id):
+    """Get staff schedule from temp_workers table"""
+    try:
+        start_date = request.args.get('start_date')
+        end_date = request.args.get('end_date')
+        
+        conn = get_db_connection()
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+        
+        query = """
+            SELECT user_id, work_start_date, work_end_date, 
+                   work_schedule, work_details
+            FROM temp_workers
+            WHERE user_id = %s
+        """
+        params = [staff_id]
+        
+        if start_date and end_date:
+            query += " AND work_start_date <= %s AND work_end_date >= %s"
+            params.extend([end_date, start_date])
+        
+        query += " ORDER BY work_start_date"
+        
+        cur.execute(query, params)
+        schedules = cur.fetchall()
+        
+        cur.close()
+        conn.close()
+        
+        schedule_list = []
+        for schedule in schedules:
+            # Parse work_schedule (e.g., "Mon-Fri 0800-1700")
+            work_schedule = schedule.get('work_schedule', '')
+            shift_start = '08:00'
+            shift_end = '17:00'
+            
+            # Try to extract time from work_schedule
+            if work_schedule:
+                # Example: "Mon-Fri 0800-1700" or "1000hrs"
+                import re
+                time_match = re.search(r'(\d{4})-(\d{4})', work_schedule)
+                if time_match:
+                    start_time = time_match.group(1)
+                    end_time = time_match.group(2)
+                    shift_start = f"{start_time[:2]}:{start_time[2:]}"
+                    shift_end = f"{end_time[:2]}:{end_time[2:]}"
+                else:
+                    # Try "1000hrs" format
+                    hrs_match = re.search(r'(\d{3,4})hrs?', work_schedule)
+                    if hrs_match:
+                        time_str = hrs_match.group(1).zfill(4)
+                        shift_start = f"{time_str[:2]}:{time_str[2:]}"
+                        shift_end = f"{int(time_str[:2])+8:02d}:{time_str[2:]}"
+            
+            schedule_list.append({
+                'schedule_id': schedule.get('user_id'),
+                'shift_date': schedule['work_start_date'].strftime('%Y-%m-%d') if schedule.get('work_start_date') else None,
+                'shift_start': shift_start,
+                'shift_end': shift_end,
+                'task_description': schedule.get('work_details', 'Work shift'),
+                'location': 'Main Office'
+            })
+        
+        return jsonify({
+            'success': True,
+            'data': {'schedules': schedule_list}
+        })
+        
+    except Exception as e:
+        logger.error(f"Error fetching schedule: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+    
+@app.route('/api/staff/<int:staff_id>/attendance', methods=['GET'])
+def get_staff_attendance(staff_id):
+    """Get staff attendance history"""
+    try:
+        start_date = request.args.get('start_date')
+        end_date = request.args.get('end_date')
+        
+        conn = get_db_connection()
+        cur = conn.cursor()
+        
+        query = """
+            SELECT attendance_id, entry_time, exit_time, duration_hours,
+                   location, verification_method
+            FROM staff_attendance
+            WHERE staff_id = %s
+        """
+        params = [staff_id]
+        
+        if start_date and end_date:
+            query += " AND DATE(entry_time) BETWEEN %s AND %s"
+            params.extend([start_date, end_date])
+        
+        query += " ORDER BY entry_time DESC"
+        
+        cur.execute(query, params)
+        records = cur.fetchall()
+        
+        cur.close()
+        conn.close()
+        
+        attendance_list = []
+        for record in records:
+            attendance_list.append({
+                'attendance_id': record[0],
+                'entry_time': record[1].isoformat() if record[1] else None,
+                'exit_time': record[2].isoformat() if record[2] else None,
+                'duration_hours': float(record[3]) if record[3] else None,
+                'location': record[4],
+                'verification_method': record[5]
+            })
+        
+        return jsonify({
+            'success': True,
+            'data': {'records': attendance_list}
+        })
+        
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 # ============================================
 # PROFILE ROUTES
@@ -2260,7 +2381,153 @@ def get_my_schedules():
         cursor.close()
         conn.close()
 
+# ============================================
+# STAFF API ROUTES - For staff members to access their own data
+# ============================================
 
+@app.route('/api/staff/<int:staff_id>/profile', methods=['GET'])
+def get_staff_profile(staff_id):
+    """Get staff profile"""
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+        
+        cur.execute("""
+            SELECT u.user_id as staff_id, u.username, u.full_name, u.email, 
+                   u.contact_number, r.role_name as position, u.status as is_active, 
+                   u.created_at as registered_at
+            FROM users u
+            LEFT JOIN roles r ON u.role_id = r.role_id
+            WHERE u.user_id = %s AND r.role_id IN (8, 13)
+        """, (staff_id,))
+        
+        staff = cur.fetchone()
+        cur.close()
+        conn.close()
+        
+        if not staff:
+            return jsonify({'success': False, 'error': 'Staff not found'}), 404
+        
+        # Convert to dict and format dates
+        staff_dict = dict(staff)
+        staff_dict['is_active'] = staff_dict['is_active'] == 'active'
+        if staff_dict.get('registered_at'):
+            staff_dict['registered_at'] = staff_dict['registered_at'].isoformat()
+        
+        return jsonify({'success': True, 'data': staff_dict})
+        
+    except Exception as e:
+        logger.error(f"Error getting staff profile: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/staff/<int:staff_id>/profile', methods=['PUT'])
+def update_staff_profile(staff_id):
+    """Update staff profile"""
+    try:
+        data = request.get_json()
+        
+        conn = get_db_connection()
+        cur = conn.cursor()
+        
+        cur.execute("""
+            UPDATE users
+            SET full_name = %s, contact_number = %s
+            WHERE user_id = %s
+        """, (data.get('full_name'), data.get('contact_number'), staff_id))
+        
+        conn.commit()
+        cur.close()
+        conn.close()
+        
+        return jsonify({'success': True, 'message': 'Profile updated successfully'})
+        
+    except Exception as e:
+        logger.error(f"Error updating staff profile: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/staff/<int:staff_id>', methods=['DELETE'])
+def delete_staff_account(staff_id):
+    """Delete staff account"""
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        
+        # Update status to inactive instead of deleting
+        cur.execute("UPDATE users SET status = 'inactive' WHERE user_id = %s", (staff_id,))
+        
+        conn.commit()
+        cur.close()
+        conn.close()
+        
+        return jsonify({'success': True, 'message': 'Account deactivated successfully'})
+        
+    except Exception as e:
+        logger.error(f"Error deleting staff account: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/staff/attendance/record', methods=['POST'])
+def record_staff_attendance():
+    """Record staff clock in/out"""
+    try:
+        data = request.get_json()
+        staff_id = data.get('staff_id')
+        action = data.get('action')  # 'entry' or 'exit'
+        location = data.get('location', 'Main Gate')
+        verification_method = data.get('verification_method', 'Manual')
+        
+        if not staff_id or not action:
+            return jsonify({'success': False, 'error': 'Missing required fields'}), 400
+        
+        conn = get_db_connection()
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
+        
+        if action == 'entry':
+            # Create new attendance record
+            cursor.execute("""
+                INSERT INTO staff_attendance (staff_id, entry_time, location, verification_method)
+                VALUES (%s, NOW(), %s, %s)
+                RETURNING attendance_id
+            """, (staff_id, location, verification_method))
+            
+            result = cursor.fetchone()
+            conn.commit()
+            
+            message = 'Clocked in successfully'
+            
+        elif action == 'exit':
+            # Update existing record with exit time
+            cursor.execute("""
+                UPDATE staff_attendance
+                SET exit_time = NOW(),
+                    duration_hours = EXTRACT(EPOCH FROM (NOW() - entry_time)) / 3600
+                WHERE staff_id = %s 
+                AND exit_time IS NULL
+                AND DATE(entry_time) = CURRENT_DATE
+                RETURNING attendance_id
+            """, (staff_id,))
+            
+            result = cursor.fetchone()
+            
+            if not result:
+                cursor.close()
+                conn.close()
+                return jsonify({'success': False, 'error': 'No active clock-in found for today'}), 400
+            
+            conn.commit()
+            message = 'Clocked out successfully'
+        else:
+            cursor.close()
+            conn.close()
+            return jsonify({'success': False, 'error': 'Invalid action'}), 400
+        
+        cursor.close()
+        conn.close()
+        
+        return jsonify({'success': True, 'message': message, 'data': {'attendance_id': result['attendance_id']}})
+        
+    except Exception as e:
+        logger.error(f"Error recording attendance: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 if __name__ == '__main__':
     from app import app
