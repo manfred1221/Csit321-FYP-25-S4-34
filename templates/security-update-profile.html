@@ -129,6 +129,41 @@
                 console.error(err);
             }
         }
+
+        async function changePassword() {
+            const currentPwd = document.getElementById('currentPwd').value;
+            const newPwd = document.getElementById('newPwd').value;
+            const confirmPwd = document.getElementById('confirmPwd').value;
+
+            if (!currentPwd || !newPwd || !confirmPwd) {
+                showMsg('pwdMessage', 'All fields are required', 'error');
+                return;
+            }
+
+            if (newPwd !== confirmPwd) {
+                showMsg('pwdMessage', 'Passwords do not match', 'error');
+                return;
+            }
+
+            const res = await fetch("/api/security_officer/change_password", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    current_password: currentPwd,
+                    new_password: newPwd
+                })
+            });
+
+            const data = await res.json();
+
+            if (res.ok) {
+                showMsg('pwdMessage', data.message, 'success');
+                document.getElementById('passwordForm').reset();
+            } else {
+                showMsg('pwdMessage', data.error, 'error');
+            }
+        }
+
     </script>
 </body>
 </html>

@@ -1,6 +1,4 @@
 import os
-
-from routes.security_officer.security_officer_model import SecurityOfficer
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 from flask import Flask, request, jsonify, session, render_template, redirect, url_for, send_from_directory, Response
@@ -10,34 +8,34 @@ import logging
 from werkzeug.utils import secure_filename
 import uuid
 from jinja2 import ChoiceLoader, FileSystemLoader
-from datetime import datetime
+from datetime import datetime, timedelta
 import numpy as np
 
 
 from config import Config
-from db import get_db_connection
+# from db import get_db_connection
 from user import User, Resident
 from access_log import AccessLog
 from psycopg2.extras import RealDictCursor
 from database import DATABASE_URL, get_db_connection
 
-# # Security Officer imports
-# try:
-#     from routes.security_officer.security_officer_model import SecurityOfficer, db, FaceEmbedding, log_access, Visitor, AccessLog
-#     from routes.security_officer.security_officer_controller import (
-#         image_to_embedding,
-#         monitor_camera,
-#         manual_override,
-#         view_profile,
-#         update_profile,
-#         delete_account,
-#         deactivate_account,
-#         verify_face as face_verify
-#     )
-#     SECURITY_OFFICER_AVAILABLE = True
-# except ImportError as e:
-#     logging.warning(f"Security officer modules not available: {e}")
-#     SECURITY_OFFICER_AVAILABLE = False
+# Security Officer imports
+try:
+    from routes.security_officer.security_officer_model import SecurityOfficer, db, FaceEmbedding, log_access, Visitor, AccessLog
+    from routes.security_officer.security_officer_controller import (
+        image_to_embedding,
+        monitor_camera,
+        manual_override,
+        view_profile,
+        update_profile,
+        delete_account,
+        deactivate_account,
+        verify_face as face_verify
+    )
+    SECURITY_OFFICER_AVAILABLE = True
+except ImportError as e:
+    logging.warning(f"Security officer modules not available: {e}")
+    SECURITY_OFFICER_AVAILABLE = False
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
@@ -278,7 +276,8 @@ def security_login():
 def security_dashboard():
     officer = SecurityOfficer.query.get(session['officer_id'])
     access_logs = AccessLog.query.order_by(AccessLog.log_id.asc()).all()
-    return render_template("security-dashboard.html", officer=officer, logs=access_logs)
+    granted_count = AccessLog.query.filter_by(access_result='granted').count()
+    return render_template("security-dashboard.html", officer=officer, logs=access_logs, granted_count=granted_count)
 
 
 @app.route("/security-deactivate")
@@ -323,7 +322,55 @@ def api_update_officer():
 @officer_required
 def face_verification():
     officer = SecurityOfficer.query.get(session['officer_id'])
-    return render_template("security-face-verification.html", officer=officer)
+
+    logs = AccessLog.query.order_by(AccessLog.access_time.desc()).limit(10).all()
+    threshold = 0.65
+
+    # Fetch all logs for today
+    today_start = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+    logs = AccessLog.query.filter(AccessLog.access_time >= today_start).order_by(AccessLog.access_time.desc()).all()
+
+    success_count = 0
+    fail_count = 0
+    total_time = 0.0
+    count_time = 0
+
+    # Prepare data for template
+    log_data = []
+    for log in logs:
+        confidence = log.confidence or 0
+        verified = confidence >= threshold
+
+        if verified:
+            success_count += 1
+        else:
+            fail_count += 1
+
+        # optional: track average verification time if stored
+        if hasattr(log, "verification_time") and log.verification_time:
+            total_time += log.verification_time
+            count_time += 1
+
+        log_data.append({
+            "time": log.access_time.strftime("%H:%M:%S"),
+            "person": log.recognized_person,
+            "type": log.person_type.capitalize(),
+            "confidence": round(confidence * 100, 2),
+            "verified": verified,
+            "officer": officer.full_name
+        })
+
+    avg_time = round(total_time / count_time, 2) if count_time else 0
+
+    return render_template(
+        "security-face-verification.html",
+        officer=officer,
+        access_logs=log_data,
+        success_count=success_count,
+        fail_count=fail_count,
+        avg_time=avg_time,
+        threshold=threshold
+    )
 
 @app.route("/security/logout")
 @officer_required
@@ -1107,7 +1154,7 @@ def test_db():
 # SECURITY OFFICER ROUTES (from security_officer_routes.py)
 # ============================================
 
-if False:
+if SECURITY_OFFICER_AVAILABLE:
     @app.route("/api/security_officer/manual_override", methods=["POST"])
     def route_manual_override():
         data = request.get_json() or {}
@@ -1199,71 +1246,136 @@ if False:
             "officer_id": officer_id
         }), 200
 
+    RATE_LIMIT = {}
+    MAX_ATTEMPTS = 10
+    WINDOW_SECONDS = 60
+
+
+    def normalize(vec):
+        vec = np.array(vec, dtype=np.float32)
+        return vec / np.linalg.norm(vec)
+
+
+    def cosine_similarity(a, b):
+        return float(np.dot(a, b))
+
+
     @app.route("/api/security_officer/verify_face", methods=["POST"])
     def verify_face():
-        """Verify face or create new officer"""
-        data = request.get_json()
-        image_base64 = data.get("image")
-        officer_id = data.get("officer_id")
 
-        if not image_base64:
-            return jsonify({"status":"error","message":"No image provided"}), 400
+        try:
+            data = request.get_json(force=True)
+            image_base64 = data.get("image")
 
-        embedding_vector = image_to_embedding(image_base64)
+            officer_id = session.get("officer_id")
 
-        all_embeddings = FaceEmbedding.query.filter_by(user_type="security_officer").all()
-        threshold = 0.8
+            if not officer_id:
+                return jsonify({
+                    "status": "error",
+                    "message": "Session expired. Please login again."
+                }), 401
 
-        def cosine_similarity(a, b):
-            return np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b))
+            if not image_base64:
+                return jsonify({
+                    "status": "error",
+                    "message": "Missing image"
+                }), 400
 
-        matched_officer = None
-        for fe in all_embeddings:
-            sim = cosine_similarity(embedding_vector, fe.embedding)
-            if sim > threshold:
-                matched_officer = SecurityOfficer.query.get(fe.reference_id)
+            officer = SecurityOfficer.query.get(officer_id)
+            if not officer or not officer.active:
+                return jsonify({
+                    "status": "error",
+                    "message": "Unauthorized officer"
+                }), 403
+
+            # --- Generate embedding ---
+            # raw_embedding = image_to_embedding(image_base64)
+            # query_embedding = raw_embedding / np.linalg.norm(raw_embedding)
+
+            raw_embedding = image_to_embedding(image_base64)
+
+            if raw_embedding is None:
+                return jsonify({
+                    "status": "error",
+                    "message": "No face detected. Please try again."
+                }), 400
+
+            query_embedding = normalize(raw_embedding)
+
+            embeddings = FaceEmbedding.query.filter(
+                FaceEmbedding.user_type.in_(["resident", "visitor"])
+            ).all()
+
+            threshold = 0.65
+            best_match = None
+            best_score = 0.0
+
+            for fe in embeddings:
+
+                if fe.embedding is None:
+                    continue   # ⛔ skip broken rows
+
+                db_embedding = np.array(fe.embedding, dtype=np.float32)
+
+                if db_embedding.size != 512:
+                    continue   # ⛔ corrupted vector
+
+                db_embedding = normalize(db_embedding)
+
+                score = cosine_similarity(query_embedding, db_embedding)
+
+                if score > best_score:
+                    best_score = score
+                    best_match = fe
+
+            if best_match and best_score >= threshold:
+
+                if best_match.user_type == "resident":
+                    from routes.security_officer.security_officer_model import Resident
+                    person = Resident.query.get(best_match.reference_id)
+                else:
+                    person = Visitor.query.get(best_match.reference_id)
+
                 log_access(
-                    recognized_person=matched_officer.full_name,
-                    person_type="security_officer",
-                    confidence=float(sim),
+                    
+                    recognized_person=person.full_name,
+                    person_type=best_match.user_type,
+                    confidence=best_score,
                     result="granted",
-                    embedding_id=fe.embedding_id
+                    embedding_id=best_match.embedding_id,
                 )
-                break
 
-        if matched_officer:
+                return jsonify({
+                    "status": "success",
+                    "result": "granted",
+                    "person_type": best_match.user_type,
+                    "name": person.full_name,
+                    "message": "Face recognized",   
+                    "confidence": float(round(best_score * 100, 2))
+                })
+
+            # No match
+            log_access(
+                recognized_person="Unknown",
+                person_type="unknown",
+                confidence=best_score,
+                result="denied",
+                embedding_id=None,
+            )
+
             return jsonify({
-                "status": "success",
-                "message": f"Face verified for {matched_officer.full_name}",
-                "officer_id": matched_officer.officer_id
-            })
+                "status": "error",
+                "result": "denied",
+                "message": "Face not recognized",
+                "confidence": float(round(best_score * 100, 2))
+            }), 401
 
-        new_officer = SecurityOfficer(full_name="New Officer")
-        db.session.add(new_officer)
-        db.session.commit()
-        officer_id = new_officer.officer_id
-
-        new_embedding = FaceEmbedding(
-            user_type="security_officer",
-            reference_id=officer_id,
-            embedding=embedding_vector
-        )
-        db.session.add(new_embedding)
-        db.session.commit()
-
-        log_access(
-            recognized_person=new_officer.full_name,
-            person_type="security_officer",
-            confidence=1.0,
-            result="granted",
-            embedding_id=new_embedding.embedding_id
-        )
-
-        return jsonify({
-            "status": "success",
-            "message": f"New officer registered: {new_officer.full_name}",
-            "officer_id": officer_id
-        })
+        except Exception as e:
+            print("VERIFY FACE ERROR:", str(e))
+            return jsonify({
+                "status": "error",
+                "message": "Internal server error during face verification"
+            }), 500
 
     @app.route("/api/security_officer/upload_face_embedding", methods=["POST"])
     def upload_face_embedding():
@@ -1345,6 +1457,30 @@ if False:
 
         else:
             return jsonify({"success": False, "message": "Invalid user type"}), 400
+        
+    @app.route("/api/security_officer/change_password", methods=["POST"])
+    @officer_required
+    def change_password():
+        data = request.get_json()
+
+        current_password = data.get("current_password")
+        new_password = data.get("new_password")
+
+        if not current_password or not new_password:
+            return jsonify({"error": "Missing fields"}), 400
+
+        officer = SecurityOfficer.query.get(session["officer_id"])
+
+        # ✅ Plain-text comparison
+        if officer.password != current_password:
+            return jsonify({"error": "Current password is incorrect"}), 401
+
+        # ✅ Update password directly
+        officer.password = new_password
+        db.session.commit()
+
+        return jsonify({"message": "Password updated successfully"})
+
 
 
 # ============================================
@@ -1511,6 +1647,7 @@ def admin_users_edit(user_id):
 
     return jsonify({'success': True, 'message': 'User updated successfully'})
     # return render_template('admin_edit_user.html', user=user)
+
 
 @app.route('/admin/users/create', methods=['GET'])
 @admin_required
@@ -1769,7 +1906,7 @@ def admin_logs():
 @admin_required
 def admin_temp_workers():
     """View temporary workers with their schedules"""
-    users = User.get_all(role='temp_staff')
+    users = User.get_all(role='TEMP_WORKER')
     expiring_soon = User.get_expiring_temp_workers(days=7)
     from datetime import date
     today = date.today()
@@ -1870,7 +2007,7 @@ def init_app(app):
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
     # Bind SQLAlchemy
-    # db.init_app(app)
+    db.init_app(app)
 
     # Test database connection
     try:
@@ -1899,9 +2036,6 @@ def init_app(app):
 # STAFF SCHEDULE MANAGEMENT ROUTES
 # ============================================
 
-# THAY THẾ TẤT CẢ STAFF SCHEDULE ROUTES trong app.py
-# Bắt đầu từ dòng ~1169
-
 @app.route('/admin/staff-schedules')
 @admin_required
 def admin_staff_schedules():
@@ -1924,7 +2058,6 @@ def admin_staff_schedules():
     conn.close()
 
     return render_template('admin_staff_schedules.html', staff_users=staff_users)
-
 
 @app.route('/api/admin/staff-schedules', methods=['GET'])
 @admin_required
@@ -1972,7 +2105,6 @@ def get_staff_schedules():
 
     return jsonify({'success': True, 'schedules': schedules_list})
 
-
 @app.route('/api/admin/staff-schedules', methods=['POST'])
 @admin_required
 def create_staff_schedule():
@@ -2019,7 +2151,6 @@ def create_staff_schedule():
         cursor.close()
         conn.close()
 
-
 @app.route('/api/admin/staff-schedules/<int:schedule_id>', methods=['PUT'])
 @admin_required
 def update_staff_schedule(schedule_id):
@@ -2060,7 +2191,6 @@ def update_staff_schedule(schedule_id):
         cursor.close()
         conn.close()
 
-
 @app.route('/api/admin/staff-schedules/<int:schedule_id>', methods=['DELETE'])
 @admin_required
 def delete_staff_schedule(schedule_id):
@@ -2084,7 +2214,6 @@ def delete_staff_schedule(schedule_id):
     finally:
         cursor.close()
         conn.close()
-
 
 # Staff view their own schedules
 @app.route('/api/staff/schedules', methods=['GET'])
@@ -2130,6 +2259,8 @@ def get_my_schedules():
     finally:
         cursor.close()
         conn.close()
+
+
 
 if __name__ == '__main__':
     from app import app
