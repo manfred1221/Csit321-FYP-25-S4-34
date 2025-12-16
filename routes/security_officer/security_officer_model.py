@@ -82,6 +82,8 @@ def log_access(recognized_person, person_type, confidence, result, embedding_id)
         result: 'granted' or 'denied'
         embedding_id: Reference to face embedding
     """
+    print("🔥 LOG_ACCESS CALLED:", recognized_person, person_type, confidence, result)
+
     # Normalize person_type to match database constraints
     valid_types = ['resident', 'visitor', 'security_officer', 'internal_staff', 'temp_staff', 'ADMIN', 'unknown']
 
@@ -101,6 +103,10 @@ def log_access(recognized_person, person_type, confidence, result, embedding_id)
         }
         person_type = type_mapping.get(person_type, 'unknown')
 
+    # 🔒 HARD CLAMP (keep this forever)
+    confidence = float(confidence)
+    confidence = max(0.0, min(confidence, 1.0))
+
     log = AccessLog(
         recognized_person=recognized_person,
         person_type=person_type,
@@ -108,9 +114,14 @@ def log_access(recognized_person, person_type, confidence, result, embedding_id)
         access_result=result,
         embedding_id=embedding_id
     )
-    db.session.add(log)
-    db.session.commit()
-    return log
+    try:
+        db.session.add(log)
+        db.session.commit()
+        print("✅ ACCESS LOG COMMITTED:", log.log_id)
+    except Exception as e:
+        db.session.rollback()
+        print("❌ ACCESS LOG FAILED:", str(e))
+        raise e
 
 def get_embedding(user_type, reference_id):
     return FaceEmbedding.query.filter_by(user_type=user_type, reference_id=reference_id).first()

@@ -112,7 +112,7 @@
                                     </td>
                                     <td>{{ log.confidence }}</td>
                                     <td>
-                                        {% if log.confidence is not none and log.confidence >= threshold %}
+                                        {% if log.confidence is not none and log.confidence >= 65 %}
                                             <span class="badge badge-success">VERIFIED</span>
                                         {% else %}
                                             <span class="badge badge-danger">FAILED</span>
