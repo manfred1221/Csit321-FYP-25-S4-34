@@ -135,7 +135,7 @@ def admin_login():
         session.clear()
         if 'user_id' in session:
             return redirect(url_for('admin_profile'))
-        return render_template('index.html')
+        return send_from_directory('frontend', 'index.html')
 
     # POST (login)
     data = request.json
