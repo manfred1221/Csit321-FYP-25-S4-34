@@ -774,7 +774,7 @@ def delete_personal_data(resident_id):
     except Exception as e:
         return jsonify({"error": "DB error while deleting resident", "details": str(e)}), 500
 
-@app.route("/api/resident/<int:user_id>/access-history", methods=["GET"])
+@app.route("/api/resident/<int:resident_id>/access-history", methods=["GET"])
 def view_personal_access_history(resident_id):
     """UC-R22: View Personal Access History"""
     try:
@@ -827,7 +827,7 @@ def view_personal_access_history(resident_id):
     except Exception as e:
         return jsonify({"error": "DB error while reading access history", "details": str(e)}), 500
 
-@app.route("/api/resident/<int:user_id>/visitors", methods=["POST"])
+@app.route("/api/resident/<int:resident_id>/visitors", methods=["POST"])
 def create_visitor(resident_id):
     """UC-R8: Create Visitor Entry"""
     data = request.get_json() or {}
@@ -885,7 +885,7 @@ def create_visitor(resident_id):
     except Exception as e:
         return jsonify({"error": "DB error while creating visitor", "details": str(e)}), 500
 
-@app.route("/api/resident/<int:user_id>/visitors", methods=["GET"])
+@app.route("/api/resident/<int:resident_id>/visitors", methods=["GET"])
 def view_registered_visitors_for_resident(resident_id):
     """UC-R10: View Registered Visitors"""
     try:
@@ -939,7 +939,7 @@ def view_registered_visitors_for_resident(resident_id):
     except Exception as e:
         return jsonify({"error": "DB error while reading visitors", "details": str(e)}), 500
 
-@app.route("/api/resident/<int:user_id>/visitors/<int:visitor_id>", methods=["PUT"])
+@app.route("/api/resident/<int:resident_id>/visitors/<int:visitor_id>", methods=["PUT"])
 def update_visitor_info(resident_id, visitor_id):
     """UC-R12: Update Visitor Information"""
     data = request.get_json() or {}
@@ -992,7 +992,7 @@ def update_visitor_info(resident_id, visitor_id):
     except Exception as e:
         return jsonify({"error": "DB error while updating visitor", "details": str(e)}), 500
 
-@app.route("/api/resident/<int:user_id>/visitors/<int:visitor_id>", methods=["DELETE"])
+@app.route("/api/resident/<int:resident_id>/visitors/<int:visitor_id>", methods=["DELETE"])
 def cancel_visitor_access(resident_id, visitor_id):
     """UC-R13: Cancel Visitor Access"""
     try:
@@ -1023,7 +1023,7 @@ def cancel_visitor_access(resident_id, visitor_id):
     except Exception as e:
         return jsonify({"error": "DB error while deleting visitor", "details": str(e)}), 500
 
-@app.route("/api/resident/<int:user_id>/visitors/<int:visitor_id>/time-window", methods=["PUT"])
+@app.route("/api/resident/<int:resident_id>/visitors/<int:visitor_id>/time-window", methods=["PUT"])
 def set_visitor_time_period(resident_id, visitor_id):
     """UC-R9: Set Visitor Time Period"""
     data = request.get_json() or {}
@@ -1069,7 +1069,7 @@ def set_visitor_time_period(resident_id, visitor_id):
     except Exception as e:
         return jsonify({"error": "DB error while updating time window", "details": str(e)}), 500
 
-@app.route("/api/resident/<int:user_id>/visitors/<int:visitor_id>/face-image", methods=["POST"])
+@app.route("/api/resident/<int:resident_id>/visitors/<int:visitor_id>/face-image", methods=["POST"])
 def upload_visitor_facial_image(resident_id, visitor_id):
     """UC-R14: Upload Visitor Facial Image"""
     data = request.get_json() or {}
@@ -1122,7 +1122,7 @@ def upload_visitor_facial_image(resident_id, visitor_id):
     except Exception as e:
         return jsonify({"error": "DB error while saving visitor face", "details": str(e)}), 500
 
-@app.route("/api/resident/<int:user_id>/visitors/<int:visitor_id>/access-history", methods=["GET"])
+@app.route("/api/resident/<int:resident_id>/visitors/<int:visitor_id>/access-history", methods=["GET"])
 def view_visitor_access_history(resident_id, visitor_id):
     """UC-R23: View Visitor Access History"""
     try:
@@ -1180,7 +1180,7 @@ def view_visitor_access_history(resident_id, visitor_id):
     except Exception as e:
         return jsonify({"error": "DB error while reading visitor history", "details": str(e)}), 500
 
-@app.route("/api/resident/<int:user_id>/face-access/disable", methods=["POST"])
+@app.route("/api/resident/<int:resident_id>/face-access/disable", methods=["POST"])
 def temporarily_disable_face_access(resident_id):
     """UC-R19: Temporarily Disable Face Access (mock)"""
     return jsonify({
@@ -1189,7 +1189,7 @@ def temporarily_disable_face_access(resident_id):
         "status": "DISABLED"
     }), 200
 
-@app.route("/api/resident/<int:user_id>/alerts", methods=["GET"])
+@app.route("/api/resident/<int:resident_id>/alerts", methods=["GET"])
 def receive_unauthorized_access_alert(resident_id):
     """UC-R20: Receive Unauthorized Access Alert (mock)"""
     recent_time = (datetime.now()).isoformat(timespec="seconds")
@@ -2647,7 +2647,6 @@ def record_staff_attendance():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 if __name__ == '__main__':
-    from app import app
     init_app(app)
     print("\n" + "=" * 60)
     print("FACE RECOGNITION - ADMIN PANEL")
