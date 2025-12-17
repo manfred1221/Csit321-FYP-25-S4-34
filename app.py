@@ -55,6 +55,17 @@ app.config['PERMANENT_SESSION_LIFETIME'] = Config.SESSION_LIFETIME
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
 CORS(app)
 
+# ============================================================
+# REGISTER BCE BLUEPRINT - Uses clean 3-layer architecture
+# ============================================================
+try:
+    from boundary import staff_bp
+    app.register_blueprint(staff_bp, url_prefix='/api/staff')
+    logger.info("✅ Staff BCE blueprint registered at /api/staff")
+except ImportError as e:
+    logger.error(f"❌ Could not import staff blueprint: {e}")
+# ============================================================
+
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'pdf'}
 
 def allowed_file(filename):
@@ -131,7 +142,11 @@ def portal_choice():
 
 @app.route('/admin/login', methods=['GET', 'POST'])
 def admin_login():
-
+    """
+    Unified login endpoint for all user types.
+    Uses BCE structure for staff, existing User class for others.
+    """
+    
     if request.method == 'GET':
         session.clear()
         if 'user_id' in session:
@@ -139,11 +154,55 @@ def admin_login():
         return send_from_directory('frontend', 'index.html')
 
     # POST (login) - Handle ALL user types
-    data = request.json
+    data = request.json or {}
     username = data.get('username')
     password = data.get('password')
+    
+    if not username or not password:
+        return jsonify({'success': False, 'message': 'Username and password required'}), 400
 
-    user = User.authenticate(username, password)
+    # ==============================================================
+    # TRY STAFF LOGIN FIRST (using BCE structure)
+    # ==============================================================
+    try:
+        from control.staff_controller import StaffController
+        
+        # Attempt staff login through your BCE architecture
+        staff_result = StaffController.login(username, password)
+        
+        # Staff login successful! Return the result from your controller
+        # StaffController.login() already returns the correct format:
+        # {
+        #   "user_id": ...,
+        #   "staff_id": ...,
+        #   "username": ...,
+        #   "full_name": ...,
+        #   "position": ...,
+        #   "role": ...,
+        #   "token": ...,
+        #   "message": "Login successful"
+        # }
+        
+        return jsonify(staff_result), 200
+        
+    except ValueError as e:
+        # Staff login failed - not a staff user or invalid credentials
+        # Continue to try other user types below
+        logger.debug(f"Staff login failed for {username}: {str(e)}")
+        pass
+    except Exception as e:
+        # Unexpected error in staff login
+        logger.error(f"Staff login error: {e}")
+        pass
+
+    # ==============================================================
+    # FALLBACK: Try existing User.authenticate for Admin/Resident/Visitor
+    # ==============================================================
+    try:
+        user = User.authenticate(username, password)
+    except Exception as e:
+        logger.error(f"User authentication error: {e}")
+        return jsonify({'success': False, 'message': 'Authentication failed'}), 500
 
     if not user:
         return jsonify({'success': False, 'message': 'Invalid credentials'}), 401
@@ -158,19 +217,6 @@ def admin_login():
         session['role'] = user['role']
         session.permanent = True
         return jsonify({'success': True})
-
-    # Staff users - RETURN staff_id
-    elif user_role in ['Internal_Staff', 'INTERNAL_STAFF', 'Staff']:
-        return jsonify({
-            'success': True,
-            'user_id': user['id'],
-            'staff_id': user['id'],
-            'username': user['username'],
-            'role': user_role,
-            'name': user.get('username'),
-            'email': user.get('email', f"{username}@condo.com"),
-            'token': 'staff-token-' + str(user['id'])
-        }), 200
 
     # Resident users
     elif user_role in ['Resident', 'RESIDENT']:
@@ -201,10 +247,6 @@ def admin_login():
     # Unknown role
     else:
         return jsonify({'success': False, 'message': 'Invalid user role'}), 401
-
-# ==============================================================================
-# END OF REPLACEMENT
-# ==============================================================================
 @app.route('/admin/logout')
 def admin_logout():
     """Admin logout - User Story: Logout so no one can use account"""
