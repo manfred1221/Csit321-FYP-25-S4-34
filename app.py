@@ -128,6 +128,7 @@ def check_user_has_face_embedding(user):
 def portal_choice():
     return render_template('/portal.html')
 
+
 @app.route('/admin/login', methods=['GET', 'POST'])
 def admin_login():
 
@@ -137,23 +138,73 @@ def admin_login():
             return redirect(url_for('admin_profile'))
         return send_from_directory('frontend', 'index.html')
 
-    # POST (login)
+    # POST (login) - Handle ALL user types
     data = request.json
     username = data.get('username')
     password = data.get('password')
 
     user = User.authenticate(username, password)
 
-    if user and user['role'] == 'Admin':
+    if not user:
+        return jsonify({'success': False, 'message': 'Invalid credentials'}), 401
+
+    # Handle different user roles
+    user_role = user.get('role', '')
+
+    # Admin users
+    if user_role == 'Admin':
         session['user_id'] = user['id']
         session['username'] = user['username']
         session['role'] = user['role']
         session.permanent = True
-
         return jsonify({'success': True})
 
-    return jsonify({'success': False, 'message': 'Invalid credentials'}), 401
+    # Staff users - RETURN staff_id
+    elif user_role in ['Internal_Staff', 'INTERNAL_STAFF', 'Staff']:
+        return jsonify({
+            'success': True,
+            'user_id': user['id'],
+            'staff_id': user['id'],
+            'username': user['username'],
+            'role': user_role,
+            'name': user.get('username'),
+            'email': user.get('email', f"{username}@condo.com"),
+            'token': 'staff-token-' + str(user['id'])
+        }), 200
 
+    # Resident users
+    elif user_role in ['Resident', 'RESIDENT']:
+        return jsonify({
+            'success': True,
+            'user_id': user['id'],
+            'resident_id': user['id'],
+            'username': user['username'],
+            'role': user_role,
+            'name': user.get('full_name', user['username']),
+            'email': user.get('email', f"{username}@condo.com"),
+            'token': 'resident-token-' + str(user['id'])
+        }), 200
+
+    # Visitor users
+    elif user_role in ['Visitor', 'VISITOR']:
+        return jsonify({
+            'success': True,
+            'user_id': user['id'],
+            'visitor_id': user['id'],
+            'username': user['username'],
+            'role': user_role,
+            'name': user.get('full_name', user['username']),
+            'email': user.get('email', f"{username}@condo.com"),
+            'token': 'visitor-token-' + str(user['id'])
+        }), 200
+
+    # Unknown role
+    else:
+        return jsonify({'success': False, 'message': 'Invalid user role'}), 401
+
+# ==============================================================================
+# END OF REPLACEMENT
+# ==============================================================================
 @app.route('/admin/logout')
 def admin_logout():
     """Admin logout - User Story: Logout so no one can use account"""
