@@ -375,8 +375,7 @@
                         </p>
                     </div>
                     <div class="days">
-                        {% set days_left = (worker.work_end_date - today).days if worker.work_end_date else 0 %}
-                        {{ days_left }} days left
+                        {{ worker.days_left }}
                     </div>
                 </div>
                 {% endfor %}

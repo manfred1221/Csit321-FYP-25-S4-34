@@ -2074,19 +2074,43 @@ def admin_logs():
 # TEMP WORKER MANAGEMENT
 # ============================================
 
+# @app.route('/admin/temp-workers')
+# @admin_required
+# def admin_temp_workers():
+#     """View temporary workers with their schedules"""
+#     users = User.get_all(role='TEMP_WORKER')
+#     expiring_soon = User.get_expiring_temp_workers(days=7)
+#     from datetime import date
+#     today = date.today()
+    
+#     return render_template('admin_tempworker.html', 
+#                          users=users, 
+#                          expiring_soon=expiring_soon,
+#                          today=today)
+
 @app.route('/admin/temp-workers')
 @admin_required
 def admin_temp_workers():
     """View temporary workers with their schedules"""
+    from datetime import date
+
     users = User.get_all(role='TEMP_WORKER')
     expiring_soon = User.get_expiring_temp_workers(days=7)
-    from datetime import date
     today = date.today()
-    
-    return render_template('admin_tempworker.html', 
-                         users=users, 
-                         expiring_soon=expiring_soon,
-                         today=today)
+
+    for user in users:
+        if user.work_end_date:
+            user.days_left = (user.work_end_date.date() - today).days
+        else:
+            user.days_left = 0
+
+    return render_template(
+        'admin_tempworker.html',
+        users=users,
+        expiring_soon=expiring_soon,
+        today=today
+    )
+
 
 @app.route('/admin/temp-workers/check-expired', methods=['POST'])
 @admin_required
