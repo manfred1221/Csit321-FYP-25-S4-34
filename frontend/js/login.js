@@ -51,7 +51,8 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
         // RESIDENT - Real Backend API 
         // ========================================
         else if (userType === 'resident') {
-            // Call the resident login API - using hardcoded URL
+            console.log('🔵 RESIDENT LOGIN STARTED');
+            
             const response = await fetch(API_CONFIG.BASE_URL + '/api/auth/login', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -59,6 +60,7 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
             });
             
             const result = await response.json();
+            console.log('🔵 API Response:', result);
             
             if (response.ok && result.resident_id) {
                 const residentData = {
@@ -74,11 +76,19 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
                     role: result.role
                 };
                 
+                console.log('🔵 Storing residentData:', residentData);
                 localStorage.setItem('user', JSON.stringify(residentData));
                 localStorage.setItem('auth_token', result.token);
                 
+                console.log('🔵 Verify stored data:', JSON.parse(localStorage.getItem('user')));
+                
                 showMessage('message', 'Login successful!', 'success');
-                setTimeout(() => window.location.href = '/resident/dashboard', 1000);
+                
+                console.log('🔵 About to redirect to /resident/dashboard');
+                setTimeout(() => {
+                    console.log('🔵 REDIRECTING NOW');
+                    window.location.href = '/resident/dashboard';
+                }, 1000);
                 return;
             } else {
                 showMessage('message', result.error || 'Login failed', 'error');
