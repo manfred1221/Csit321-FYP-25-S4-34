@@ -1,6 +1,7 @@
 // API Configuration - Uses relative URLs to work on any network
 // This allows the app to work regardless of which network you're connected to
-const API_BASE = '';  // Empty string means relative URLs
+//const API_BASE = '';  // Empty string means relative URLs
+const API_BASE = 'http://127.0.0.1:5001';  // Correct port!
 const API_CONFIG = {
     BASE_URL: API_BASE,
     STAFF_BASE_URL: API_BASE, 

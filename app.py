@@ -65,7 +65,25 @@ try:
 except ImportError as e:
     logger.error(f"❌ Could not import staff blueprint: {e}")
 # ============================================================
-
+# ============================================================
+# REGISTER RESIDENT BLUEPRINTS - For resident portal
+# ============================================================
+try:
+    from routes.auth_routes import auth_bp
+    from routes.resident_routes import resident_bp
+    from routes.visitor_routes import visitor_bp
+    
+    app.register_blueprint(auth_bp, url_prefix='/api/auth')
+    app.register_blueprint(resident_bp, url_prefix='/api/resident')
+    app.register_blueprint(visitor_bp, url_prefix='/api/visitor')
+    
+    logger.info("✅ Resident blueprints registered:")
+    logger.info("   - /api/auth (authentication)")
+    logger.info("   - /api/resident (resident features)")
+    logger.info("   - /api/visitor (visitor management)")
+except ImportError as e:
+    logger.error(f"❌ Could not import resident blueprints: {e}")
+# ============================================================
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'pdf'}
 
 def allowed_file(filename):
@@ -572,16 +590,6 @@ def staff_login():
 
 
 
-# ============================================================
-# REGISTER RESIDENT BLUEPRINT (resident_routes.py)
-# ============================================================
-try:
-    from routes.resident_routes import resident_bp
-    app.register_blueprint(resident_bp)  # resident_routes already has url_prefix="/api/resident"
-
-    logger.info("✅ Resident blueprint registered at /api/resident")
-except ImportError as e:
-    logger.error(f"❌ Could not import resident blueprint: {e}")
 
 
 

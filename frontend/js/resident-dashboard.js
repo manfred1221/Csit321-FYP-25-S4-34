@@ -1,31 +1,23 @@
-// // Check authentication
-// const user = checkAuth();
-// if (user && user.type !== 'resident') {
-//     window.location.href = '/';
-// }
-
-// // Update user info in sidebar
-// document.getElementById('userName').textContent = user.full_name || user.username;
-// document.getElementById('userEmail').textContent = user.email;
-console.log('checkAuth returned:', user);
+// Global user variable - accessible by all functions
+let user = null;
 
 document.addEventListener('DOMContentLoaded', () => {
-    const user = checkAuth();
+    // Check authentication and store in global variable
+    user = checkAuth();
     if (!user) return;
 
-    if (!user || user.type !== 'resident') {
+    if (user.type !== 'resident') {
         window.location.href = '/';
         return;
     }
 
-    document.getElementById('userName').textContent =
-        user.full_name || user.username;
+    // Update user info in sidebar
+    document.getElementById('userName').textContent = user.full_name || user.username;
     document.getElementById('userEmail').textContent = user.email;
 
+    // Load dashboard data
     loadDashboardData();
 });
-
-
 
 // Load dashboard data
 async function loadDashboardData() {
@@ -38,7 +30,7 @@ async function loadDashboardData() {
 
 // Load visitors
 async function loadVisitors() {
-    const endpoint = API_CONFIG.ENDPOINTS.RESIDENT.GET_VISITORS(user.user.id);
+    const endpoint = API_CONFIG.ENDPOINTS.RESIDENT.GET_VISITORS(user.resident_id);
     const result = await apiCall(endpoint);
     
     if (result.success) {
@@ -59,19 +51,17 @@ function displayRecentVisitors(visitors) {
     const tbody = document.querySelector('#recentVisitorsTable tbody');
     
     if (visitors.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="4" class="text-center">No visitors found</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="4" class="text-center">No visitors registered yet</td></tr>';
         return;
     }
     
     tbody.innerHTML = visitors.map(visitor => `
         <tr>
-            <td>${visitor.visitor_name}</td>
-            <td><span class="badge badge-${getStatusBadge(visitor.status)}">${visitor.status}</span></td>
-            <td>${formatDateTime(visitor.start_time)} - ${formatDateTime(visitor.end_time)}</td>
+            <td>${visitor.full_name || visitor.visitor_name}</td>
+            <td><span class="badge badge-${visitor.status === 'APPROVED' ? 'success' : 'warning'}">${visitor.status}</span></td>
+            <td>${formatDateTime(visitor.check_in || visitor.start_time)}</td>
             <td>
-                <div class="actions">
-                    <button onclick="viewVisitor(${visitor.visitor_id})" class="btn btn-sm btn-primary">View</button>
-                </div>
+                <button class="btn btn-sm btn-secondary" onclick="viewVisitor(${visitor.visitor_id})">View</button>
             </td>
         </tr>
     `).join('');
@@ -79,37 +69,30 @@ function displayRecentVisitors(visitors) {
 
 // Load access history
 async function loadAccessHistory() {
-    const endpoint = API_CONFIG.ENDPOINTS.RESIDENT.ACCESS_HISTORY(user.user.id);
+    const endpoint = API_CONFIG.ENDPOINTS.RESIDENT.ACCESS_HISTORY(user.resident_id);
     const result = await apiCall(endpoint);
     
     if (result.success) {
-        const records = result.data.records || [];
+        const history = result.data.access_logs || [];
         
-        // Count today's access
-        const today = new Date().toDateString();
-        const todayCount = records.filter(r => {
-            const recordDate = new Date(r.timestamp).toDateString();
-            return recordDate === today;
-        }).length;
-        document.getElementById('todayAccess').textContent = todayCount;
-        
-        // Display recent history (first 5)
-        displayAccessHistory(records.slice(0, 5));
+        // Display recent access (first 5)
+        const recentAccess = history.slice(0, 5);
+        displayRecentAccessHistory(recentAccess);
     }
 }
 
-function displayAccessHistory(records) {
+function displayRecentAccessHistory(history) {
     const tbody = document.querySelector('#accessHistoryTable tbody');
     
-    if (records.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="3" class="text-center">No access history found</td></tr>';
+    if (history.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="3" class="text-center">No access records yet</td></tr>';
         return;
     }
     
-    tbody.innerHTML = records.map(record => `
+    tbody.innerHTML = history.map(record => `
         <tr>
             <td>${formatDateTime(record.timestamp)}</td>
-            <td>${record.door}</td>
+            <td>${record.location || 'Main Gate'}</td>
             <td><span class="badge badge-${record.result === 'GRANTED' ? 'success' : 'danger'}">${record.result}</span></td>
         </tr>
     `).join('');
@@ -117,54 +100,42 @@ function displayAccessHistory(records) {
 
 // Load stats
 async function loadStats() {
-    const endpoint = API_CONFIG.ENDPOINTS.RESIDENT.ALERTS(user.user.id);
+    const endpoint = API_CONFIG.ENDPOINTS.RESIDENT.ALERTS(user.resident_id);
     const result = await apiCall(endpoint);
     
     if (result.success) {
         const alerts = result.data.alerts || [];
-        const unreadCount = alerts.filter(a => a.status === 'UNREAD').length;
-        document.getElementById('unreadAlerts').textContent = unreadCount;
+        const unreadAlerts = alerts.filter(a => a.status === 'UNREAD').length;
+        document.getElementById('unreadAlerts').textContent = unreadAlerts;
     }
-}
-
-// Helper function to get status badge color
-function getStatusBadge(status) {
-    switch(status) {
-        case 'APPROVED': return 'success';
-        case 'PENDING': return 'warning';
-        case 'DENIED': return 'danger';
-        default: return 'info';
-    }
+    
+    // You can add more stats here from other endpoints
+    // For now, access history count is handled by loadAccessHistory
 }
 
 // Toggle face access
-let faceAccessEnabled = true;
 async function toggleFaceAccess() {
-    const btn = document.getElementById('toggleAccessBtn');
+    if (!confirm('Are you sure you want to temporarily disable face access?')) {
+        return;
+    }
     
-    if (faceAccessEnabled) {
-        const endpoint = API_CONFIG.ENDPOINTS.RESIDENT.DISABLE_FACE_ACCESS(user.user.id);
-        const result = await apiCall(endpoint, { method: 'POST' });
+    const endpoint = API_CONFIG.ENDPOINTS.RESIDENT.DISABLE_FACE_ACCESS(user.resident_id);
+    const result = await apiCall(endpoint, { method: 'POST' });
+    
+    if (result.success) {
+        alert('Face access has been disabled temporarily. You can re-enable it in your profile settings.');
         
-        if (result.success) {
-            faceAccessEnabled = false;
-            btn.textContent = 'Enable Face Access';
-            btn.className = 'btn btn-success';
-            alert('Face access has been disabled temporarily');
-        }
+        // Update button
+        const btn = document.getElementById('toggleAccessBtn');
+        btn.textContent = 'Enable Face Access';
+        btn.classList.remove('btn-danger');
+        btn.classList.add('btn-success');
     } else {
-        // In real implementation, you'd have an enable endpoint
-        faceAccessEnabled = true;
-        btn.textContent = 'Disable Face Access';
-        btn.className = 'btn btn-danger';
-        alert('Face access has been enabled');
+        alert('Failed to toggle face access. Please try again.');
     }
 }
 
-// View visitor details
+// View visitor details (placeholder)
 function viewVisitor(visitorId) {
     window.location.href = `/resident/visitors?visitor=${visitorId}`;
 }
-
-// // Initialize dashboard
-// loadDashboardData();

@@ -1,6 +1,6 @@
 // Check authentication
 const user = checkAuth();
-if (user && user.type !== 'resident') {
+if (!user || user.type !== 'resident') {
     window.location.href = 'index.html';
 }
 
@@ -15,7 +15,7 @@ let filteredRecords = [];
 loadAccessHistory();
 
 async function loadAccessHistory() {
-    const endpoint = API_CONFIG.ENDPOINTS.RESIDENT.ACCESS_HISTORY(user.id);
+    const endpoint = API_CONFIG.ENDPOINTS.RESIDENT.ACCESS_HISTORY(user.resident_id);
     const result = await apiCall(endpoint);
     
     if (result.success) {

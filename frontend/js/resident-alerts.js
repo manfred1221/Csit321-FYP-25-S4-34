@@ -1,6 +1,6 @@
 // Check authentication
 const user = checkAuth();
-if (user && user.type !== 'resident') {
+if (!user || user.type !== 'resident') {
     window.location.href = 'index.html';
 }
 
@@ -14,7 +14,7 @@ let allAlerts = [];
 loadAlerts();
 
 async function loadAlerts() {
-    const endpoint = API_CONFIG.ENDPOINTS.RESIDENT.ALERTS(user.id);
+    const endpoint = API_CONFIG.ENDPOINTS.RESIDENT.ALERTS(user.resident_id);
     const result = await apiCall(endpoint);
     
     if (result.success) {

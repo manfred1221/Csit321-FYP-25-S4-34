@@ -1,6 +1,6 @@
 // Check authentication
 const user = checkAuth();
-if (user && user.type !== 'resident') {
+if (!user || user.type !== 'resident') {
     window.location.href = 'index.html';
 }
 
@@ -38,7 +38,7 @@ startBtn.onclick = async () => {
         uploadBtn.disabled = true;
         startBtn.disabled = true;
         
-        status.textContent = "Camera started — position your face in the frame";
+        status.textContent = "Camera started – position your face in the frame";
         status.style.background = '#d1fae5';
         status.style.color = '#065f46';
         
@@ -83,7 +83,7 @@ captureBtn.onclick = () => {
     startBtn.disabled = false;
     startBtn.textContent = '🔄 Retake Photo';
     
-    status.textContent = "Preview ready — click 'Register Face Data' to upload";
+    status.textContent = "Preview ready – click 'Register Face Data' to upload";
     status.style.background = '#dbeafe';
     status.style.color = '#1e40af';
 };
@@ -105,7 +105,7 @@ uploadBtn.onclick = async () => {
         const result = await apiCall(endpoint, {
             method: 'POST',
             body: JSON.stringify({
-                resident_id: user.id,
+                resident_id: user.resident_id,
                 image_data: imageData
             })
         });

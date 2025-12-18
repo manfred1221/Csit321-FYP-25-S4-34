@@ -1,6 +1,6 @@
 // Check authentication
 const user = checkAuth();
-if (user && user.type !== 'resident') {
+if (!user || user.type !== 'resident') {
     window.location.href = 'index.html';
 }
 
@@ -15,7 +15,7 @@ let isEditing = false;
 loadProfile();
 
 async function loadProfile() {
-    const endpoint = API_CONFIG.ENDPOINTS.RESIDENT.GET_PROFILE(user.id);
+    const endpoint = API_CONFIG.ENDPOINTS.RESIDENT.GET_PROFILE(user.resident_id);
     const result = await apiCall(endpoint);
     
     if (result.success) {
@@ -65,7 +65,7 @@ async function saveProfile() {
         email: document.getElementById('email').value,
     };
     
-    const endpoint = API_CONFIG.ENDPOINTS.RESIDENT.UPDATE_PROFILE(user.id);
+    const endpoint = API_CONFIG.ENDPOINTS.RESIDENT.UPDATE_PROFILE(user.resident_id);
     const result = await apiCall(endpoint, {
         method: 'PUT',
         body: JSON.stringify(formData)
@@ -97,7 +97,7 @@ async function toggleFaceAccess() {
         return;
     }
     
-    const endpoint = API_CONFIG.ENDPOINTS.RESIDENT.DISABLE_FACE_ACCESS(user.id);
+    const endpoint = API_CONFIG.ENDPOINTS.RESIDENT.DISABLE_FACE_ACCESS(user.resident_id);
     const result = await apiCall(endpoint, { method: 'POST' });
     
     if (result.success) {
@@ -122,7 +122,7 @@ async function deleteAccount() {
         return;
     }
     
-    const endpoint = API_CONFIG.ENDPOINTS.RESIDENT.DELETE_PROFILE(user.id);
+    const endpoint = API_CONFIG.ENDPOINTS.RESIDENT.DELETE_PROFILE(user.resident_id);
     const result = await apiCall(endpoint, { method: 'DELETE' });
     
     if (result.success) {

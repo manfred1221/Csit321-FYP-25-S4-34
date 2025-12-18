@@ -1,6 +1,6 @@
 // Check authentication
 const user = checkAuth();
-if (user && user.type !== 'resident') {
+if (!user || user.type !== 'resident') {
     window.location.href = 'index.html';
 }
 
@@ -28,7 +28,7 @@ document.getElementById('searchInput').addEventListener('input', (e) => {
 
 // Load all visitors
 async function loadVisitors() {
-    const endpoint = API_CONFIG.ENDPOINTS.RESIDENT.GET_VISITORS(user.id);
+    const endpoint = API_CONFIG.ENDPOINTS.RESIDENT.GET_VISITORS(user.resident_id);
     const result = await apiCall(endpoint);
     
     if (result.success) {
@@ -138,14 +138,14 @@ async function saveVisitor() {
     let result;
     if (visitorId) {
         // Update existing visitor
-        const endpoint = API_CONFIG.ENDPOINTS.RESIDENT.UPDATE_VISITOR(user.id, visitorId);
+        const endpoint = API_CONFIG.ENDPOINTS.RESIDENT.UPDATE_VISITOR(user.resident_id, visitorId);
         result = await apiCall(endpoint, {
             method: 'PUT',
             body: JSON.stringify(formData)
         });
     } else {
         // Create new visitor
-        const endpoint = API_CONFIG.ENDPOINTS.RESIDENT.CREATE_VISITOR(user.id);
+        const endpoint = API_CONFIG.ENDPOINTS.RESIDENT.CREATE_VISITOR(user.resident_id);
         result = await apiCall(endpoint, {
             method: 'POST',
             body: JSON.stringify(formData)
@@ -167,7 +167,7 @@ async function saveVisitor() {
 async function deleteVisitor(visitorId) {
     if (!confirm('Are you sure you want to delete this visitor?')) return;
     
-    const endpoint = API_CONFIG.ENDPOINTS.RESIDENT.DELETE_VISITOR(user.id, visitorId);
+    const endpoint = API_CONFIG.ENDPOINTS.RESIDENT.DELETE_VISITOR(user.resident_id, visitorId);
     const result = await apiCall(endpoint, { method: 'DELETE' });
     
     if (result.success) {
@@ -251,7 +251,7 @@ document.getElementById('startCameraBtn').onclick = async () => {
         startBtn.disabled = true;
         captureBtn.disabled = false;
         
-        faceStatus.textContent = "Camera started — position visitor's face in the frame";
+        faceStatus.textContent = "Camera started – position visitor's face in the frame";
         faceStatus.style.background = '#d1fae5';
         faceStatus.style.color = '#065f46';
         
@@ -298,7 +298,7 @@ document.getElementById('capturePhotoBtn').onclick = () => {
     captureBtn.disabled = true;
     uploadBtn.disabled = false;
     
-    faceStatus.textContent = "Preview ready — click 'Upload Image' to save";
+    faceStatus.textContent = "Preview ready – click 'Upload Image' to save";
     faceStatus.style.background = '#dbeafe';
     faceStatus.style.color = '#1e40af';
 };
@@ -324,7 +324,7 @@ document.getElementById('uploadPhotoBtn').onclick = async () => {
         uploadBtn.innerHTML = '<span class="loading"></span> Uploading...';
         
         const imageData = canvas.toDataURL('image/jpeg', 0.9);
-        const endpoint = API_CONFIG.ENDPOINTS.RESIDENT.UPLOAD_VISITOR_FACE(user.id, visitorId);
+        const endpoint = API_CONFIG.ENDPOINTS.RESIDENT.UPLOAD_VISITOR_FACE(user.resident_id, visitorId);
         
         const result = await apiCall(endpoint, {
             method: 'POST',
@@ -361,7 +361,7 @@ async function viewVisitorHistory(visitorId, visitorName) {
     document.getElementById('historyVisitorName').textContent = `Access History for ${visitorName}`;
     document.getElementById('accessHistoryModal').classList.add('active');
     
-    const endpoint = API_CONFIG.ENDPOINTS.RESIDENT.VISITOR_ACCESS_HISTORY(user.id, visitorId);
+    const endpoint = API_CONFIG.ENDPOINTS.RESIDENT.VISITOR_ACCESS_HISTORY(user.resident_id, visitorId);
     const result = await apiCall(endpoint);
     
     const tbody = document.querySelector('#visitorAccessHistoryTable tbody');

@@ -16,7 +16,6 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
         // STAFF - Real Backend API 
         // ========================================
         if (userType === 'staff') {
-            // Call the staff login API directly
             const response = await fetch(API_CONFIG.BASE_URL + API_CONFIG.ENDPOINTS.STAFF.LOGIN, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -49,12 +48,49 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
         }
         
         // ========================================
-        // RESIDENT, VISITOR, ADMIN - Mock (unchanged)
+        // RESIDENT - Real Backend API 
+        // ========================================
+        else if (userType === 'resident') {
+            // Call the resident login API - using hardcoded URL
+            const response = await fetch(API_CONFIG.BASE_URL + '/api/auth/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, password })
+            });
+            
+            const result = await response.json();
+            
+            if (response.ok && result.resident_id) {
+                const residentData = {
+                    id: result.resident_id,
+                    resident_id: result.resident_id,
+                    user_id: result.user_id,
+                    username: result.username,
+                    full_name: result.full_name || result.username,
+                    type: 'resident',
+                    email: result.email || `${username}@condo.com`,
+                    unit_number: result.unit_number || 'N/A',
+                    contact_number: result.contact_number || 'N/A',
+                    role: result.role
+                };
+                
+                localStorage.setItem('user', JSON.stringify(residentData));
+                localStorage.setItem('auth_token', result.token);
+                
+                showMessage('message', 'Login successful!', 'success');
+                setTimeout(() => window.location.href = '/resident/dashboard', 1000);
+                return;
+            } else {
+                showMessage('message', result.error || 'Login failed', 'error');
+            }
+        }
+        
+        // ========================================
+        // VISITOR, ADMIN - Mock
         // ========================================
         else {
-            // Mock login for other user types (your existing code)
             const mockUser = {
-                id: userType === 'resident' ? 1 : 101,
+                id: userType === 'visitor' ? 101 : 999,
                 username: username,
                 type: userType,
                 full_name: username,
@@ -64,10 +100,7 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
             localStorage.setItem('user', JSON.stringify(mockUser));
             localStorage.setItem('auth_token', 'mock_token_' + Date.now());
             
-            // Redirect based on user type
-            if (userType === 'resident') {
-                window.location.href = 'resident-dashboard.html';
-            } else if (userType === 'visitor') {
+            if (userType === 'visitor') {
                 window.location.href = 'visitor-dashboard.html';
             } else {
                 window.location.href = 'admin-dashboard.html';
