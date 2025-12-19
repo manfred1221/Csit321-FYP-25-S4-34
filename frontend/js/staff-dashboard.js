@@ -55,36 +55,27 @@ async function loadTodaySchedule() {
         const today = new Date().toISOString().split('T')[0];
         const staffId = currentUser.staff_id || currentUser.user_id || currentUser.id;
 
-        // Use our new staff schedules API
-        const response = await fetch(`${API_CONFIG.BASE_URL}/api/staff/schedules?staff_id=${staffId}`);
+        // Use BCE blueprint endpoint (same as schedule page)
+        const response = await fetch(`/api/staff/${staffId}/schedule?start_date=${today}&end_date=${today}`);
         const result = await response.json();
 
-        if (result.success && result.schedules && result.schedules.length > 0) {
-            // Filter schedules for today
-            const todaySchedules = result.schedules.filter(schedule => {
-                return schedule.start_date <= today && schedule.end_date >= today;
+        console.log('Today schedule response:', result);
+
+        if (result.schedules && result.schedules.length > 0) {
+            let html = '';
+            
+            result.schedules.forEach(schedule => {
+                html += `
+                    <div style="padding: 15px; margin-bottom: 10px; border-left: 4px solid #2563eb; background: #f9fafb; border-radius: 4px;">
+                        <p style="margin: 5px 0;"><strong>🕐 Time:</strong> ${schedule.shift_start} - ${schedule.shift_end}</p>
+                        <p style="margin: 5px 0;"><strong>📋 Task:</strong> ${schedule.task_description || 'No task description'}</p>
+                    </div>
+                `;
             });
 
-            if (todaySchedules.length > 0) {
-                let html = '';
-
-                todaySchedules.forEach(schedule => {
-                    html += `
-                        <div style="padding: 15px; margin-bottom: 10px; border-left: 4px solid #2563eb; background: #f9fafb; border-radius: 4px;">
-                            <p style="margin: 5px 0;"><strong>🔄 Shift:</strong> ${schedule.shift_name || 'Assigned Shift'}</p>
-                            <p style="margin: 5px 0;"><strong>⏰ Time:</strong> ${schedule.start_time} - ${schedule.end_time}</p>
-                            <p style="margin: 5px 0;"><strong>📍 Location:</strong> ${schedule.location || 'N/A'}</p>
-                            ${schedule.notes ? `<p style="margin: 5px 0;"><strong>📋 Notes:</strong> ${schedule.notes}</p>` : ''}
-                        </div>
-                    `;
-                });
-
-                document.getElementById('todaySchedule').innerHTML = html;
-            } else {
-                document.getElementById('todaySchedule').innerHTML = '<p style="text-align: center; color: #6b7280; padding: 20px;">No schedule for today</p>';
-            }
+            document.getElementById('todaySchedule').innerHTML = html;
         } else {
-            document.getElementById('todaySchedule').innerHTML = '<p style="text-align: center; color: #6b7280; padding: 20px;">No schedule assigned yet</p>';
+            document.getElementById('todaySchedule').innerHTML = '<p style="text-align: center; color: #6b7280; padding: 20px;">No schedule for today</p>';
         }
     } catch (error) {
         console.error('Load schedule error:', error);

@@ -63,15 +63,16 @@ async function loadSchedule() {
     }
     
     try {
-        const url = `http://192.168.0.113:5001/api/staff/${currentUser.staff_id}/schedule?start_date=${startDate}&end_date=${endDate}`;
+        const url = `/api/staff/${currentUser.staff_id}/schedule?start_date=${startDate}&end_date=${endDate}`;
         
         const response = await fetch(url);
         const result = await response.json();
         
         console.log('Schedule API response:', result);
         
-        if (result.success && result.data && result.data.schedules && result.data.schedules.length > 0) {
-            displaySchedule(result.data.schedules);
+        // BCE blueprint returns schedules directly (not wrapped in success/data)
+        if (result.schedules && result.schedules.length > 0) {
+            displaySchedule(result.schedules);
         } else {
             document.getElementById('scheduleList').innerHTML = 
                 '<p style="text-align: center; color: #6b7280; padding: 40px;">No schedule found for selected period</p>';

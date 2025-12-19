@@ -44,6 +44,13 @@ class ScheduleEntity:
                 # Get the work period
                 work_start = temp_worker['work_start_date']
                 work_end = temp_worker['work_end_date']
+                
+                # Convert datetime to date if needed (database returns timestamptz)
+                if isinstance(work_start, datetime):
+                    work_start = work_start.date()
+                if isinstance(work_end, datetime):
+                    work_end = work_end.date()
+                
                 work_details = temp_worker.get('work_details', 'Temporary work assignment')
                 
                 # Convert start_date and end_date strings to date objects
