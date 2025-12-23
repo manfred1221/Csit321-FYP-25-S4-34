@@ -4,7 +4,144 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Choose Login Portal</title>
-    <link rel="stylesheet" href="/frontend/css/styles.css">
+    <!-- <link rel="stylesheet" href="/frontend/css/styles.css"> -->
+         <style>
+        /* ---------- RESET ---------- */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: "Inter", "Segoe UI", sans-serif;
+        }
+
+        body {
+            min-height: 100vh;
+            background: linear-gradient(120deg, #0f2027, #203a43, #2c5364);
+            background-size: 300% 300%;
+            animation: gradientMove 12s ease infinite;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            color: #fff;
+        }
+
+        @keyframes gradientMove {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        /* ---------- FLOATING ICONS ---------- */
+        .floating-icon {
+            position: absolute;
+            font-size: 3rem;
+            opacity: 0.15;
+            animation: floatIcon 8s ease-in-out infinite;
+            pointer-events: none;
+        }
+
+        .icon-1 { top: 15%; left: 10%; animation-delay: 0s; }
+        .icon-2 { top: 70%; left: 15%; animation-delay: 2s; }
+        .icon-3 { top: 20%; right: 10%; animation-delay: 1s; }
+        .icon-4 { bottom: 15%; right: 15%; animation-delay: 3s; }
+
+        @keyframes floatIcon {
+            0%, 100% { transform: translateY(0) rotate(0deg); }
+            50% { transform: translateY(-25px) rotate(10deg); }
+        }
+
+        /* ---------- CONTAINER ---------- */
+        .login-container {
+            perspective: 1200px;
+        }
+
+        /* ---------- CARD ---------- */
+        .login-box {
+            width: 420px;
+            padding: 45px 35px;
+            border-radius: 22px;
+            background: rgba(255, 255, 255, 0.12);
+            backdrop-filter: blur(18px);
+            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.4);
+            text-align: center;
+            transition: transform 0.15s ease-out;
+        }
+
+        /* ---------- HEADER ---------- */
+        .logo h1 {
+            font-size: 2.2rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .logo p {
+            font-size: 1rem;
+            opacity: 0.85;
+            margin-bottom: 35px;
+        }
+
+        /* ---------- ACTIONS ---------- */
+        .actions {
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+        }
+
+        /* ---------- BUTTONS ---------- */
+        .btn {
+            padding: 14px;
+            border-radius: 14px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 1rem;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .btn::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: -120%;
+            width: 200%;
+            height: 100%;
+            background: linear-gradient(
+                120deg,
+                transparent,
+                rgba(255, 255, 255, 0.35),
+                transparent
+            );
+            transition: 0.6s;
+        }
+
+        .btn:hover::before {
+            left: 120%;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #00c6ff, #0072ff);
+            color: white;
+            box-shadow: 0 10px 25px rgba(0, 114, 255, 0.45);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #f7971e, #ffd200);
+            color: #1a1a1a;
+            box-shadow: 0 10px 25px rgba(255, 210, 0, 0.4);
+        }
+
+        .btn:hover {
+            transform: translateY(-3px) scale(1.03);
+        }
+
+        @media (max-width: 480px) {
+            .login-box {
+                width: 90%;
+            }
+        }
+        </style>
 </head>
 <body>
 <div class="login-container">
