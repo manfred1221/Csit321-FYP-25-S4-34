@@ -220,6 +220,81 @@ def delete_account(staff_id):
 
 
 # ----------------------------------------------------------------------
+# UC-IS08: Enroll Face Data
+# ----------------------------------------------------------------------
+@staff_bp.route("/enroll-face", methods=["POST"])
+def enroll_face():
+    """
+    Staff face enrollment endpoint.
+    Accepts staff_id and image_data (base64), stores face embedding in database.
+    Currently stores placeholder (NULL embedding) - will integrate FaceNet later.
+    
+    Body JSON:
+    {
+      "staff_id": 1,
+      "image_data": "data:image/jpeg;base64,/9j/4AAQ..."
+    }
+    """
+    try:
+        from database import get_db_connection
+        from datetime import datetime
+        
+        data = request.get_json(silent=True) or {}
+        staff_id = data.get("staff_id")
+        image_data = data.get("image_data")
+
+        if not staff_id or not image_data:
+            return jsonify({
+                "error": "Missing fields",
+                "required": ["staff_id", "image_data"]
+            }), 400
+
+        conn = get_db_connection()
+        cur = conn.cursor()
+
+        # Verify staff exists
+        cur.execute("SELECT staff_id, full_name FROM staff WHERE staff_id = %s;", (staff_id,))
+        staff_row = cur.fetchone()
+        if not staff_row:
+            cur.close()
+            conn.close()
+            return jsonify({"error": "Staff member not found"}), 404
+
+        # Generate filename for the image
+        timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        image_filename = f"staff_{staff_id}_{timestamp}.jpg"
+
+        # TODO: In the future, process image_data with FaceNet here
+        # and generate the actual embedding vector instead of NULL
+        
+        # Insert face embedding record
+        cur.execute(
+            """
+            INSERT INTO face_embeddings (user_type, reference_id, embedding, image_filename)
+            VALUES ('staff', %s, NULL, %s)
+            RETURNING embedding_id;
+            """,
+            (staff_id, image_filename)
+        )
+        embedding_id = cur.fetchone()[0]
+        conn.commit()
+        cur.close()
+        conn.close()
+
+        return jsonify({
+            "success": True,
+            "message": "Face enrolled successfully",
+            "staff_id": staff_id,
+            "embedding_id": embedding_id,
+            "image_filename": image_filename
+        }), 201
+
+    except Exception as e:
+        print(f"Enroll face error: {e}")
+        return jsonify({"error": "Failed to enroll face", "details": str(e)}), 500
+
+
+# ----------------------------------------------------------------------
 # Additional Endpoints (Optional)
 # ----------------------------------------------------------------------
 

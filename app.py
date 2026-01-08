@@ -345,6 +345,12 @@ def staff_attendance():
     """Serve staff attendance page"""
     return send_from_directory('frontend', 'staff-attendance.html')
 
+@app.route('/frontend/staff-face-enroll.html')
+@app.route('/staff/face-enroll')
+def staff_face_enroll():
+    """Serve staff face enrollment page"""
+    return send_from_directory('frontend', 'staff-face-enroll.html')
+
 # Security Officer Routes
 def officer_required(f):
     @wraps(f)
