@@ -3,73 +3,175 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login</title>
+    <title>Condo Access - Login</title>
     <link rel="stylesheet" href="/frontend/css/styles.css">
 </head>
 <body>
-<div class="login-container">
-    <div class="login-box card">
-        <div class="logo">
-            <h1>Condo Access</h1>
-            <p>Security Officer Login</p>
+    <div class="login-container">
+        <div class="login-box">
+            <div class="logo">
+                <h1>🏢 Condo Access</h1>
+                <p>Facial Recognition System</p>
+            </div>
+
+            <div id="message" class="message"></div>
+
+            <form id="loginForm" onsubmit="handleLogin(event)">
+                <div class="form-group">
+                    <label for="username">Username or ID</label>
+                    <input 
+                        type="text" 
+                        id="username" 
+                        placeholder="Enter your username or officer ID"
+                        required
+                        autocomplete="username"
+                    >
+                </div>
+
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input 
+                        type="password" 
+                        id="password" 
+                        placeholder="Enter your password"
+                        required
+                        autocomplete="current-password"
+                    >
+                    <small style="color: #6b7280; font-size: 12px;">
+                        Security Officers: Leave password blank if using ID
+                    </small>
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-full" id="loginBtn">
+                    Login
+                </button>
+            </form>
+
+            <div class="help-text">
+                Enter your credentials to access the system
+            </div>
         </div>
-
-        <div class="form-group">
-            <label for="user_type">User Type</label>
-            <select id="user_type">
-                <option value="security_officer">Security Officer</option>
-            </select>
-        </div>
-
-        <div class="form-group">
-            <label for="user_id">User ID</label>
-            <input type="number" id="user_id" placeholder="Enter ID">
-        </div>
-
-        <!-- If you want a password field for officers later -->
-        <!-- <div class="form-group">
-            <label for="password">Password</label>
-            <input type="password" id="password" placeholder="Password (Officers only)">
-        </div> -->
-
-        <button class="btn btn-primary" onclick="login()">Login</button>
-        <a href="{{ url_for('portal_choice') }}">Back to Portal</a>
-
-        <p id="msg" class="message error"></p>
     </div>
-</div>
 
-<script>
-function login() {
-    const user_type = document.getElementById("user_type").value;
-    const user_id = document.getElementById("user_id").value;
-
-    fetch("http://127.0.0.1:5001/security/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ user_type, user_id })
-    })
-    .then(res => res.json())
-    .then(data => {
-        const msgEl = document.getElementById("msg");
-        if (!data.success) {
-            msgEl.classList.add("error");
-            msgEl.classList.remove("success");
-            msgEl.innerHTML = data.message;
-            return;
+    <script>
+        function showMessage(text, type = 'error') {
+            const msgEl = document.getElementById('message');
+            msgEl.textContent = text;
+            msgEl.className = `message ${type}`;
+            msgEl.style.display = 'block';
+            
+            // Auto-hide success messages
+            if (type === 'success') {
+                setTimeout(() => {
+                    msgEl.style.display = 'none';
+                }, 3000);
+            }
         }
 
-        msgEl.classList.add("success");
-        msgEl.classList.remove("error");
-        msgEl.innerHTML = "Login successful! Redirecting...";
-        window.location.href = data.redirect;
-    })
-    .catch(err => {
-        document.getElementById("msg").classList.add("error");
-        document.getElementById("msg").innerHTML = "Login failed. Try again.";
-        console.error(err);
-    });
-}
-</script>
+        function hideMessage() {
+            const msgEl = document.getElementById('message');
+            msgEl.style.display = 'none';
+        }
+
+        function setLoading(isLoading) {
+            const btn = document.getElementById('loginBtn');
+            const form = document.getElementById('loginForm');
+            
+            if (isLoading) {
+                btn.disabled = true;
+                btn.innerHTML = '<span class="loading-spinner"></span>Logging in...';
+                form.style.opacity = '0.7';
+            } else {
+                btn.disabled = false;
+                btn.innerHTML = 'Login';
+                form.style.opacity = '1';
+            }
+        }
+
+        async function handleLogin(event) {
+            event.preventDefault();
+            hideMessage();
+            
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value;
+
+            if (!username) {
+                showMessage('Please enter your username or ID', 'error');
+                return;
+            }
+
+            // Security officers can leave password blank
+            const isSecurityOfficer = /^\d+$/.test(username);
+            if (!password && !isSecurityOfficer) {
+                showMessage('Please enter your password', 'error');
+                return;
+            }
+
+            setLoading(true);
+            showMessage('Authenticating...', 'info');
+
+            try {
+                const response = await fetch('/admin/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        username: username,
+                        password: password || 'temp' // Send temp password for security officers
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    // Determine user type for message based on actual role returned
+                    let userType = 'User';
+                    const role = data.role;
+                    
+                    console.log('Login successful, role:', role); // Debug log
+                    
+                    if (role === 'security_officer') {
+                        userType = 'Security Officer';
+                    } else if (role === 'Admin' || role === 'ADMIN') {
+                        userType = 'Administrator';
+                    } else if (role === 'Resident' || role === 'RESIDENT') {
+                        userType = 'Resident';
+                    } else if (role === 'Internal_Staff' || role === 'Staff') {
+                        userType = 'Staff Member';
+                    } else if (role === 'Visitor' || role === 'VISITOR') {
+                        userType = 'Visitor';
+                    }
+
+                    showMessage(`Welcome! ${userType} authenticated successfully!`, 'success');
+                    
+                    // Redirect immediately
+                    setTimeout(() => {
+                        console.log('Redirecting to:', data.redirect); // Debug log
+                        window.location.href = data.redirect;
+                    }, 500);
+                } else {
+                    showMessage(data.message || 'Invalid username or password. Please try again.', 'error');
+                    setLoading(false);
+                }
+            } catch (error) {
+                console.error('Login error:', error);
+                showMessage('Connection error. Please check your network and try again.', 'error');
+                setLoading(false);
+            }
+        }
+
+        // Auto-focus username field on page load
+        window.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('username').focus();
+        });
+
+        // Handle Enter key in password field
+        document.getElementById('password').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                handleLogin(e);
+            }
+        });
+    </script>
 </body>
-</html>
+</html> 
