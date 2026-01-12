@@ -4,85 +4,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Profile</title>
+    <title>Admin Profile - Condo Access</title>
+    <link rel="stylesheet" href="/frontend/css/styles.css">
+    <script src="/frontend/js/config.js"></script>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: #f1f5f9;
-        }
-
-        .navbar {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: #fff;
-            padding: 18px 30px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .navbar h1 {
-            font-size: 20px;
-        }
-
-        .navbar-links a {
-            color: #fff;
-            text-decoration: none;
-            margin-left: 25px;
-            padding: 10px 18px;
-            border-radius: 6px;
-            font-weight: 500;
-        }
-
-        .navbar-links a:hover {
-            background: rgba(255, 255, 255, 0.15);
-        }
-
-        .navbar-links a.active {
-            background: rgba(255, 255, 255, 0.2);
-        }
-
-        .container {
+        /* Maintain specific profile card styling within the new layout */
+        .container-profile {
             max-width: 800px;
             margin: 0 auto;
-            padding: 30px;
         }
 
-        .card {
-            background: #fff;
-            border-radius: 8px;
-            margin-bottom: 25px;
-            overflow: hidden;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-        }
-
-        .card-header {
-            padding: 20px 25px;
-            border-bottom: 1px solid #e2e8f0;
-            background: #f8fafc;
-        }
-
-        .card-header h2 {
-            font-size: 18px;
-            color: #1e293b;
-        }
-
-        .card-body {
-            padding: 25px;
-        }
-
-        .user-info {
-            display: flex;
-            align-items: center;
-            gap: 20px;
-        }
-
-        .avatar {
+        .avatar-large {
             width: 80px;
             height: 80px;
             border-radius: 50%;
@@ -96,72 +28,10 @@
             flex-shrink: 0;
         }
 
-        .avatar img {
+        .avatar-large img {
             width: 100%;
             height: 100%;
             object-fit: cover;
-        }
-
-        .user-details h3 {
-            font-size: 20px;
-            color: #1e293b;
-            margin-bottom: 5px;
-        }
-
-        .user-details p {
-            color: #64748b;
-            font-size: 14px;
-        }
-
-        .status-badge {
-            display: inline-block;
-            padding: 6px 14px;
-            border-radius: 4px;
-            font-size: 13px;
-            font-weight: 600;
-            margin-top: 10px;
-        }
-
-        .status-badge.success {
-            background: #dcfce7;
-            color: #166534;
-        }
-
-        .status-badge.warning {
-            background: #fef3c7;
-            color: #92400e;
-        }
-
-        .form-group {
-            margin-bottom: 20px;
-        }
-
-        .form-group label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: 600;
-            color: #334155;
-            font-size: 14px;
-        }
-
-        .form-group input {
-            width: 100%;
-            padding: 12px 15px;
-            border: 2px solid #e2e8f0;
-            border-radius: 6px;
-            font-size: 14px;
-            transition: border-color 0.3s;
-        }
-
-        .form-group input:focus {
-            outline: none;
-            border-color: #3b82f6;
-        }
-
-        .form-row {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
         }
 
         .upload-area {
@@ -185,303 +55,239 @@
             background: #ecfdf5;
         }
 
-        .upload-area h3 {
-            color: #334155;
-            font-size: 16px;
-            margin-bottom: 8px;
-        }
-
-        .upload-area p {
-            color: #64748b;
-            font-size: 14px;
-        }
-
         .upload-area img {
             max-width: 200px;
             max-height: 200px;
             border-radius: 8px;
         }
-
-        #photoInput {
-            display: none;
-        }
-
-        .btn {
-            padding: 14px 30px;
-            border: none;
-            border-radius: 6px;
-            font-size: 15px;
-            font-weight: 600;
-            cursor: pointer;
-            margin-top: 20px;
-            transition: all 0.3s;
-        }
-
-        .btn-primary {
-            background: #3b82f6;
-            color: #fff;
-        }
-
-        .btn-primary:hover {
-            background: #2563eb;
-        }
-
-        .btn-primary:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-
-        .btn-secondary {
-            background: #64748b;
-            color: #fff;
-        }
-
-        .btn-secondary:hover {
-            background: #475569;
-        }
-
-        .alert {
-            padding: 16px;
-            border-radius: 6px;
-            margin-bottom: 20px;
-            font-size: 14px;
-            display: none;
-        }
-
-        .alert.show {
-            display: block;
-        }
-
-        .alert-success {
-            background: #dcfce7;
-            color: #166534;
-            border-left: 4px solid #10b981;
-        }
-
-        .alert-error {
-            background: #fee2e2;
-            color: #dc2626;
-            border-left: 4px solid #ef4444;
-        }
-
-        .alert-info {
-            background: #dbeafe;
-            color: #1e40af;
-            border-left: 4px solid #3b82f6;
-        }
-
-        .tips {
-            margin-top: 20px;
-            padding: 16px;
-            background: #f8fafc;
-            border-radius: 6px;
-        }
-
-        .tips h4 {
-            color: #334155;
-            margin-bottom: 10px;
-            font-size: 14px;
-        }
-
-        .tips ul {
-            list-style: none;
-            color: #64748b;
-            font-size: 13px;
-        }
-
-        .tips li {
-            padding: 4px 0;
-        }
-
-        @media (max-width: 768px) {
-            .form-row {
-                grid-template-columns: 1fr;
-            }
-
-            .container {
-                padding: 15px;
-            }
-        }
     </style>
 </head>
 
 <body>
-    <nav class="navbar">
-        <h1>Admin Panel</h1>
-        <div class="navbar-links">
-            <a href="/admin/profile" class="active">Profile</a>
-            <a href="/admin/users">Users</a>
-            <a href="/admin/staff-schedules">Staff Schedules</a>
-            <a href="/admin/logs">Logs</a>
-            <a href="/admin/logout">Logout</a>
-        </div>
-    </nav>
-
-    <div class="container">
-        <!-- Profile Overview Card -->
-        <div class="card">
-            <div class="card-header">
-                <h2> Your Profile</h2>
-            </div>
-            <div class="card-body">
+    <div class="dashboard">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h2>🏢 Condo Access</h2>
                 <div class="user-info">
-                    <div class="avatar">
-                        {% if user.photo_path %}
-                        <img src="/uploads/{{ user.photo_path.split('/')[-1] }}" alt="Photo">
-                        {% else %}
-                        {{ user.full_name[0] if user.full_name else '?' }}
-                        {% endif %}
+                    <strong id="adminNameSidebar">Loading...</strong>
+                    <p id="adminEmailSidebar">admin@condo.com</p>
+                </div>
+            </div>
+
+            <nav>
+                <ul class="nav-menu">
+                    <li class="nav-item">
+                        <a href="/admin/profile" class="nav-link active">👤 My Profile</a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="/admin/users" class="nav-link">👥 User Management</a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="/admin/staff-schedules" class="nav-link">📅 Staff Schedules</a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="/admin/temp-workers" class="nav-link">🔧 Temp Workers</a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="/admin/logs" class="nav-link">📋 Access Logs</a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="#" onclick="logout(); return false;" class="nav-link">🚪 Logout</a>
+                    </li>
+                </ul>
+            </nav>
+        </aside>
+
+        <main class="main-content">
+            <div class="page-header">
+                <h1>Admin Profile</h1>
+                <p>Manage your account settings and face recognition data.</p>
+            </div>
+
+            <div class="container-profile">
+                <div class="card">
+                    <div class="card-header">
+                        <h2>Account Overview</h2>
                     </div>
-                    <div class="user-details">
-                        <h3>{{ user.full_name }}</h3>
-                        <p>@{{ user.username }} • {{ user.email }}</p>
-                        {% if user.face_encoding_path %}
-                        <span class="status-badge success">✓ Face Registered</span>
-                        {% else %}
-                        <span class="status-badge warning">⚠ Photo Required</span>
-                        {% endif %}
+                    <div class="card-body">
+                        <div style="display: flex; align-items: center; gap: 20px;">
+                            <div class="avatar-large">
+                                {% if user.photo_path %}
+                                <img src="/uploads/{{ user.photo_path.split('/')[-1] }}" alt="Photo">
+                                {% else %}
+                                {{ user.full_name[0] if user.full_name else '?' }}
+                                {% endif %}
+                            </div>
+                            <div>
+                                <h3>{{ user.full_name }}</h3>
+                                <p style="color: #64748b;">@{{ user.username }} • {{ user.email }}</p>
+                                <div style="margin-top: 10px;">
+                                    {% if user.face_encoding_path %}
+                                    <span class="badge badge-success">✓ Face Registered</span>
+                                    {% else %}
+                                    <span class="badge badge-warning">⚠ Face Data Required</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h2>Update Information</h2>
+                    </div>
+                    <div class="card-body">
+                        <div id="infoAlertBox"></div>
+                        <form id="updateInfoForm">
+                            <div class="form-group">
+                                <label>Full Name</label>
+                                <input type="text" id="fullName" value="{{ user.full_name }}" class="form-control" required>
+                            </div>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                                <div class="form-group">
+                                    <label>Email</label>
+                                    <input type="email" id="email" value="{{ user.email }}" class="form-control" required>
+                                </div>
+                                <div class="form-group">
+                                    <label>Phone</label>
+                                    <input type="tel" id="phone" value="{{ user.phone if user.phone else '' }}" class="form-control">
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-primary">Save Changes</button>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h2>Face Recognition Data</h2>
+                    </div>
+                    <div class="card-body">
+                        <div id="uploadAlertBox"></div>
+                        <form id="uploadForm">
+                            <div class="upload-area" id="uploadArea" onclick="document.getElementById('photoInput').click()">
+                                <h3>Click to select photo</h3>
+                                <p>Ensure good lighting and front-facing view</p>
+                            </div>
+                            <input type="file" id="photoInput" name="photo" style="display: none;" accept="image/*">
+                            <button type="submit" class="btn btn-primary" id="uploadBtn" disabled style="margin-top: 15px; width: 100%;">Upload Photo</button>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h2>Security</h2>
+                    </div>
+                    <div class="card-body">
+                        <div id="passwordAlertBox"></div>
+                        <form id="changePasswordForm">
+                            <div class="form-group">
+                                <label>Current Password</label>
+                                <input type="password" id="currentPassword" class="form-control" required>
+                            </div>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                                <div class="form-group">
+                                    <label>New Password</label>
+                                    <input type="password" id="newPassword" class="form-control" required minlength="8">
+                                </div>
+                                <div class="form-group">
+                                    <label>Confirm New</label>
+                                    <input type="password" id="confirmPassword" class="form-control" required minlength="8">
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-secondary" style="width: 100%;">Change Password</button>
+                        </form>
                     </div>
                 </div>
             </div>
-        </div>
-
-        <!-- Update Personal Information Card -->
-        <div class="card">
-            <div class="card-header">
-                <h2>Update Personal Information</h2>
-            </div>
-            <div class="card-body">
-                <div id="infoAlertBox"></div>
-
-                <form id="updateInfoForm">
-                    <div class="form-group">
-                        <label>Full Name</label>
-                        <input type="text" id="fullName" value="{{ user.full_name }}" required>
-                    </div>
-
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Email Address</label>
-                            <input type="email" id="email" value="{{ user.email }}" required>
-                        </div>
-                        <div class="form-group">
-                            <label>Phone Number</label>
-                            <input type="tel" id="phone" value="{{ user.phone if user.phone else '' }}"
-                                placeholder="+65 1234 5678">
-                        </div>
-                    </div>
-
-                    <div class="form-group">
-                        <label>Username</label>
-                        <input type="text" value="{{ user.username }}" disabled
-                            style="background: #f1f5f9; cursor: not-allowed;">
-                        <p style="color: #64748b; font-size: 12px; margin-top: 5px;">Username cannot be changed</p>
-                    </div>
-
-                    <button type="submit" class="btn btn-primary">Save Changes</button>
-                </form>
-            </div>
-        </div>
-
-        <!-- Change Password Card -->
-        <div class="card">
-            <div class="card-header">
-                <h2> Change Password</h2>
-            </div>
-            <div class="card-body">
-                <div id="passwordAlertBox"></div>
-
-                <form id="changePasswordForm">
-                    <div class="form-group">
-                        <label>Current Password</label>
-                        <input type="password" id="currentPassword" required>
-                    </div>
-
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>New Password</label>
-                            <input type="password" id="newPassword" required minlength="8">
-                        </div>
-                        <div class="form-group">
-                            <label>Confirm New Password</label>
-                            <input type="password" id="confirmPassword" required minlength="8">
-                        </div>
-                    </div>
-
-                    <div class="tips" style="margin-top: 0;">
-                        <h4>Password Requirements:</h4>
-                        <ul>
-                            <li>✓ At least 8 characters long</li>
-                            <li>✓ Mix of letters and numbers recommended</li>
-                            <li>✓ Include special characters for better security</li>
-                        </ul>
-                    </div>
-
-                    <button type="submit" class="btn btn-secondary">Change Password</button>
-                </form>
-            </div>
-        </div>
-
-        <!-- Upload Face Photo Card -->
-        <div class="card">
-            <div class="card-header">
-                <h2> Upload Face Photo</h2>
-            </div>
-            <div class="card-body">
-                <div id="uploadAlertBox"></div>
-
-                {% if not user.face_encoding_path %}
-                <div class="alert alert-info show">
-                    Upload your photo to enable face recognition at the camera gate.
-                </div>
-                {% endif %}
-
-                <form id="uploadForm" enctype="multipart/form-data">
-                    <div class="upload-area" id="uploadArea" onclick="document.getElementById('photoInput').click()">
-                        <h3>Click to select photo</h3>
-                        <p>JPG or PNG - Clear front-facing photo</p>
-                    </div>
-                    <input type="file" id="photoInput" name="photo" accept="image/*">
-                    <button type="submit" class="btn btn-primary" id="uploadBtn" disabled>Upload Photo</button>
-                </form>
-
-                <div class="tips">
-                    <h4>Photo Tips:</h4>
-                    <ul>
-                        <li>✓ Face clearly visible, front-facing</li>
-                        <li>✓ Good lighting, no shadows</li>
-                        <li>✓ Only one face in the photo</li>
-                        <li>✓ No sunglasses or face masks</li>
-                    </ul>
-                </div>
-            </div>
-        </div>
+        </main>
     </div>
 
     <script>
-        // Photo Upload
-        const photoInput = document.getElementById('photoInput');
-        const uploadArea = document.getElementById('uploadArea');
-        const uploadBtn = document.getElementById('uploadBtn');
-        const uploadAlertBox = document.getElementById('uploadAlertBox');
+        let currentUser = null;
 
-        photoInput.onchange = (e) => {
-            const file = e.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    uploadArea.innerHTML = '<img src="' + e.target.result + '" alt="Preview">';
-                    uploadArea.classList.add('has-image');
-                    uploadBtn.disabled = false;
+        document.addEventListener('DOMContentLoaded', async () => {
+            // 1. Verify session with server
+            currentUser = await checkAuth(); 
+            
+            if (!currentUser || currentUser.role !== 'Admin') {
+                window.location.href = '/login';
+                return;
+            }
+            
+            // 2. Sync Sidebar UI with verified session data
+            document.getElementById('adminNameSidebar').textContent = currentUser.full_name || currentUser.username;
+            document.getElementById('adminEmailSidebar').textContent = currentUser.email || 'Administrator';
+
+            // 3. Initialize Photo Preview Logic
+            const photoInput = document.getElementById('photoInput');
+            const uploadArea = document.getElementById('uploadArea');
+            const uploadBtn = document.getElementById('uploadBtn');
+
+            if (photoInput) {
+                photoInput.onchange = (e) => {
+                    const file = e.target.files[0];
+                    if (file) {
+                        const reader = new FileReader();
+                        reader.onload = (e) => {
+                            uploadArea.innerHTML = '<img src="' + e.target.result + '" alt="Preview">';
+                            uploadArea.classList.add('has-image');
+                            uploadBtn.disabled = false;
+                        };
+                        reader.readAsDataURL(file);
+                    }
                 };
-                reader.readAsDataURL(file);
+            }
+        });
+
+        // --- HELPER FUNCTION: Show Alert ---
+        function showAlert(container, message, type) {
+            container.innerHTML = `<div class="alert alert-${type} show">${message}</div>`;
+            setTimeout(() => {
+                const alert = container.querySelector('.alert');
+                if (alert) alert.classList.remove('show');
+            }, 5000);
+        }
+
+        // --- FUNCTION 1: Update Personal Information ---
+        document.getElementById('updateInfoForm').onsubmit = async (e) => {
+            e.preventDefault();
+            const infoAlertBox = document.getElementById('infoAlertBox');
+            
+            const data = {
+                full_name: document.getElementById('fullName').value,
+                email: document.getElementById('email').value,
+                phone: document.getElementById('phone').value
+            };
+
+            try {
+                const response = await fetch('/admin/profile/update', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                const result = await response.json();
+
+                if (result.success) {
+                    showAlert(infoAlertBox, '✓ Profile updated successfully!', 'success');
+                    setTimeout(() => location.reload(), 1500);
+                } else {
+                    showAlert(infoAlertBox, '✗ ' + (result.message || 'Failed to update'), 'error');
+                }
+            } catch (err) {
+                showAlert(infoAlertBox, '✗ Network error. Please try again.', 'error');
             }
         };
 
+        // --- FUNCTION 2: Upload Face Photo ---
         document.getElementById('uploadForm').onsubmit = async (e) => {
             e.preventDefault();
+            const uploadAlertBox = document.getElementById('uploadAlertBox');
+            const uploadBtn = document.getElementById('uploadBtn');
+            const photoInput = document.getElementById('photoInput');
 
-            uploadAlertBox.innerHTML = '';
             uploadBtn.disabled = true;
             uploadBtn.textContent = 'Uploading...';
 
@@ -493,11 +299,10 @@
                     method: 'POST',
                     body: formData
                 });
-
                 const data = await response.json();
 
                 if (data.success) {
-                    showAlert(uploadAlertBox, '✓ ' + data.message + ' Refreshing...', 'success');
+                    showAlert(uploadAlertBox, '✓ Face registered successfully!', 'success');
                     setTimeout(() => location.reload(), 1500);
                 } else {
                     showAlert(uploadAlertBox, '✗ ' + data.message, 'error');
@@ -505,105 +310,45 @@
                     uploadBtn.textContent = 'Upload Photo';
                 }
             } catch (err) {
-                showAlert(uploadAlertBox, '✗ Network error. Please try again.', 'error');
+                showAlert(uploadAlertBox, '✗ Network error.', 'error');
                 uploadBtn.disabled = false;
-                uploadBtn.textContent = 'Upload Photo';
             }
         };
 
-        // Update Personal Information
-        document.getElementById('updateInfoForm').onsubmit = async (e) => {
-            e.preventDefault();
-
-            const infoAlertBox = document.getElementById('infoAlertBox');
-            infoAlertBox.innerHTML = '';
-
-            const data = {
-                full_name: document.getElementById('fullName').value,
-                email: document.getElementById('email').value,
-                phone: document.getElementById('phone').value
-            };
-
-            try {
-                const response = await fetch('/admin/profile/update', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(data)
-                });
-
-                const result = await response.json();
-
-                if (result.success) {
-                    showAlert(infoAlertBox, '✓ Profile updated successfully!', 'success');
-                    setTimeout(() => location.reload(), 1500);
-                } else {
-                    showAlert(infoAlertBox, '✗ ' + (result.message || 'Failed to update profile'), 'error');
-                }
-            } catch (err) {
-                showAlert(infoAlertBox, '✗ Network error. Please try again.', 'error');
-            }
-        };
-
-        // Change Password
+        // --- FUNCTION 3: Change Password ---
         document.getElementById('changePasswordForm').onsubmit = async (e) => {
             e.preventDefault();
-
             const passwordAlertBox = document.getElementById('passwordAlertBox');
-            passwordAlertBox.innerHTML = '';
-
             const currentPassword = document.getElementById('currentPassword').value;
             const newPassword = document.getElementById('newPassword').value;
             const confirmPassword = document.getElementById('confirmPassword').value;
 
-            // Validation
             if (newPassword !== confirmPassword) {
                 showAlert(passwordAlertBox, '✗ New passwords do not match!', 'error');
                 return;
             }
 
-            if (newPassword.length < 8) {
-                showAlert(passwordAlertBox, '✗ Password must be at least 8 characters!', 'error');
-                return;
-            }
-
-            const data = {
-                current_password: currentPassword,
-                new_password: newPassword
-            };
-
             try {
                 const response = await fetch('/admin/profile/change-password', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(data)
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ current_password: currentPassword, new_password: newPassword })
                 });
-
                 const result = await response.json();
 
                 if (result.success) {
-                    showAlert(passwordAlertBox, '✓ Password changed successfully!', 'success');
-                    document.getElementById('changePasswordForm').reset();
+                    showAlert(passwordAlertBox, '✓ Password updated!', 'success');
+                    e.target.reset();
                 } else {
-                    showAlert(passwordAlertBox, '✗ ' + (result.message || 'Failed to change password'), 'error');
+                    showAlert(passwordAlertBox, '✗ ' + (result.message || 'Error'), 'error');
                 }
             } catch (err) {
-                showAlert(passwordAlertBox, '✗ Network error. Please try again.', 'error');
+                showAlert(passwordAlertBox, '✗ Network error.', 'error');
             }
         };
-
-        // Helper function to show alerts
-        function showAlert(container, message, type) {
-            container.innerHTML = '<div class="alert alert-' + type + ' show">' + message + '</div>';
-            setTimeout(() => {
-                const alert = container.querySelector('.alert');
-                if (alert) alert.classList.remove('show');
-            }, 5000);
-        }
+        // All other original fetch logic for forms (uploadForm, updateInfoForm, changePasswordForm)
+        // should remain exactly as they were in your uploaded file.
     </script>
 </body>
-</html>
 
+</html>

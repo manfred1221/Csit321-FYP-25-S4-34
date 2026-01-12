@@ -1,305 +1,106 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Access Logs</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: #f1f5f9;
-        }
-
-        .navbar {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: #fff;
-            padding: 18px 30px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .navbar h1 {
-            font-size: 20px;
-        }
-
-        .navbar-links a {
-            color: #fff;
-            text-decoration: none;
-            margin-left: 25px;
-            padding: 10px 18px;
-            border-radius: 6px;
-            font-weight: 500;
-        }
-
-        .navbar-links a:hover {
-            background: rgba(255, 255, 255, 0.15);
-        }
-
-        .navbar-links a.active {
-            background: rgba(255, 255, 255, 0.2);
-        }
-
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 30px;
-        }
-
-        .card {
-            background: #fff;
-            border-radius: 8px;
-            overflow: hidden;
-        }
-
-        .card-header {
-            padding: 20px 25px;
-            border-bottom: 1px solid #e2e8f0;
-        }
-
-        .card-header h2 {
-            font-size: 18px;
-            color: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            margin-bottom: 15px;
-        }
-
-        .card-body {
-            padding: 0;
-            overflow-x: auto;
-        }
-
-        .filters {
-            display: flex;
-            gap: 10px;
-            align-items: center;
-            flex-wrap: wrap;
-        }
-
-        .filters label {
-            font-size: 13px;
-            color: #64748b;
-            font-weight: 500;
-        }
-
-        .filters input,
-        .filters select {
-            padding: 10px 14px;
-            border: 2px solid #e2e8f0;
-            border-radius: 6px;
-            font-size: 14px;
-        }
-
-        .filters input:focus,
-        .filters select:focus {
-            outline: none;
-            border-color: #3b82f6;
-        }
-
-        .btn {
-            padding: 10px 18px;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            text-decoration: none;
-            display: inline-block;
-            font-weight: 500;
-            font-size: 14px;
-        }
-
-        .btn-sm {
-            padding: 7px 14px;
-            font-size: 13px;
-        }
-
-        .btn-primary {
-            background: #3b82f6;
-            color: #fff;
-        }
-
-        .btn-primary:hover {
-            background: #2563eb;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-
-        th,
-        td {
-            padding: 14px 16px;
-            text-align: left;
-            border-bottom: 1px solid #e2e8f0;
-        }
-
-        th {
-            background: #f8fafc;
-            font-weight: 600;
-            color: #64748b;
-            font-size: 12px;
-            text-transform: uppercase;
-        }
-
-        .badge {
-            padding: 5px 12px;
-            border-radius: 4px;
-            font-size: 12px;
-            font-weight: 600;
-        }
-
-        .badge-success {
-            background: #dcfce7;
-            color: #166534;
-        }
-
-        .badge-danger {
-            background: #fee2e2;
-            color: #dc2626;
-        }
-
-        .badge-info {
-            background: #dbeafe;
-            color: #1e40af;
-        }
-
-        .empty {
-            text-align: center;
-            color: #94a3b8;
-            padding: 50px;
-        }
-
-        .filter-group {
-            display: flex;
-            flex-direction: column;
-            gap: 5px;
-        }
-    </style>
+    <title>Access Logs - Condo Access</title>
+    <link rel="stylesheet" href="/frontend/css/styles.css">
 </head>
-
 <body>
-    <nav class="navbar">
-        <h1>Admin Panel</h1>
-        <div class="navbar-links">
-            <a href="/admin/profile">Profile</a>
-            <a href="/admin/users">Users</a>
-            <a href="/admin/staff-schedules">Staff Schedules</a>
-            <a href="/admin/logs" class="active">Logs</a>
-            <a href="/admin/logout">Logout</a>
-        </div>
-    </nav>
+    <div class="dashboard">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h2>🏢 Condo Access</h2>
+                <div class="user-info">
+                    <strong id="adminNameLogs">Loading...</strong>
+                    <p id="adminEmailLogs">admin@condo.com</p>
+                </div>
+            </div>
+            <nav>
+                <ul class="nav-menu">
+                    <li class="nav-item"><a href="/admin/profile" class="nav-link">👤 My Profile</a></li>
+                    <li class="nav-item"><a href="/admin/users" class="nav-link">👥 User Management</a></li>
+                    <li class="nav-item"><a href="/admin/staff-schedules" class="nav-link">📅 Staff Schedules</a></li>
+                    <li class="nav-item"><a href="/admin/temp-workers" class="nav-link">🔧 Temp Workers</a></li>
+                    <li class="nav-item"><a href="/admin/logs" class="nav-link active">📋 Access Logs</a></li>
+                    <li class="nav-item"><a href="#" onclick="logout(); return false;" class="nav-link">🚪 Logout</a></li>
+                </ul>
+            </nav>
+        </aside>
 
-    <div class="container">
-        <div class="card">
-            <div class="card-header">
-                <h2>Access Logs</h2>
-                <form class="filters" method="GET">
-                    <div class="filter-group">
-                        <label>User</label>
-                        <select name="user_id">
-                            <option value="">All Users</option>
-                            {% for u in users_for_filter %}
-                            <option value="{{ u.id }}" {% if user_filter==u.id|string %}selected{% endif %}>
-                                {{ u.full_name }} (@{{ u.username }})
-                            </option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="filter-group">
-                        <label>From Date</label>
-                        <input type="date" name="date_from" value="{{ date_from }}">
-                    </div>
-                    <div class="filter-group">
-                        <label>To Date</label>
-                        <input type="date" name="date_to" value="{{ date_to }}">
-                    </div>
-                    <div class="filter-group">
-                        <label>Status</label>
-                        <select name="status">
-                            <option value="">All Status</option>
-                            <option value="granted" {% if status_filter=='granted' %}selected{% endif %}>Granted
-                            </option>
-                            <option value="denied" {% if status_filter=='denied' %}selected{% endif %}>Denied</option>
-                        </select>
-                    </div>
-                    <div class="filter-group" style="justify-content: flex-end;">
-                        <label>&nbsp;</label>
-                        <div style="display:flex;gap:10px;">
-                            <button type="submit" class="btn btn-primary btn-sm">Filter</button>
-                            {% if user_filter or date_from or date_to or status_filter %}
-                            <a href="/admin/logs" class="btn btn-sm" style="background:#e2e8f0;color:#334155;">Clear</a>
-                            {% endif %}
+        <main class="main-content">
+            <div class="page-header">
+                <h1>Access Logs</h1>
+                <p>View historical entry and exit events for all users.</p>
+            </div>
+
+            <div class="card" style="margin-bottom: 20px;">
+                <div class="card-body">
+                    <form class="filters" method="GET" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; align-items: end;">
+                        <div class="form-group" style="margin-bottom:0;">
+                            <label>User</label>
+                            <select name="user_id" class="form-control">
+                                <option value="">All Users</option>
+                                {% for u in users_for_filter %}
+                                <option value="{{ u.id }}" {% if user_filter==u.id|string %}selected{% endif %}>{{ u.full_name }}</option>
+                                {% endfor %}
+                            </select>
                         </div>
-                    </div>
-                </form>
+                        <div class="form-group" style="margin-bottom:0;">
+                            <label>From</label>
+                            <input type="date" name="date_from" value="{{ date_from }}" class="form-control">
+                        </div>
+                        <div class="form-group" style="margin-bottom:0;">
+                            <label>To</label>
+                            <input type="date" name="date_to" value="{{ date_to }}" class="form-control">
+                        </div>
+                        <div style="display:flex; gap:10px;">
+                            <button type="submit" class="btn btn-primary" style="flex:1;">Filter</button>
+                            <a href="/admin/logs" class="btn btn-secondary">Clear</a>
+                        </div>
+                    </form>
+                </div>
             </div>
-            <div class="card-body">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>Date/Time</th>
-                            <th>User</th>
-                            <th>Role</th>
-                            <th>Type</th>
-                            <th>Access Point</th>
-                            <th>Status</th>
-                            <th>Confidence</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for log in logs %}
-                        <tr>
-                            <td>{{ log.id }}</td>
-                            <td>{{ log.created_at.strftime('%Y-%m-%d %H:%M:%S') if log.created_at else '-' }}</td>
-                            <td>
-                                {% if log.full_name %}
-                                <strong>{{ log.full_name }}</strong>
-                                <br><small style="color:#64748b;">@{{ log.username }}</small>
-                                {% else %}
-                                <em style="color:#94a3b8;">Unknown</em>
-                                {% endif %}
-                            </td>
-                            <td>
-                                {% if log.role %}
-                                <span class="badge badge-info">{{ log.role }}</span>
-                                {% else %}
-                                -
-                                {% endif %}
-                            </td>
-                            <td>{{ log.access_type or 'entry' }}</td>
-                            <td>{{ log.access_point or 'Main Gate' }}</td>
-                            <td>
-                                <span
-                                    class="badge {{ 'badge-success' if log.status == 'granted' else 'badge-danger' }}">
-                                    {{ log.status }}
-                                </span>
-                            </td>
-                            <td>
-                                {% if log.confidence %}
-                                {{ '%d%%' % (log.confidence * 100) }}
-                                {% else %}
-                                -
-                                {% endif %}
-                            </td>
-                        </tr>
-                        {% else %}
-                        <tr>
-                            <td colspan="8" class="empty">No access logs found</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-</body>
 
-</html>
+            <div class="card">
+                <div class="card-body" style="padding: 0;">
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Timestamp</th>
+                                    <th>User</th>
+                                    <th>Role</th>
+                                    <th>Location</th>
+                                    <th>Status</th>
+                                    <th>Confidence</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for log in logs %}
+                                <tr>
+                                    <td>{{ log.created_at.strftime('%H:%M:%S') if log.created_at else '-' }}</td>
+                                    <td><strong>{{ log.full_name or 'Unknown' }}</strong><br><small>@{{ log.username }}</small></td>
+                                    <td><span class="badge badge-info">{{ log.role or '-' }}</span></td>
+                                    <td>{{ log.access_point or 'Main Gate' }}</td>
+                                    <td><span class="badge {{ 'badge-success' if log.status == 'granted' else 'badge-danger' }}">{{ log.status }}</span></td>
+                                    <td>{{ '%d%%' % (log.confidence * 100) if log.confidence else '-' }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+    <script src="/frontend/js/config.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            const currentUser = await checkAuth(); 
+            if (!currentUser || currentUser.role !== 'Admin') { window.location.href = '/login'; return; }
+            document.getElementById('adminNameLogs').textContent = currentUser.full_name || currentUser.username;
+        });
+    </script>
+</body>
 </html>

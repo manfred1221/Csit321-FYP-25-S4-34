@@ -1,607 +1,175 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Edit User</title>
+    <link rel="stylesheet" href="/frontend/css/styles.css">
+    <script src="/frontend/js/config.js"></script>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: #f1f5f9;
-        }
-
-        .navbar {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: #fff;
-            padding: 18px 30px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .navbar h1 {
-            font-size: 20px;
-        }
-
-        .navbar-links a {
-            color: #fff;
-            text-decoration: none;
-            margin-left: 25px;
-            padding: 10px 18px;
-            border-radius: 6px;
-            font-weight: 500;
-        }
-
-        .navbar-links a:hover {
-            background: rgba(255, 255, 255, 0.15);
-        }
-
-        .navbar-links a.active {
-            background: rgba(255, 255, 255, 0.2);
-        }
-
-        .container {
-            max-width: 700px;
-            margin: 0 auto;
-            padding: 30px;
-        }
-
-        .back-link {
-            display: inline-block;
-            margin-bottom: 20px;
-            color: #3b82f6;
-            text-decoration: none;
-            font-weight: 500;
-        }
-
-        .back-link:hover {
-            color: #2563eb;
-        }
-
-        .card {
-            background: #fff;
-            border-radius: 8px;
-            overflow: hidden;
-            margin-bottom: 20px;
-        }
-
-        .card-header {
-            padding: 25px;
-            border-bottom: 1px solid #e2e8f0;
-        }
-
-        .card-header h2 {
-            font-size: 18px;
-            color: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        }
-
-        .card-body {
-            padding: 30px;
-        }
-
-        .form-group {
-            margin-bottom: 22px;
-        }
-
-        .form-group label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: 600;
-            color: #334155;
-        }
-
-        .form-group input,
-        .form-group select,
-        .form-group textarea {
-            width: 100%;
-            padding: 14px;
-            border: 2px solid #e2e8f0;
-            border-radius: 6px;
-            font-size: 15px;
-        }
-
-        .form-group input:focus,
-        .form-group select:focus,
-        .form-group textarea:focus {
-            outline: none;
-            border-color: #3b82f6;
-        }
-
-        .form-group input:disabled {
-            background: #f8fafc;
-            color: #64748b;
-        }
-
-        .form-group textarea {
-            resize: vertical;
-            min-height: 80px;
-        }
-
-        .form-row {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-        }
-
-        .btn {
-            padding: 14px 24px;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 16px;
-            font-weight: 600;
-        }
-
-        .btn-block {
-            width: 100%;
-        }
-
-        .btn-primary {
-            background: #3b82f6;
-            color: #fff;
-        }
-
-        .btn-primary:hover {
-            background: #2563eb;
-        }
-
-        .btn-primary:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-
-        .error {
-            background: #fee2e2;
-            color: #dc2626;
-            padding: 15px;
-            border-radius: 6px;
-            margin-bottom: 20px;
-            display: none;
-        }
-
-        .success {
-            background: #dcfce7;
-            color: #166534;
-            padding: 15px;
-            border-radius: 6px;
-            margin-bottom: 20px;
-            display: none;
-        }
-
-        .face-status {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 16px;
-            border-radius: 6px;
-            margin-bottom: 25px;
-        }
-
-        .face-status.registered {
-            background: #dcfce7;
-        }
-
-        .face-status.not-registered {
-            background: #fef3c7;
-        }
-
-        .face-status .text h4 {
-            font-size: 14px;
-            margin-bottom: 3px;
-        }
-
-        .face-status .text p {
-            font-size: 12px;
-            opacity: 0.8;
-        }
-
-        .face-status.registered .text {
-            color: #166534;
-        }
-
-        .face-status.not-registered .text {
-            color: #92400e;
-        }
-
-        .temp-worker-fields {
-            display: none;
-            padding: 20px;
-            background: #f8fafc;
-            border-radius: 6px;
-            margin-bottom: 22px;
-            border: 2px solid #e9d5ff;
-        }
-
-        .temp-worker-fields.show {
-            display: block;
-        }
-
-        .temp-worker-fields h4 {
-            margin-bottom: 15px;
-            color: #7c3aed;
-            font-size: 16px;
-        }
-
-        .upload-area {
-            border: 2px dashed #cbd5e1;
-            border-radius: 6px;
-            padding: 20px;
-            cursor: pointer;
-            text-align: center;
-            background: #f8fafc;
-            transition: all 0.3s;
-        }
-
-        .upload-area:hover {
-            border-color: #3b82f6;
-            background: #f0f7ff;
-        }
-
-        .upload-area.has-image {
-            border-style: solid;
-            border-color: #10b981;
-        }
-
-        .upload-area img {
-            max-width: 150px;
-            max-height: 150px;
-            border-radius: 6px;
-        }
-
-        .upload-area h4 {
-            font-size: 14px;
-            color: #334155;
-            margin-bottom: 5px;
-        }
-
-        .upload-area p {
-            font-size: 12px;
-            color: #64748b;
-        }
-
-        .file-input {
-            display: none;
-        }
-
-        .current-photo {
-            margin-bottom: 15px;
-            text-align: center;
-        }
-
-        .current-photo img {
-            max-width: 150px;
-            max-height: 150px;
-            border-radius: 6px;
-        }
-
-        .current-photo p {
-            font-size: 12px;
-            color: #64748b;
-            margin-top: 8px;
-        }
-
-        .help-text {
-            font-size: 12px;
-            color: #64748b;
-            margin-top: 5px;
-        }
+        #tempWorkerFields { display: none; margin-top: 20px; padding-top: 20px; border-top: 1px solid #e2e8f0; }
+        #tempWorkerFields.show { display: block; }
+        .upload-area { border: 2px dashed #cbd5e1; padding: 20px; cursor: pointer; text-align: center; border-radius: 6px; transition: all 0.3s; }
+        .upload-area:hover { border-color: #3b82f6; background: #f0f9ff; }
+        .message { margin-bottom: 15px; padding: 10px; border-radius: 6px; display: none; }
+        .message.error { background: #fee2e2; color: #b91c1c; border: 1px solid #fca5a5; }
+        .message.success { background: #dcfce7; color: #166534; border: 1px solid #86efac; }
+        .status-box { padding: 15px; border-radius: 6px; text-align: center; margin-bottom: 20px; font-weight: bold; }
+        .status-registered { background: #dcfce7; color: #166534; }
+        .status-missing { background: #fef3c7; color: #92400e; }
+        .current-photo img { max-width: 150px; border-radius: 6px; margin-bottom: 10px; }
     </style>
 </head>
-
 <body>
-    <nav class="navbar">
-        <h1>Admin Panel</h1>
-        <div class="navbar-links">
-            <a href="/admin/profile">Profile</a>
-            <a href="/admin/users" class="active">Users</a>
-            <a href="/admin/temp-workers">Temp Workers</a>
-            <a href="/admin/logs">Logs</a>
-            <a href="/admin/logout">Logout</a>
-        </div>
-    </nav>
-
-    <div class="container">
-        <a href="/admin/users" class="back-link">← Back to Users</a>
-
-        <div class="card">
-            <div class="card-header">
-                <h2>Edit: {{ user.username }}</h2>
+    <div class="dashboard">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h2>🏢 Condo Access</h2>
+                <div class="user-info"><strong id="adminNameSidebar">Loading...</strong></div>
             </div>
-            <div class="card-body">
-                {% if user.face_encoding_path %}
-                <div class="face-status registered">
-                    <div class="text">
-                        <h4>✓ Face Registered</h4>
-                        <p>User can access the gate via face recognition</p>
-                    </div>
-                </div>
-                {% else %}
-                <div class="face-status not-registered">
-                    <div class="text">
-                        <h4>⚠ Face Not Registered</h4>
-                        <p>Upload photo below to enable face recognition access</p>
-                    </div>
-                </div>
-                {% endif %}
+            <nav>
+                <ul class="nav-menu">
+                    <li class="nav-item"><a href="/admin/profile" class="nav-link">👤 My Profile</a></li>
+                    <li class="nav-item"><a href="/admin/users" class="nav-link active">👥 User Management</a></li>
+                    <li class="nav-item"><a href="/admin/staff-schedules" class="nav-link">📅 Staff Schedules</a></li>
+                    <li class="nav-item"><a href="/admin/temp-workers" class="nav-link">🔧 Temp Workers</a></li>
+                    <li class="nav-item"><a href="/admin/logs" class="nav-link">📋 Access Logs</a></li>
+                    <li class="nav-item"><a href="#" onclick="logout(); return false;" class="nav-link">🚪 Logout</a></li>
+                </ul>
+            </nav>
+        </aside>
 
-                <div class="error" id="error"></div>
-                <div class="success" id="success"></div>
+        <main class="main-content">
+            <div class="page-header">
+                <a href="/admin/users" class="btn-text">← Back to Users</a>
+                <h1>Edit User: {{ user.username }}</h1>
+            </div>
 
-                <form id="userForm">
-                    <div class="form-group">
-                        <label>Username</label>
-                        <input type="text" value="{{ user.username }}" disabled>
-                        <p class="help-text">Username cannot be changed</p>
-                    </div>
+            <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 20px;">
+                <div class="card">
+                    <div class="card-header"><h2>General Information</h2></div>
+                    <div class="card-body">
+                        <div class="message error" id="error"></div>
+                        <div class="message success" id="success"></div>
 
-                    <div class="form-group">
-                        <label>Full Name</label>
-                        <input type="text" id="full_name" value="{{ user.full_name or '' }}">
-                    </div>
-
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Email</label>
-                            <input type="email" id="email" value="{{ user.email or '' }}">
-                        </div>
-                        <div class="form-group">
-                            <label>Phone</label>
-                            <input type="text" id="phone" value="{{ user.phone or '' }}">
-                        </div>
-                    </div>
-
-                    <div class="form-group">
-                        <label>New Password</label>
-                        <input type="password" id="password" placeholder="Leave blank to keep current">
-                        <p class="help-text">Only fill this if you want to change the password</p>
-                    </div>
-
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Role</label>
-                            <select id="role" onchange="toggleTempWorkerFields()">
-                                <option value="Resident">Resident</option>
-                                <option value="Admin">Admin</option>
-                                <option value="Internal_Staff">Internal Staff</option>
-                                <option value="Security">Security</option>
-                                <option value="Guest">Guest</option>
-                                <option value="TEMP_WORKER">Temporary Worker</option>
-                            </select>
-
-                        </div>
-                        <div class="form-group">
-                            <label>Status</label>
-                            <select id="status">
-                                <option value="active" {% if user.status=='active' %}selected{% endif %}>Active</option>
-                                <option value="inactive" {% if user.status=='inactive' %}selected{% endif %}>Inactive
-                                </option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Access Level</label>
-                            <select id="role" onchange="toggleTempWorkerFields()">
-                                <option value="Resident" {% if user.role=='Resident' %}selected{% endif %}>Resident</option>
-                                <option value="Admin" {% if user.role=='Admin' %}selected{% endif %}>Admin</option>
-                                <option value="Internal_Staff"
-                                    {% if user.role in ['Internal_Staff','INTERNAL_STAFF','Internal Staff','Staff'] %}selected{% endif %}>
-                                    Internal Staff
-                                </option>
-                                <option value="Security" {% if user.role=='Security' %}selected{% endif %}>Security</option>
-                                <option value="Guest" {% if user.role=='Guest' %}selected{% endif %}>Guest</option>
-                                <option value="TEMP_WORKER" {% if user.role=='TEMP_WORKER' %}selected{% endif %}>Temporary Worker</option>
-                            </select>
-
-
-                            <p class="help-text">Determines which areas/floors the user can access</p>
-                        </div>
-                        <div class="form-group">
-                            <label>Unit Number</label>
-                            <input type="text" id="unit_number" value="{{ user.unit_number or '' }}"
-                                placeholder="e.g., A-101">
-                        </div>
-                    </div>
-
-                    <!-- Temporary Worker Fields -->
-                    <div class="temp-worker-fields {% if user.role == 'TEMP_WORKER' %}show{% endif %}"
-                        id="tempWorkerFields">
-                        <h4>🔧 Temporary Worker Details</h4>
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label>Work Start Date</label>
-                                <input type="date" id="work_start_date"
-                                    value="{{ user.work_start_date.strftime('%Y-%m-%d') if user.work_start_date else '' }}">
+                        <form id="userForm">
+                            <div class="form-group"><label>Full Name</label><input type="text" id="full_name" value="{{ user.full_name or '' }}" class="form-control"></div>
+                            
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                                <div class="form-group"><label>Email</label><input type="email" id="email" value="{{ user.email or '' }}" class="form-control"></div>
+                                <div class="form-group"><label>Phone</label><input type="text" id="phone" value="{{ user.phone or '' }}" class="form-control"></div>
                             </div>
-                            <div class="form-group">
-                                <label>Work End Date</label>
-                                <input type="date" id="work_end_date"
-                                    value="{{ user.work_end_date.strftime('%Y-%m-%d') if user.work_end_date else '' }}">
-                                <p class="help-text">Access will be automatically revoked after this date</p>
+
+                            <div class="form-group"><label>New Password</label><input type="password" id="password" class="form-control" placeholder="Leave blank to keep current"></div>
+                            
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                                <div class="form-group">
+                                    <label>Role</label>
+                                    <select id="role" class="form-control" onchange="toggleTempWorkerFields()">
+                                        <option value="Admin" {% if user.role|lower == 'admin' %}selected{% endif %}>Admin</option>
+                                        <option value="Resident" {% if user.role|lower == 'resident' %}selected{% endif %}>Resident</option>
+                                        <option value="Security" {% if user.role|lower == 'security' or user.role|lower == 'security_officer' %}selected{% endif %}>Security</option>
+                                        <option value="Internal Staff" {% if user.role|lower == 'internal staff' or user.role|lower == 'internal_staff' %}selected{% endif %}>Internal Staff</option>
+                                        <option value="TempWorker" {% if user.role|lower == 'tempworker' or user.role|lower == 'temp_staff' %}selected{% endif %}>Temp Worker</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Status</label>
+                                    <select id="status" class="form-control">
+                                        <option value="active" {% if user.status == 'active' %}selected{% endif %}>Active</option>
+                                        <option value="inactive" {% if user.status == 'inactive' %}selected{% endif %}>Inactive</option>
+                                    </select>
+                                </div>
                             </div>
+
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                                <div class="form-group">
+                                    <label>Access Level</label>
+                                    <select id="access_level" class="form-control">
+                                        <option value="standard" {% if user.access_level=='standard' %}selected{% endif %}>Standard</option>
+                                        <option value="restricted" {% if user.access_level=='restricted' %}selected{% endif %}>Restricted</option>
+                                        <option value="elevated" {% if user.access_level=='elevated' %}selected{% endif %}>Elevated</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Unit Number</label>
+                                    <input type="text" id="unit_number" value="{{ user.unit_number or '' }}" class="form-control">
+                                </div>
+                            </div>
+
+                            <div id="tempWorkerFields">
+                                <h3>Worker Contract Details</h3>
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 15px;">
+                                    <div class="form-group"><label>Work Start Date</label><input type="date" id="work_start_date" value="{{ user.work_start_date.strftime('%Y-%m-%d') if user.work_start_date else '' }}" class="form-control"></div>
+                                    <div class="form-group"><label>Work End Date</label><input type="date" id="work_end_date" value="{{ user.work_end_date.strftime('%Y-%m-%d') if user.work_end_date else '' }}" class="form-control"></div>
+                                </div>
+                                <div class="form-group"><label>Work Schedule</label><input type="text" id="work_schedule" value="{{ user.work_schedule or '' }}" class="form-control"></div>
+                                <div class="form-group"><label>Work Details</label><textarea id="work_details" class="form-control" rows="3">{{ user.work_details or '' }}</textarea></div>
+                            </div>
+
+                            <button type="submit" class="btn btn-primary" style="width:100%; margin-top: 20px;">Save Changes</button>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header"><h2>Access Status</h2></div>
+                    <div class="card-body">
+                        <div class="status-box {{ 'status-registered' if user.face_encoding_path else 'status-missing' }}">
+                            {{ '✓ Face Registered' if user.face_encoding_path else '⚠ Face Not Set' }}
                         </div>
-                        <div class="form-group">
-                            <label>Work Schedule</label>
-                            <input type="text" id="work_schedule" value="{{ user.work_schedule or '' }}"
-                                placeholder="e.g., Mon-Fri 8:00-17:00">
+                        <div style="margin-bottom: 30px; text-align: center;">
+                            {% if user.photo_path %}
+                            <div class="current-photo"><img src="/uploads/{{ user.photo_path.split('/')[-1] }}" alt="Current"></div>
+                            {% endif %}
+                            <label style="display:block; margin-bottom:10px; font-weight:600;">Update Photo</label>
+                            <div class="message" id="photoAlert"></div>
+                            <div class="upload-area" id="photoArea" onclick="document.getElementById('photoInput').click()">
+                                <p>Click to Upload New Photo</p>
+                            </div>
+                            <input type="file" id="photoInput" style="display:none;" accept="image/*">
+                            <button id="uploadPhotoBtn" class="btn btn-secondary" onclick="uploadPhoto()" disabled style="width:100%; margin-top:10px;">Upload Photo</button>
                         </div>
-                        <div class="form-group">
-                            <label>Work Details</label>
-                            <textarea id="work_details"
-                                placeholder="Description of work to be performed">{{ user.work_details or '' }}</textarea>
+                        <div style="text-align: center; border-top: 1px solid #e2e8f0; padding-top: 20px;">
+                            <label style="display:block; margin-bottom:10px; font-weight:600;">ID Document</label>
+                            <div class="message" id="docAlert"></div>
+                            {% if user.id_document_path %}
+                            <p style="margin-bottom:10px; color: green;">✓ Document on file</p>
+                            {% endif %}
+                            <div class="upload-area" id="docArea" onclick="document.getElementById('docInput').click()">
+                                <p>Click to Upload Document</p>
+                            </div>
+                            <input type="file" id="docInput" style="display:none;" accept=".pdf,.jpg,.png,.jpeg">
+                            <button id="uploadDocBtn" class="btn btn-secondary" onclick="uploadDoc()" disabled style="width:100%; margin-top:10px;">Upload Document</button>
                         </div>
                     </div>
-
-                    <button type="submit" class="btn btn-primary btn-block">Save Changes</button>
-                </form>
-            </div>
-        </div>
-
-        <!-- Photo Upload Card -->
-        <div class="card">
-            <div class="card-header">
-                <h2>Upload Face Photo</h2>
-            </div>
-            <div class="card-body">
-                <div id="photoAlert"></div>
-
-                {% if user.photo_path %}
-                <div class="current-photo">
-                    <img src="/uploads/{{ user.photo_path.split('/')[-1] }}" alt="Current Photo">
-                    <p>Current photo</p>
                 </div>
-                {% endif %}
-
-                <div class="upload-area" id="photoArea" onclick="document.getElementById('photoInput').click()">
-                    <h4>Click to upload new photo</h4>
-                    <p>JPG or PNG - Clear front-facing photo</p>
-                </div>
-                <input type="file" id="photoInput" class="file-input" accept="image/*">
-                <button class="btn btn-primary btn-block" id="uploadPhotoBtn" onclick="uploadPhoto()" disabled
-                    style="margin-top:15px;">Upload Photo</button>
             </div>
-        </div>
-
-        <!-- ID Document Upload (for temp workers) -->
-        {% if user.role == 'TEMP_WORKER' %}
-        <div class="card">
-            <div class="card-header">
-                <h2>Upload ID Document</h2>
-            </div>
-            <div class="card-body">
-                <div id="docAlert"></div>
-
-                {% if user.id_document_path %}
-                <p style="margin-bottom:15px;color:#166534;">✓ ID document already uploaded - <a
-                        href="/id_documents/{{ user.id_document_path }}" target="_blank">View Document</a></p>
-                {% endif %}
-
-                <div class="upload-area" id="docArea" onclick="document.getElementById('docInput').click()">
-                    <h4>Click to upload ID document</h4>
-                    <p>JPG, PNG or PDF</p>
-                </div>
-                <input type="file" id="docInput" class="file-input" accept="image/*,.pdf">
-                <button class="btn btn-primary btn-block" id="uploadDocBtn" onclick="uploadDoc()" disabled
-                    style="margin-top:15px;">Upload Document</button>
-            </div>
-        </div>
-        {% endif %}
+        </main>
     </div>
 
     <script>
+        const userId = "{{ user.id }}";
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            const currentUser = await checkAuth(); 
+            if (!currentUser || currentUser.role !== 'Admin') { window.location.href = '/login'; return; }
+            document.getElementById('adminNameSidebar').textContent = currentUser.full_name || currentUser.username;
+            toggleTempWorkerFields();
+        });
+
         function toggleTempWorkerFields() {
             const role = document.getElementById('role').value;
             const tempFields = document.getElementById('tempWorkerFields');
-
-            if (role === 'TEMP_WORKER') {
-                tempFields.classList.add('show');
-            } else {
-                tempFields.classList.remove('show');
-            }
-        }
-
-        document.getElementById('photoInput').onchange = (e) => {
-            const file = e.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    document.getElementById('photoArea').innerHTML = '<img src="' + e.target.result + '" alt="Preview">';
-                    document.getElementById('uploadPhotoBtn').disabled = false;
-                };
-                reader.readAsDataURL(file);
-            }
-        };
-
-        const docInput = document.getElementById('docInput');
-        if (docInput) {
-            docInput.onchange = (e) => {
-                const file = e.target.files[0];
-                if (file) {
-                    document.getElementById('docArea').innerHTML = '<h4>' + file.name + '</h4><p>Ready to upload</p>';
-                    document.getElementById('uploadDocBtn').disabled = false;
-                }
-            };
-        }
-
-        async function uploadPhoto() {
-            const btn = document.getElementById('uploadPhotoBtn');
-            const alertBox = document.getElementById('photoAlert');
-            btn.disabled = true;
-            btn.textContent = 'Uploading...';
-
-            const formData = new FormData();
-            formData.append('photo', document.getElementById('photoInput').files[0]);
-
-            try {
-                const response = await fetch('/admin/users/{{ user.id }}/upload-photo', {
-                    method: 'POST',
-                    body: formData
-                });
-
-                const data = await response.json();
-
-                if (data.success) {
-                    alertBox.innerHTML = '<div class="success" style="display:block;">' + data.message + '</div>';
-                    setTimeout(() => location.reload(), 1500);
-                } else {
-                    alertBox.innerHTML = '<div class="error" style="display:block;">' + data.message + '</div>';
-                    btn.disabled = false;
-                    btn.textContent = 'Upload Photo';
-                }
-            } catch (err) {
-                alertBox.innerHTML = '<div class="error" style="display:block;">Network error</div>';
-                btn.disabled = false;
-                btn.textContent = 'Upload Photo';
-            }
-        }
-
-        async function uploadDoc() {
-            const btn = document.getElementById('uploadDocBtn');
-            const alertBox = document.getElementById('docAlert');
-            btn.disabled = true;
-            btn.textContent = 'Uploading...';
-
-            const formData = new FormData();
-            formData.append('document', document.getElementById('docInput').files[0]);
-
-            try {
-                const response = await fetch('/admin/users/{{ user.id }}/upload-id-doc', {
-                    method: 'POST',
-                    body: formData
-                });
-
-                const data = await response.json();
-
-                if (data.success) {
-                    alertBox.innerHTML = '<div class="success" style="display:block;">' + data.message + '</div>';
-                    setTimeout(() => location.reload(), 1500);
-                } else {
-                    alertBox.innerHTML = '<div class="error" style="display:block;">' + data.message + '</div>';
-                    btn.disabled = false;
-                    btn.textContent = 'Upload Document';
-                }
-            } catch (err) {
-                alertBox.innerHTML = '<div class="error" style="display:block;">Network error</div>';
-                btn.disabled = false;
-                btn.textContent = 'Upload Document';
-            }
+            if (role === 'TempWorker') tempFields.classList.add('show');
+            else tempFields.classList.remove('show');
         }
 
         document.getElementById('userForm').onsubmit = async (e) => {
             e.preventDefault();
-
             const errorDiv = document.getElementById('error');
             const successDiv = document.getElementById('success');
-            errorDiv.style.display = 'none';
-            successDiv.style.display = 'none';
+            errorDiv.style.display = 'none'; successDiv.style.display = 'none';
 
             const data = {
                 full_name: document.getElementById('full_name').value,
@@ -609,13 +177,12 @@
                 phone: document.getElementById('phone').value,
                 password: document.getElementById('password').value,
                 role: document.getElementById('role').value,
-                status: document.getElementById('status').value,
+                status: document.getElementById('status').value, 
                 access_level: document.getElementById('access_level').value,
                 unit_number: document.getElementById('unit_number').value
             };
 
-            // Add temp worker fields if applicable
-            if (data.role === 'TEMP_WORKER') {
+            if (data.role === 'TempWorker') {
                 data.work_start_date = document.getElementById('work_start_date').value || null;
                 data.work_end_date = document.getElementById('work_end_date').value || null;
                 data.work_schedule = document.getElementById('work_schedule').value;
@@ -623,17 +190,12 @@
             }
 
             try {
-                console.log("data", data)
-                console.log("data", JSON.stringify(data))
-                const response = await fetch('/admin/users/{{ user.id }}/edit', {
+                const response = await fetch(`/admin/users/${userId}/edit`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(data)
                 });
-
                 const result = await response.json();
-                console.log("result", result)
-
                 if (result.success) {
                     successDiv.textContent = 'User updated successfully!';
                     successDiv.style.display = 'block';
@@ -643,16 +205,52 @@
                     errorDiv.style.display = 'block';
                 }
             } catch (err) {
-                console.log("error la gi day", err)
-
-                errorDiv.textContent = 'Network error';
-                errorDiv.style.display = 'block';
+                errorDiv.textContent = 'Network error'; errorDiv.style.display = 'block';
             }
         };
 
-        // Initialize temp worker fields visibility
-        toggleTempWorkerFields();
+        const setupUpload = (inputId, areaId, btnId, alertId, endpoint) => {
+            const input = document.getElementById(inputId);
+            if(!input) return;
+            input.onchange = (e) => {
+                const file = e.target.files[0];
+                if(file) {
+                    const reader = new FileReader();
+                    reader.onload = (ev) => {
+                        document.getElementById(areaId).innerHTML = inputId === 'photoInput' 
+                            ? `<img src="${ev.target.result}" style="max-height:150px;">` 
+                            : `<p>${file.name}</p>`;
+                        document.getElementById(btnId).disabled = false;
+                        document.getElementById(btnId).className = 'btn btn-primary';
+                    };
+                    reader.readAsDataURL(file);
+                }
+            };
+            document.getElementById(btnId).onclick = async () => {
+                const btn = document.getElementById(btnId);
+                const alertBox = document.getElementById(alertId);
+                btn.disabled = true; btn.textContent = 'Uploading...';
+                const formData = new FormData();
+                formData.append(inputId === 'photoInput' ? 'photo' : 'document', input.files[0]);
+                try {
+                    const res = await fetch(endpoint, { method: 'POST', body: formData });
+                    const data = await res.json();
+                    if(data.success) {
+                        alertBox.className = 'message success'; alertBox.textContent = data.message; alertBox.style.display = 'block';
+                        setTimeout(() => location.reload(), 1500);
+                    } else {
+                        alertBox.className = 'message error'; alertBox.textContent = data.message; alertBox.style.display = 'block';
+                        btn.disabled = false; btn.textContent = 'Upload';
+                    }
+                } catch(e) {
+                    alertBox.className = 'message error'; alertBox.textContent = 'Network error'; alertBox.style.display = 'block';
+                    btn.disabled = false;
+                }
+            };
+        };
+
+        setupUpload('photoInput', 'photoArea', 'uploadPhotoBtn', 'photoAlert', `/admin/users/${userId}/upload-photo`);
+        setupUpload('docInput', 'docArea', 'uploadDocBtn', 'docAlert', `/admin/users/${userId}/upload-id-doc`);
     </script>
 </body>
-
 </html>

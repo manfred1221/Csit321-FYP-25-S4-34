@@ -1,473 +1,127 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Temporary Workers</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: #f1f5f9;
-        }
-
-        .navbar {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: #fff;
-            padding: 18px 30px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .navbar h1 {
-            font-size: 20px;
-        }
-
-        .navbar-links a {
-            color: #fff;
-            text-decoration: none;
-            margin-left: 25px;
-            padding: 10px 18px;
-            border-radius: 6px;
-            font-weight: 500;
-        }
-
-        .navbar-links a:hover {
-            background: rgba(255, 255, 255, 0.15);
-        }
-
-        .navbar-links a.active {
-            background: rgba(255, 255, 255, 0.2);
-        }
-
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 30px;
-        }
-
-        .alert {
-            padding: 16px 20px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        .alert-warning {
-            background: #fef3c7;
-            border: 1px solid #f59e0b;
-            color: #92400e;
-        }
-
-        .alert-info {
-            background: #dbeafe;
-            border: 1px solid #3b82f6;
-            color: #1e40af;
-        }
-
-        .alert h4 {
-            font-size: 14px;
-            margin-bottom: 4px;
-        }
-
-        .alert p {
-            font-size: 13px;
-            opacity: 0.9;
-        }
-
-        .card {
-            background: #fff;
-            border-radius: 8px;
-            overflow: hidden;
-            margin-bottom: 20px;
-        }
-
-        .card-header {
-            padding: 20px 25px;
-            border-bottom: 1px solid #e2e8f0;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .card-header h2 {
-            font-size: 18px;
-            color: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        }
-
-        .card-body {
-            padding: 0;
-            overflow-x: auto;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-
-        th,
-        td {
-            padding: 14px 16px;
-            text-align: left;
-            border-bottom: 1px solid #e2e8f0;
-        }
-
-        th {
-            background: #f8fafc;
-            font-weight: 600;
-            color: #64748b;
-            font-size: 12px;
-            text-transform: uppercase;
-        }
-
-        .badge {
-            padding: 5px 12px;
-            border-radius: 4px;
-            font-size: 12px;
-            font-weight: 600;
-        }
-
-        .badge-success {
-            background: #dcfce7;
-            color: #166534;
-        }
-
-        .badge-danger {
-            background: #fee2e2;
-            color: #dc2626;
-        }
-
-        .badge-warning {
-            background: #fef3c7;
-            color: #92400e;
-        }
-
-        .badge-purple {
-            background: #f3e8ff;
-            color: #7c3aed;
-        }
-
-        .badge-gray {
-            background: #f1f5f9;
-            color: #64748b;
-        }
-
-        .btn {
-            padding: 10px 18px;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            text-decoration: none;
-            display: inline-block;
-            font-weight: 500;
-            font-size: 14px;
-        }
-
-        .btn-sm {
-            padding: 7px 14px;
-            font-size: 13px;
-        }
-
-        .btn-primary {
-            background: #3b82f6;
-            color: #fff;
-        }
-
-        .btn-danger {
-            background: #ef4444;
-            color: #fff;
-        }
-
-        .btn-success {
-            background: #10b981;
-            color: #fff;
-        }
-
-        .btn-warning {
-            background: #f59e0b;
-            color: #fff;
-        }
-
-        .btn-primary:hover {
-            background: #2563eb;
-        }
-
-        .empty {
-            text-align: center;
-            color: #94a3b8;
-            padding: 50px;
-        }
-
-        .action-buttons {
-            display: flex;
-            gap: 5px;
-        }
-
-        .user-info {
-            display: flex;
-            flex-direction: column;
-        }
-
-        .user-info small {
-            color: #64748b;
-            font-size: 12px;
-        }
-
-        .date-range {
-            display: flex;
-            flex-direction: column;
-            font-size: 13px;
-        }
-
-        .date-range .start {
-            color: #166534;
-        }
-
-        .date-range .end {
-            color: #dc2626;
-        }
-
-        .expiring-list {
-            padding: 20px;
-        }
-
-        .expiring-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 12px 15px;
-            background: #fef3c7;
-            border-radius: 6px;
-            margin-bottom: 10px;
-        }
-
-        .expiring-item:last-child {
-            margin-bottom: 0;
-        }
-
-        .expiring-item .info h4 {
-            font-size: 14px;
-            color: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        }
-
-        .expiring-item .info p {
-            font-size: 12px;
-            color: #64748b;
-        }
-
-        .expiring-item .days {
-            background: #f59e0b;
-            color: #fff;
-            padding: 5px 12px;
-            border-radius: 4px;
-            font-size: 12px;
-            font-weight: 600;
-        }
-
-        .stats-row {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 20px;
-            margin-bottom: 20px;
-        }
-
-        .stat-card {
-            background: #fff;
-            border-radius: 8px;
-            padding: 20px;
-            text-align: center;
-        }
-
-        .stat-card h3 {
-            font-size: 28px;
-            color: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            margin-bottom: 5px;
-        }
-
-        .stat-card p {
-            color: #64748b;
-            font-size: 14px;
-        }
-
-        .stat-card.purple h3 {
-            color: #7c3aed;
-        }
-
-        .stat-card.green h3 {
-            color: #10b981;
-        }
-
-        .stat-card.orange h3 {
-            color: #f59e0b;
-        }
-
-        .stat-card.red h3 {
-            color: #ef4444;
-        }
-    </style>
+    <title>Temp Workers - Condo Access</title>
+    <link rel="stylesheet" href="/frontend/css/styles.css">
 </head>
-
 <body>
-    <nav class="navbar">
-        <h1>Admin Panel</h1>
-        <div class="navbar-links">
-            <a href="/admin/profile">Profile</a>
-            <a href="/admin/users">Users</a>
-            <a href="/admin/staff-schedules">Staff Schedules</a>
-            <a href="/admin/temp-workers" class="active">Temp Workers</a>
-            <a href="/admin/logs">Logs</a>
-            <a href="/admin/logout">Logout</a>
-        </div>
-    </nav>
+    <div class="dashboard">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h2>🏢 Condo Access</h2>
+                <div class="user-info">
+                    <strong id="adminNameTemp">Loading...</strong>
+                    <p id="adminEmailTemp">admin@condo.com</p>
+                </div>
+            </div>
+            <nav>
+                <ul class="nav-menu">
+                    <li class="nav-item"><a href="/admin/profile" class="nav-link">👤 My Profile</a></li>
+                    <li class="nav-item"><a href="/admin/users" class="nav-link">👥 User Management</a></li>
+                    <li class="nav-item"><a href="/admin/staff-schedules" class="nav-link">📅 Staff Schedules</a></li>
+                    <li class="nav-item"><a href="/admin/temp-workers" class="nav-link active">🔧 Temp Workers</a></li>
+                    <li class="nav-item"><a href="/admin/logs" class="nav-link">📋 Access Logs</a></li>
+                    <li class="nav-item"><a href="#" onclick="logout(); return false;" class="nav-link">🚪 Logout</a></li>
+                </ul>
+            </nav>
+        </aside>
 
-    <div class="container">
-        <!-- Stats Row -->
-        <div class="stats-row">
-            <div class="stat-card purple">
-                <h3>{{ users|length }}</h3>
-                <p>Total Temp Workers</p>
+        <main class="main-content">
+            <div class="page-header">
+                <h1>Temporary Workers</h1>
+                <p>Monitor and manage contract staff and service providers.</p>
             </div>
-            <div class="stat-card green">
-                <h3>{{ users|selectattr('status', 'equalto', 'active')|list|length }}</h3>
-                <p>Active Workers</p>
-            </div>
-            <div class="stat-card orange">
-                <h3>{{ expiring_soon|length }}</h3>
-                <p>Expiring in 7 Days</p>
-            </div>
-            <div class="stat-card red">
-                <h3>{{ users|selectattr('status', 'equalto', 'inactive')|list|length }}</h3>
-                <p>Inactive/Expired</p>
-            </div>
-        </div>
 
-        {% if expiring_soon %}
-        <div class="alert alert-warning">
-            <div>
-                <h4>⚠️ Workers Expiring Soon</h4>
-                <p>{{ expiring_soon|length }} temporary worker(s) will have their access revoked within 7 days.</p>
+            <div class="stats-grid">
+                <div class="stat-card"><h3>{{ users|length }}</h3><p>Total Workers</p></div>
+                <div class="stat-card" style="border-bottom: 4px solid #10b981;"><h3>{{ users|selectattr('status', 'equalto', 'active')|list|length }}</h3><p>Active</p></div>
+                <div class="stat-card" style="border-bottom: 4px solid #f59e0b;"><h3>{{ expiring_soon|length }}</h3><p>Expiring Soon</p></div>
+                <div class="stat-card" style="border-bottom: 4px solid #ef4444;"><h3>{{ users|selectattr('status', 'equalto', 'inactive')|list|length }}</h3><p>Inactive</p></div>
             </div>
-            <button class="btn btn-sm btn-warning" onclick="checkExpired()">Check Expired Now</button>
-        </div>
-        {% endif %}
 
-        <!-- Expiring Soon Card -->
-        {% if expiring_soon %}
-        <div class="card">
-            <div class="card-header">
-                <h2>Expiring Within 7 Days</h2>
+            {% if expiring_soon %}
+            <div class="alert alert-warning" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
+                <span><strong>⚠️ Action Required:</strong> {{ expiring_soon|length }} workers expire within 7 days.</span>
+                <button class="btn btn-sm btn-primary" onclick="checkExpired()">Check Now</button>
             </div>
-            <div class="expiring-list">
-                {% for worker in expiring_soon %}
-                <div class="expiring-item">
-                    <div class="info">
-                        <h4>{{ worker.full_name or worker.username }}</h4>
-                        <p>Ends: {{ worker.work_end_date.strftime('%Y-%m-%d') if worker.work_end_date else 'Not set' }}
-                        </p>
-                    </div>
-                    <div class="days">
-                        {{ worker.days_left }}
+            {% endif %}
+
+            <div class="card">
+                <div class="card-header" style="display:flex; justify-content:space-between; align-items:center;">
+                    <h2>Contractor List</h2>
+                    <a href="/admin/users/create" class="btn btn-sm btn-primary">+ Add Worker</a>
+                </div>
+                <div class="card-body" style="padding: 0;">
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Worker</th>
+                                    <th>Work Period</th>
+                                    <th>Schedule</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for user in users %}
+                                <tr>
+                                    <td><strong>{{ user.full_name or user.username }}</strong><br><small>{{ user.email }}</small></td>
+                                    <td>
+                                        <div style="font-size: 13px;">
+                                            <span style="color: #10b981;">S: {{ user.work_start_date.strftime('%Y-%m-%d') if user.work_start_date }}</span><br>
+                                            <span style="color: #ef4444;">E: {{ user.work_end_date.strftime('%Y-%m-%d') if user.work_end_date }}</span>
+                                        </div>
+                                    </td>
+                                    <td>{{ user.work_schedule or '-' }}</td>
+                                    <td><span class="badge {{ 'badge-success' if user.status == 'active' else 'badge-danger' }}">{{ user.status }}</span></td>
+                                    <td>
+                                        <div style="display:flex; gap:5px;">
+                                            <a href="/admin/users/{{ user.id }}/edit" class="btn btn-sm btn-secondary">Edit</a>
+                                            <button class="btn btn-sm btn-danger" onclick="deactivateUser({{ user.id }})">Revoke</button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
                     </div>
                 </div>
-                {% endfor %}
             </div>
-        </div>
-        {% endif %}
-
-        <!-- All Temp Workers -->
-        <div class="card">
-            <div class="card-header">
-                <h2>All Temporary Workers</h2>
-                <a href="/admin/users/create" class="btn btn-primary">+ Add Temp Worker</a>
-            </div>
-            <div class="card-body">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>Worker</th>
-                            <th>Contact</th>
-                            <th>Work Period</th>
-                            <th>Schedule</th>
-                            <th>Status</th>
-                            <th>ID Doc</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for user in users %}
-                        <tr>
-                            <td>{{ user.id }}</td>
-                            <td>
-                                <div class="user-info">
-                                    <strong>{{ user.full_name or user.username }}</strong>
-                                    <small>@{{ user.username }}</small>
-                                </div>
-                            </td>
-                            <td>
-                                <div class="user-info">
-                                    <span>{{ user.email }}</span>
-                                    <small>{{ user.phone or '-' }}</small>
-                                </div>
-                            </td>
-                            <td>
-                                <div class="date-range">
-                                    <span class="start">Start: {{ user.work_start_date.strftime('%Y-%m-%d') if
-                                        user.work_start_date else 'Not set' }}</span>
-                                    <span class="end">End: {{ user.work_end_date.strftime('%Y-%m-%d') if
-                                        user.work_end_date else 'Not set' }}</span>
-                                </div>
-                            </td>
-                            <td>{{ user.work_schedule or '-' }}</td>
-                            <td>
-                                <span
-                                    class="badge {{ 'badge-success' if user.status == 'active' else 'badge-danger' }}">
-                                    {{ user.status or 'active' }}
-                                </span>
-                            </td>
-                            <td>
-                                {% if user.id_document_path %}
-                                <a href="/id_documents/{{ user.id_document_path }}" target="_blank"
-                                    class="badge badge-success">View</a>
-                                {% else %}
-                                <span class="badge badge-gray">None</span>
-                                {% endif %}
-                            </td>
-                            <td>
-                                <div class="action-buttons">
-                                    <a href="/admin/users/{{ user.id }}/edit" class="btn btn-sm btn-primary">Edit</a>
-                                    {% if user.status == 'active' %}
-                                    <button class="btn btn-sm btn-warning"
-                                        onclick="deactivateUser({{ user.id }})">Deactivate</button>
-                                    {% else %}
-                                    <button class="btn btn-sm btn-success"
-                                        onclick="activateUser({{ user.id }})">Activate</button>
-                                    {% endif %}
-                                </div>
-                            </td>
-                        </tr>
-                        {% else %}
-                        <tr>
-                            <td colspan="8" class="empty">No temporary workers found. <a href="/admin/users/add">Add one
-                                    now</a></td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        </div>
+        </main>
     </div>
-
+    <script src="/frontend/js/config.js"></script>
     <script>
+        let currentUser = null;
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            // 1. Verify session with server
+            currentUser = await checkAuth(); 
+            
+            // checkAuth in config.js automatically redirects to /login if null
+            if (!currentUser) return; 
+
+            // 2. Role Authorization check
+            if (currentUser.role !== 'Admin') {
+                console.warn("Unauthorized access attempt by:", currentUser.role);
+                window.location.href = '/login';
+                return;
+            }
+
+            // 3. Sync Sidebar UI with verified session data
+            const nameEl = document.getElementById('adminNameTemp');
+            const emailEl = document.getElementById('adminEmailTemp');
+            
+            if (nameEl) nameEl.textContent = currentUser.full_name || currentUser.username;
+            if (emailEl) emailEl.textContent = currentUser.email || 'admin@condo.com';
+
+            console.log("Admin session verified for Temp Workers page.");
+        });
+
+        // --- API Functions ---
+
         async function checkExpired() {
             try {
                 const response = await fetch('/admin/temp-workers/check-expired', { method: 'POST' });
@@ -509,7 +163,9 @@
                 alert(data.message || 'Activation failed');
             }
         }
+        // Existing deactivateUser and checkExpired functions remain the same
     </script>
 </body>
-
 </html>
+
+

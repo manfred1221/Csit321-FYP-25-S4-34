@@ -3,386 +3,106 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Staff Schedules - Admin Panel</title>
+    <title>Staff Schedules - Condo Access</title>
+    <link rel="stylesheet" href="/frontend/css/styles.css">
+    <script src="/frontend/js/config.js"></script>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: Arial, sans-serif;
-            background: #f5f5f5;
-            padding: 20px;
-        }
-
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            background: white;
-            padding: 30px;
-            border-radius: 8px;
-        }
-
-        h1 {
-            margin-bottom: 10px;
-            color: #333;
-        }
-
-        .back-link {
-            display: inline-block;
-            margin-bottom: 20px;
-            color: #4CAF50;
-            text-decoration: none;
-        }
-
-        .back-link:hover {
-            text-decoration: underline;
-        }
-
-        .header-actions {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 30px;
-        }
-
-        .btn {
-            padding: 10px 20px;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 14px;
-            transition: all 0.3s;
-        }
-
-        .btn-primary {
-            background: #4CAF50;
-            color: white;
-        }
-
-        .btn-primary:hover {
-            background: #45a049;
-        }
-
-        .btn-secondary {
-            background: #6c757d;
-            color: white;
-        }
-
-        .btn-secondary:hover {
-            background: #5a6268;
-        }
-
-        .btn-danger {
-            background: #dc3545;
-            color: white;
-        }
-
-        .btn-danger:hover {
-            background: #c82333;
-        }
-
-        .btn-small {
-            padding: 6px 12px;
-            font-size: 12px;
-            margin: 0 5px;
-        }
-
-        .filter-section {
-            margin-bottom: 20px;
-        }
-
-        .filter-section select {
-            padding: 8px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            font-size: 14px;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 20px;
-        }
-
-        th, td {
-            padding: 12px;
-            text-align: left;
-            border-bottom: 1px solid #ddd;
-        }
-
-        th {
-            background: #f8f9fa;
-            font-weight: 600;
-        }
-
-        tr:hover {
-            background: #f9f9f9;
-        }
-
-        .badge {
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 12px;
-            font-weight: 600;
-        }
-
-        .badge-active {
-            background: #d4edda;
-            color: #155724;
-        }
-
-        .badge-completed {
-            background: #d1ecf1;
-            color: #0c5460;
-        }
-
-        .badge-cancelled {
-            background: #f8d7da;
-            color: #721c24;
-        }
-
-        /* Modal Styles */
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.5);
-            z-index: 1000;
-        }
-
-        .modal.active {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .modal-content {
-            background: white;
-            padding: 30px;
-            border-radius: 8px;
-            max-width: 600px;
-            width: 90%;
-            max-height: 90vh;
-            overflow-y: auto;
-        }
-
-        .modal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-        }
-
-        .modal-header h2 {
-            margin: 0;
-        }
-
-        .close-btn {
-            background: none;
-            border: none;
-            font-size: 24px;
-            cursor: pointer;
-            color: #666;
-        }
-
-        .close-btn:hover {
-            color: #333;
-        }
-
-        .form-group {
-            margin-bottom: 20px;
-        }
-
-        .form-group label {
-            display: block;
-            margin-bottom: 6px;
-            color: #333;
-            font-weight: 600;
-        }
-
-        .form-group input,
-        .form-group select,
-        .form-group textarea {
-            width: 100%;
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            font-size: 14px;
-        }
-
-        .form-group textarea {
-            min-height: 80px;
-            resize: vertical;
-        }
-
-        .form-row {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 15px;
-        }
-
-        .message {
-            padding: 15px;
-            border-radius: 6px;
-            margin-bottom: 20px;
-            display: none;
-        }
-
-        .message.success {
-            background: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-        }
-
-        .message.error {
-            background: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-        }
-
-        .empty-state {
-            text-align: center;
-            padding: 40px;
-            color: #666;
-        }
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; }
+        .modal.active { display: flex; }
+        .modal-content { background: white; padding: 30px; border-radius: 8px; max-width: 600px; width: 90%; max-height: 90vh; overflow-y: auto; }
     </style>
 </head>
 <body>
-    <div class="container">
-        <a href="/admin/profile" class="back-link">Back to Admin Panel</a>
-
-        <div class="header-actions">
-            <div>
-                <h1>Staff Schedules</h1>
-                <p>Manage and assign schedules for internal staff</p>
+    <div class="dashboard">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h2>🏢 Condo Access</h2>
+                <div class="user-info">
+                    <strong id="adminNameSidebar">Loading...</strong>
+                    <p id="adminEmailSidebar">admin@condo.com</p>
+                </div>
             </div>
-            <button class="btn btn-primary" onclick="openCreateModal()">Assign New Schedule</button>
-        </div>
+            <nav>
+                <ul class="nav-menu">
+                    <li class="nav-item"><a href="/admin/profile" class="nav-link">👤 My Profile</a></li>
+                    <li class="nav-item"><a href="/admin/users" class="nav-link">👥 User Management</a></li>
+                    <li class="nav-item"><a href="/admin/staff-schedules" class="nav-link active">📅 Staff Schedules</a></li>
+                    <li class="nav-item"><a href="/admin/temp-workers" class="nav-link">🔧 Temp Workers</a></li>
+                    <li class="nav-item"><a href="/admin/logs" class="nav-link">📋 Access Logs</a></li>
+                    <li class="nav-item"><a href="#" onclick="logout(); return false;" class="nav-link">🚪 Logout</a></li>
+                </ul>
+            </nav>
+        </aside>
 
-        <div id="message" class="message"></div>
-
-        <div class="filter-section">
-            <label for="staffFilter">Filter by Staff:</label>
-            <select id="staffFilter" onchange="loadSchedules()">
-                <option value="">All Staff</option>
-                {% for staff in staff_users %}
-                <option value="{{ staff.user_id }}">{{ staff.username }} ({{ staff.email }})</option>
-                {% endfor %}
-            </select>
-        </div>
-
-        <table id="schedulesTable">
-            <thead>
-                <tr>
-                    <th>Staff Member</th>
-                    <th>Shift Name</th>
-                    <th>Start Date</th>
-                    <th>End Date</th>
-                    <th>Time</th>
-                    <th>Location</th>
-                    <th>Status</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody id="schedulesBody">
-                <tr>
-                    <td colspan="8" class="empty-state">Loading schedules...</td>
-                </tr>
-            </tbody>
-        </table>
-    </div>
-
-    <!-- Create/Edit Schedule Modal -->
-    <div id="scheduleModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2 id="modalTitle">Assign New Schedule</h2>
-                <button class="close-btn" onclick="closeModal()">&times;</button>
+        <main class="main-content">
+            <div class="page-header" style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <h1>Staff Schedules</h1>
+                    <p>Assign and monitor internal staff shifts.</p>
+                </div>
+                <button class="btn btn-primary" onclick="openCreateModal()">+ Assign New Shift</button>
             </div>
 
-            <form id="scheduleForm" onsubmit="saveSchedule(event)">
-                <input type="hidden" id="scheduleId">
-
-                <div class="form-group">
-                    <label for="staffUserId">Staff Member *</label>
-                    <select id="staffUserId" required>
-                        <option value="">Select Staff</option>
-                        {% for staff in staff_users %}
-                        <option value="{{ staff.user_id }}">{{ staff.username }} ({{ staff.email }})</option>
-                        {% endfor %}
-                    </select>
-                </div>
-
-                <div class="form-group">
-                    <label for="shiftName">Shift Name</label>
-                    <input type="text" id="shiftName" placeholder="e.g., Morning Shift, Night Watch">
-                </div>
-
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="startDate">Start Date *</label>
-                        <input type="date" id="startDate" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="endDate">End Date *</label>
-                        <input type="date" id="endDate" required>
+            <div class="card" style="margin-bottom: 20px;">
+                <div class="card-body">
+                    <div class="filter-section">
+                        <label style="font-weight:600; color:#64748b; margin-right:10px;">Filter by Staff:</label>
+                        <select id="staffFilter" class="form-control" onchange="loadSchedules()" style="width: auto; display: inline-block;">
+                            <option value="">All Staff</option>
+                            {% for staff in staff_users %}
+                            <option value="{{ staff.user_id }}">{{ staff.username }}</option>
+                            {% endfor %}
+                        </select>
                     </div>
                 </div>
+            </div>
 
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="startTime">Start Time *</label>
-                        <input type="time" id="startTime" required>
+            <div id="message" class="message"></div>
+
+            <div class="card">
+                <div class="card-body" style="padding: 0;">
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Staff Member</th>
+                                    <th>Shift Name</th>
+                                    <th>Dates</th>
+                                    <th>Time</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="schedulesBody"></tbody>
+                        </table>
                     </div>
-                    <div class="form-group">
-                        <label for="endTime">End Time *</label>
-                        <input type="time" id="endTime" required>
-                    </div>
                 </div>
-
-                <div class="form-group">
-                    <label for="daysOfWeek">Days of Week</label>
-                    <input type="text" id="daysOfWeek" placeholder="e.g., Mon-Fri, Weekends">
-                </div>
-
-                <div class="form-group">
-                    <label for="location">Location</label>
-                    <input type="text" id="location" placeholder="e.g., Main Entrance, Lobby">
-                </div>
-
-                <div class="form-group">
-                    <label for="notes">Notes</label>
-                    <textarea id="notes" placeholder="Additional notes or instructions"></textarea>
-                </div>
-
-                <div class="form-group">
-                    <label for="status">Status</label>
-                    <select id="status">
-                        <option value="active">Active</option>
-                        <option value="completed">Completed</option>
-                        <option value="cancelled">Cancelled</option>
-                    </select>
-                </div>
-
-                <div style="text-align: right; margin-top: 20px;">
-                    <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>
-                    <button type="submit" class="btn btn-primary">Save Schedule</button>
-                </div>
-            </form>
-        </div>
+            </div>
+        </main>
     </div>
 
     <script>
+        let currentUser = null;
         let currentSchedules = [];
 
-        // Load schedules on page load
-        window.addEventListener('DOMContentLoaded', () => {
+        document.addEventListener('DOMContentLoaded', async () => {
+            // 1. Verify session with server
+            currentUser = await checkAuth();
+            
+            if (!currentUser) return; 
+
+            // 2. Role Authorization check
+            if (currentUser.role !== 'Admin') {
+                console.warn("Unauthorized access attempt by:", currentUser.role);
+                window.location.href = '/login';
+                return;
+            }
+
+            // 3. Update Sidebar UI
+            document.getElementById('adminNameSidebar').textContent = currentUser.full_name || currentUser.username;
+            document.getElementById('adminEmailSidebar').textContent = currentUser.email || 'admin@condo.com';
+
+            console.log("Admin session verified.");
             loadSchedules();
         });
 
@@ -539,6 +259,7 @@
                 messageDiv.style.display = 'none';
             }, 5000);
         }
+        // Original API logic for schedules remains as in your uploaded file
     </script>
 </body>
 </html>
