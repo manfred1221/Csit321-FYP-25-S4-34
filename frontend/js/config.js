@@ -63,16 +63,11 @@ async function apiCall(endpoint, options = {}, useStaffBackend = false) {
     const url = `${baseUrl}${endpoint}`;
     
     const defaultOptions = {
+        credentials: 'same-origin',
         headers: {
             'Content-Type': 'application/json',
         },
     };
-    
-    // Add auth token if exists
-    const token = localStorage.getItem('auth_token');
-    if (token) {
-        defaultOptions.headers['Authorization'] = `Bearer ${token}`;
-    }
     
     const finalOptions = {
         ...defaultOptions,
@@ -113,10 +108,12 @@ function showMessage(elementId, message, type = 'success') {
         }, 5000);
     }
 }
+
 // Helper function for staff API calls 
 async function staffApiCall(endpoint, options = {}) {
     return apiCall(endpoint, options, true); // Use staff backend
 }
+
 // Helper function to format date/time
 function formatDateTime(dateString) {
     const date = new Date(dateString);
@@ -135,18 +132,46 @@ function formatDateForInput(dateString) {
 }
 
 // Check if user is logged in
-function checkAuth() {
-    const user = JSON.parse(localStorage.getItem('user') || 'null');
-    if (!user) {
-        window.location.href = 'index.html';
+// ⭐ NEW: Check if user is logged in via Flask session (server-side)
+async function checkAuth() {
+    try {
+        const response = await fetch('/api/auth/check-session', {
+            method: 'GET',
+            credentials: 'same-origin'  // Send session cookie
+        });
+        
+        const data = await response.json();
+        
+        if (!data.authenticated) {
+            // Not logged in - redirect to login
+            console.log('Not authenticated, redirecting to login');
+            window.location.href = '/login';
+            return null;
+        }
+        
+        console.log('Authenticated user:', data.user);
+        return data.user;
+    } catch (error) {
+        console.error('Auth check failed:', error);
+        window.location.href = '/login';
         return null;
     }
-    return user;
 }
 
-// Logout function
-function logout() {
-    localStorage.removeItem('user');
-    localStorage.removeItem('auth_token');
-    window.location.href = 'index.html';
+// ⭐ NEW: Logout function - clears server session
+async function logout() {
+    try {
+        // Call backend logout endpoint to clear session
+        await fetch('/api/auth/logout', {
+            method: 'POST',
+            credentials: 'same-origin'
+        });
+        
+        console.log('Logged out successfully');
+    } catch (error) {
+        console.error('Logout error:', error);
+    }
+    
+    // Redirect to login
+    window.location.href = '/login';
 }

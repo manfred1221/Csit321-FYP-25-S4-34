@@ -154,117 +154,223 @@ def check_user_has_face_embedding(user):
 
 
 @app.route('/')
-def portal_choice():
-    return render_template('/portal.html')
+def index():
+    """Redirect to unified login page"""
+    return redirect(url_for('unified_login'))
 
+@app.route('/login', methods=['GET'])
+def unified_login():
+    """Serve unified login page for all user types"""
+    # Clear any existing session
+    session.clear()
+    return send_from_directory('templates', 'login.html')
 
-@app.route('/admin/login', methods=['GET', 'POST'])
+@app.route('/admin/login', methods=['POST'])
 def admin_login():
     """
-    Unified login endpoint for all user types.
-    Uses BCE structure for staff, existing User class for others.
+    Unified login - routes based on role_id from database.
+    role_id 1 = Admin
+    role_id 2 = Resident  
+    role_id 3 = Visitor/Internal Staff
+    role_id 4 = Security Officer
     """
     
-    if request.method == 'GET':
-        session.clear()
-        if 'user_id' in session:
-            return redirect(url_for('admin_profile'))
-        return send_from_directory('frontend', 'index.html')
-
-    # POST (login) - Handle ALL user types
     data = request.json or {}
-    username = data.get('username')
-    password = data.get('password')
+    username = data.get('username', '').strip()
+    password = data.get('password', '')
     
-    if not username or not password:
-        return jsonify({'success': False, 'message': 'Username and password required'}), 400
+    if not username:
+        return jsonify({'success': False, 'message': 'Username is required'}), 400
 
-    # ==============================================================
-    # TRY STAFF LOGIN FIRST (using BCE structure)
-    # ==============================================================
-    try:
-        from control.staff_controller import StaffController
-        
-        # Attempt staff login through your BCE architecture
-        staff_result = StaffController.login(username, password)
-        
-        # Staff login successful! Return the result from your controller
-        # StaffController.login() already returns the correct format:
-        # {
-        #   "user_id": ...,
-        #   "staff_id": ...,
-        #   "username": ...,
-        #   "full_name": ...,
-        #   "position": ...,
-        #   "role": ...,
-        #   "token": ...,
-        #   "message": "Login successful"
-        # }
-        
-        return jsonify(staff_result), 200
-        
-    except ValueError as e:
-        # Staff login failed - not a staff user or invalid credentials
-        # Continue to try other user types below
-        logger.debug(f"Staff login failed for {username}: {str(e)}")
-        pass
-    except Exception as e:
-        # Unexpected error in staff login
-        logger.error(f"Staff login error: {e}")
-        pass
+    logger.info(f"🔑 Login attempt: username={username}")
 
-    # ==============================================================
-    # FALLBACK: Try existing User.authenticate for Admin/Resident/Visitor
-    # ==============================================================
+    # ============================================================
+    # 1. TRY SECURITY OFFICER (numeric username = officer_id)
+    # ============================================================
+    if username.isdigit() and SECURITY_OFFICER_AVAILABLE:
+        try:
+            officer = SecurityOfficer.query.get(int(username))
+            if officer and officer.active:
+                session['officer_id'] = officer.officer_id
+                session['officer_name'] = officer.full_name
+                session['role'] = 'security_officer'
+                session.permanent = True
+                
+                logger.info(f"✅ Security officer login: officer_id={officer.officer_id}")
+                
+                return jsonify({
+                    'success': True,
+                    'role': 'security_officer',
+                    'user_data': {
+                        'officer_id': officer.officer_id,
+                        'full_name': officer.full_name
+                    },
+                    'redirect': '/security-dashboard'
+                }), 200
+        except Exception as e:
+            logger.debug(f"Security officer check failed: {e}")
+            pass
+
+    # ============================================================
+    # 2. AUTHENTICATE FROM users TABLE
+    # ============================================================
     try:
         user = User.authenticate(username, password)
     except Exception as e:
-        logger.error(f"User authentication error: {e}")
-        return jsonify({'success': False, 'message': 'Authentication failed'}), 500
+        logger.error(f"❌ Authentication failed: {e}")
+        user = None
 
     if not user:
-        return jsonify({'success': False, 'message': 'Invalid credentials'}), 401
+        logger.warning(f"❌ Login failed: {username} - Invalid credentials")
+        return jsonify({'success': False, 'message': 'Invalid username or password'}), 401
 
-    # Handle different user roles
-    user_role = user.get('role', '')
+    # Extract user info
+    role_id = user.get('role_id')
+    role_name = user.get('role', '')
+    user_id = user.get('id')
+    
+    logger.info(f"✅ User found: {username} | user_id={user_id} | role_id={role_id} | role_name={role_name}")
 
-    # Admin users
-    if user_role == 'Admin':
-        session['user_id'] = user['id']
+    # ============================================================
+    # ROUTE BASED ON role_id (THE KEY!)
+    # ============================================================
+    
+    # 🔴 ADMIN (role_id = 1)
+    if role_id == 1:
+        session['user_id'] = user_id
         session['username'] = user['username']
-        session['role'] = user['role']
+        session['role'] = 'Admin'
         session.permanent = True
-        return jsonify({'success': True})
-
-    # Resident users
-    elif user_role in ['Resident', 'RESIDENT']:
+        
+        logger.info(f"✅ Admin logged in: {username}")
+        
         return jsonify({
             'success': True,
-            'user_id': user['id'],
-            'resident_id': user['id'],
-            'username': user['username'],
-            'role': user_role,
-            'name': user.get('full_name', user['username']),
-            'email': user.get('email', f"{username}@condo.com"),
-            'token': 'resident-token-' + str(user['id'])
+            'role': 'Admin',
+            'user_data': {
+                'user_id': user_id,
+                'username': user['username'],
+                'full_name': user.get('full_name')
+            },
+            'redirect': '/admin/profile'
         }), 200
 
-    # Visitor users
-    elif user_role in ['Visitor', 'VISITOR']:
+    # 🟢 RESIDENT (role_id = 2)
+    elif role_id == 2:
+        resident_id = user.get('resident_id')
+        
+        if not resident_id:
+            logger.warning(f"⚠️ Resident {username} has no resident_id, using user_id")
+            resident_id = user_id
+        
+        session['user_id'] = user_id
+        session['resident_id'] = resident_id
+        session['username'] = user['username']
+        session['role'] = 'Resident'
+        session.permanent = True
+        
+        logger.info(f"✅ Resident logged in: {username} | resident_id={resident_id}")
+        
         return jsonify({
             'success': True,
-            'user_id': user['id'],
-            'visitor_id': user['id'],
-            'username': user['username'],
-            'role': user_role,
-            'name': user.get('full_name', user['username']),
-            'email': user.get('email', f"{username}@condo.com"),
-            'token': 'visitor-token-' + str(user['id'])
+            'role': 'Resident',
+            'user_data': {
+                'user_id': user_id,
+                'resident_id': resident_id,
+                'username': user['username'],
+                'full_name': user.get('full_name', user['username'])
+            },
+            'redirect': f'/resident/dashboard?resident_id={resident_id}'
         }), 200
 
-    # Unknown role
+    # 🟡 VISITOR or INTERNAL STAFF (role_id = 3)
+    elif role_id == 3 or role_id == 9:
+        # Check if it's a visitor or internal staff based on role_name
+        if 'visitor' in role_name.lower():
+            # VISITOR
+            visitor_id = user_id  # Assuming user_id maps to visitor
+            
+            session['user_id'] = user_id
+            session['visitor_id'] = visitor_id
+            session['username'] = user['username']
+            session['role'] = 'Visitor'
+            session.permanent = True
+            
+            logger.info(f"✅ Visitor logged in: {username}")
+            
+            return jsonify({
+                'success': True,
+                'role': 'Visitor',
+                'user_data': {
+                    'user_id': user_id,
+                    'visitor_id': visitor_id,
+                    'username': user['username']
+                },
+                'redirect': f'/visitor/dashboard?visitor_id={visitor_id}'
+            }), 200
+        else:
+            # INTERNAL STAFF
+            staff_id = user_id
+            
+            session['user_id'] = user_id
+            session['staff_id'] = staff_id
+            session['username'] = user['username']
+            session['role'] = 'Internal_Staff'
+            session.permanent = True
+            
+            logger.info(f"✅ Internal Staff logged in: {username}")
+            
+            return jsonify({
+                'success': True,
+                'role': 'Internal_Staff',
+                'user_data': {
+                    'user_id': user_id,
+                    'staff_id': staff_id,
+                    'username': user['username']
+                },
+                'redirect': f'/staff/dashboard?staff_id={staff_id}'
+            }), 200
+
+    # 🔵 SECURITY OFFICER via users table (role_id = 4)
+    elif role_id == 4:
+        session['user_id'] = user_id  # The ID from the 'users' table (e.g., 7)
+        session['username'] = user['username']
+        session['role'] = 'security_officer'
+        
+        # ✅ NEW: Fetch the REAL officer_id from the security_officers table
+        # We use the user_id to find the linked profile
+        officer_profile = SecurityOfficer.query.filter_by(user_id=user_id).first()
+        
+        if officer_profile:
+            # Store the ACTUAL officer_id (e.g., 1)
+            session['officer_id'] = officer_profile.officer_id 
+            session['officer_name'] = officer_profile.full_name
+        else:
+            # Fallback: If no profile exists yet, use user_id to prevent crashes
+            # (You should probably create the profile if it's missing)
+            logger.warning(f"⚠️ User {username} has no Security Officer profile!")
+            session['officer_id'] = user_id 
+
+        session.permanent = True
+        
+        logger.info(f"✅ Security Officer logged in: {username}")
+        
+        return jsonify({
+            'success': True,
+            'role': 'security_officer',
+            'redirect': '/security-dashboard'
+        }), 200
+
+    # ⚫ UNKNOWN ROLE
     else:
-        return jsonify({'success': False, 'message': 'Invalid user role'}), 401
+        logger.error(f"❌ Unknown role_id: {role_id} for user {username}")
+        return jsonify({
+            'success': False,
+            'message': f'Your account type (role_id: {role_id}) is not configured. Contact administrator.'
+        }), 401
+
+    
+
 @app.route('/admin/logout')
 def admin_logout():
     """Admin logout - User Story: Logout so no one can use account"""
@@ -286,31 +392,43 @@ def frontend_login():
 @app.route('/resident/dashboard')
 def resident_dashboard():
     """Serve resident dashboard"""
+    if 'user_id' not in session or session.get('role') != 'Resident':
+        return redirect(url_for('unified_login'))
     return send_from_directory('frontend', 'resident-dashboard.html')
 
 @app.route('/resident/profile')
 def resident_profile():
-    """Sere resident profile page"""
+    """Serve resident profile page"""
+    if 'user_id' not in session or session.get('role') != 'Resident':
+        return redirect(url_for('unified_login'))
     return send_from_directory('frontend', 'resident-profile.html')
 
 @app.route('/resident/face-registration')
 def resident_face_registration():
     """Serve resident face registration page"""
+    if 'user_id' not in session or session.get('role') != 'Resident':
+        return redirect(url_for('unified_login'))
     return send_from_directory('frontend', 'resident-face-registration.html')
 
 @app.route('/resident/visitors')
 def resident_visitors():
     """Serve resident visitors management page"""
+    if 'user_id' not in session or session.get('role') != 'Resident':
+        return redirect(url_for('unified_login'))
     return send_from_directory('frontend', 'resident-visitors.html')
 
 @app.route('/resident/access-history')
 def resident_access_history():
     """Serve resident access history page"""
+    if 'user_id' not in session or session.get('role') != 'Resident':
+        return redirect(url_for('unified_login'))
     return send_from_directory('frontend', 'resident-access-history.html')
 
 @app.route('/resident/alerts')
 def resident_alerts():
     """Serve resident alerts page"""
+    if 'user_id' not in session or session.get('role') != 'Resident':
+        return redirect(url_for('unified_login'))
     return send_from_directory('frontend', 'resident-alerts.html')
 
 # Visitor Routes
@@ -318,6 +436,8 @@ def resident_alerts():
 @app.route('/visitor/dashboard')
 def visitor_dashboard():
     """Serve visitor dashboard"""
+    if 'user_id' not in session or session.get('role') != 'Visitor':
+        return redirect(url_for('unified_login'))
     return send_from_directory('frontend', 'visitor-dashboard.html')
 
 # Staff Routes 
@@ -325,24 +445,32 @@ def visitor_dashboard():
 @app.route('/staff/dashboard')
 def staff_dashboard():
     """Serve staff dashboard"""
+    if 'user_id' not in session or session.get('role') != 'Internal_Staff':
+        return redirect(url_for('unified_login'))
     return send_from_directory('frontend', 'staff-dashboard.html')
 
 @app.route('/frontend/staff-profile.html')
 @app.route('/staff/profile')
 def staff_profile():
     """Serve staff profile page"""
+    if 'user_id' not in session or session.get('role') != 'Internal_Staff':
+        return redirect(url_for('unified_login'))
     return send_from_directory('frontend', 'staff-profile.html')
 
 @app.route('/frontend/staff-schedule.html')
 @app.route('/staff/schedule')
 def staff_schedule():
     """Serve staff schedule page"""
+    if 'user_id' not in session or session.get('role') != 'Internal_Staff':
+        return redirect(url_for('unified_login'))
     return send_from_directory('frontend', 'staff-schedule.html')
 
 @app.route('/frontend/staff-attendance.html')
 @app.route('/staff/attendance')
 def staff_attendance():
     """Serve staff attendance page"""
+    if 'user_id' not in session or session.get('role') != 'Internal_Staff':
+        return redirect(url_for('unified_login'))
     return send_from_directory('frontend', 'staff-attendance.html')
 
 @app.route('/frontend/staff-face-enroll.html')
@@ -355,47 +483,33 @@ def staff_face_enroll():
 def officer_required(f):
     @wraps(f)
     def decorated(*args, **kwargs):
-        if 'officer_id' not in session:
-            return redirect(url_for('security_login'))
-        officer = SecurityOfficer.query.get(session['officer_id'])
-        if not officer:
-            session.clear()
-            return redirect(url_for('security_login'))
+        if 'officer_id' not in session or session.get('role') != 'security_officer':
+            return redirect(url_for('unified_login'))
         return f(*args, **kwargs)
     return decorated
 
-@app.route("/security/login", methods=["GET", "POST"])
-def security_login():
-    if request.method == "GET":
-        return render_template("login.html")
 
-    # POST: handle login
-    data = request.json
-    if not data:
-        return jsonify({"success": False, "message": "No data provided"}), 400
-
-    officer_id = data.get("user_id")
-    if not officer_id:
-        return jsonify({"success": False, "message": "Missing user_id"}), 400
-
-    officer = SecurityOfficer.query.get(officer_id)
-    if not officer:
-        return jsonify({"success": False, "message": "Officer not found"}), 404
-
-    # Store officer info in session
-    session['officer_id'] = officer.officer_id
-    session['officer_name'] = officer.full_name
-
-    return jsonify({"success": True, "redirect": "/security-dashboard"})
 
 @app.route("/security-dashboard")
 @officer_required
 def security_dashboard():
-    officer = SecurityOfficer.query.get(session['officer_id'])
-    access_logs = AccessLog.query.order_by(AccessLog.log_id.asc()).all()
+    """Security officer dashboard - verified via decorator"""
+    # The decorator already ensures session['officer_id'] exists
+    officer_id = session.get('officer_id')
+    officer = SecurityOfficer.query.get(officer_id)
+    
+    # If for some reason the DB record is gone, clear session and exit
+    if not officer:
+        session.clear()
+        return redirect(url_for('unified_login'))
+    
+    access_logs = AccessLog.query.order_by(AccessLog.log_id.desc()).limit(50).all()
     granted_count = AccessLog.query.filter_by(access_result='granted').count()
-    return render_template("security-dashboard.html", officer=officer, logs=access_logs, granted_count=granted_count)
-
+    
+    return render_template("security-dashboard.html", 
+                         officer=officer, 
+                         logs=access_logs, 
+                         granted_count=granted_count)
 
 @app.route("/security-deactivate")
 @officer_required
@@ -490,11 +604,16 @@ def face_verification():
     )
 
 @app.route("/security/logout")
-@officer_required
 def security_logout():
-    session.pop('officer_id', None)
-    session.pop('officer_name', None)
-    return redirect(url_for('security_login'))
+    """Security officer logout"""
+    session.clear()
+    return redirect(url_for('unified_login'))
+
+
+@app.route('/frontend/index.html')
+def frontend_login_redirect():
+    """Redirect old frontend login to unified login"""
+    return redirect(url_for('unified_login'))
 
 # Serve CSS and other static assets from frontend folder
 @app.route('/frontend/css/<path:filename>')
@@ -592,7 +711,35 @@ def staff_login():
         "email": user.get("email", "")
     }), 200
 
+@app.route('/api/auth/check-session', methods=['GET'])
+def check_session():
+    """Check if user is authenticated via Flask session"""
+    uid = session.get('user_id') or session.get('officer_id')
+    
+    if not uid:
+        return jsonify({'authenticated': False}), 401
+    
+    user_data = {
+        'user_id': session.get('user_id'),
+        'username': session.get('username'),
+        'role': session.get('role'),
+        'resident_id': session.get('resident_id'),
+        'visitor_id': session.get('visitor_id'),
+        'officer_id': session.get('officer_id'),
+        'staff_id': session.get('staff_id')
+    }
+    
+    # Remove None values
+    user_data = {k: v for k, v in user_data.items() if v is not None}
+    
+    return jsonify({'authenticated': True, 'user': user_data}), 200
 
+
+@app.route('/api/auth/logout', methods=['POST'])
+def api_logout():
+    """Logout endpoint - clears Flask session"""
+    session.clear()
+    return jsonify({'success': True, 'message': 'Logged out'}), 200
 
 
 
@@ -1187,6 +1334,7 @@ def admin_users_edit(user_id):
         'email': data['email'],
         'password': data['password'],
         'role': data['role'],
+        'status': data.get('status'),
         'access_level': data.get('access_level', 'standard'),
         'full_name': data.get('full_name'),
         'phone': data.get('phone', ''),
@@ -1216,7 +1364,7 @@ def admin_users_edit(user_id):
         return "User not found", 404
 
     return jsonify({'success': True, 'message': 'User updated successfully'})
-    # return render_template('admin_edit_user.html', user=user)
+    
 
 
 @app.route('/admin/users/create', methods=['GET'])
