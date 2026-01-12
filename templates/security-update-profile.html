@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Update Profile - Security</title>
     <link rel="stylesheet" href="/frontend/css/styles.css">
+    <script src="/frontend/js/config.js"></script>
 </head>
 <body>
     <div class="dashboard">
@@ -15,13 +16,13 @@
             </div>
             <nav>
                 <ul class="nav-menu">
-                    <li class="nav-item"><a href="/security-dashboard?officer_id={{ officer.id }}" class="nav-link">📹 Monitor Cameras</a></li>
-                    <li class="nav-item"><a href="/security-override?officer_id={{ officer.id }}" class="nav-link">🚪 Manual Override</a></li>
-                    <li class="nav-item"><a href="/security-view-profile?officer_id={{ officer.id }}" class="nav-link">👤 View Profile</a></li>
-                    <li class="nav-item"><a href="/security-update-profile?officer_id={{ officer.id }}" class="nav-link active">✏️ Update Profile</a></li>
-                    <li class="nav-item"><a href="/security-deactivate?officer_id={{ officer.id }}" class="nav-link">⚠️ Deactivate Account</a></li>
-                    <li class="nav-item"><a href="/security-face-verification?officer_id={{ officer.id }}" class="nav-link">🔍 Face Verification</a></li>
-                    <li class="nav-item"><a href="/security/logout?officer_id={{ officer.id }}" class="nav-link" style="margin-top:20px;border-top:1px solid rgba(255,255,255,0.1);padding-top:20px;">🚪 Logout</a></li>
+                    <li class="nav-item"><a href="/security-dashboard" class="nav-link">📹 Monitor Cameras</a></li>
+                    <li class="nav-item"><a href="/security-override" class="nav-link">🚪 Manual Override</a></li>
+                    <li class="nav-item"><a href="/security-view-profile" class="nav-link">👤 View Profile</a></li>
+                    <li class="nav-item"><a href="/security-update-profile" class="nav-link active">✏️ Update Profile</a></li>
+                    <li class="nav-item"><a href="/security-deactivate" class="nav-link">⚠️ Deactivate Account</a></li>
+                    <li class="nav-item"><a href="/security-face-verification" class="nav-link">🔍 Face Verification</a></li>
+                    <li class="nav-item"><a href="#" onclick="logout(); return false;" class="nav-link">🚪 Logout</a></li>
                 </ul>
             </nav>
         </aside>
@@ -90,6 +91,26 @@
         </main>
     </div>
     <script>
+        // Load config first
+        let currentUser = null;
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            // 1. Verify session with server
+            currentUser = await checkAuth(); 
+            
+            if (!currentUser) return; // config.js handles redirect to /login
+
+            // 2. Role Authorization (Match the role set in app.py)
+            if (currentUser.role !== 'security_officer' && currentUser.role !== 'Security') {
+                window.location.href = '/login';
+                return;
+            }
+
+            // 3. Update Sidebar UI with real session data
+            document.getElementById('officerName').textContent = currentUser.full_name || currentUser.username;
+            document.getElementById('officerEmail').textContent = currentUser.email || currentUser.contact_number;
+        });
+
         async function updateProfile() {
             const full_name = document.getElementById('fullName').value;
             const contact_number = document.getElementById('phone').value;

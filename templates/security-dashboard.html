@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Security Dashboard - Condo Access</title>
     <link rel="stylesheet" href="/frontend/css/styles.css">
-
+    <script src="/frontend/js/config.js"></script>
 </head>
 <body>
     <div class="dashboard">
@@ -22,39 +22,25 @@
             <nav>
                 <ul class="nav-menu">
                     <li class="nav-item">
-                        <a href="/security-dashboard?officer_id={{ officer.id }}" class="nav-link active">
-                            📹 Monitor Cameras
-                        </a>
+                        <a href="/security-dashboard" class="nav-link">📹 Monitor Cameras</a>
                     </li>
                     <li class="nav-item">
-                        <a href="/security-override?officer_id={{ officer.id }}" class="nav-link">
-                            🚪 Manual Override
-                        </a>
+                        <a href="/security-override" class="nav-link">🚪 Manual Override</a>
                     </li>
                     <li class="nav-item">
-                        <a href="/security-view-profile?officer_id={{ officer.id }}" class="nav-link">
-                            👤 View Profile
-                        </a>
+                        <a href="/security-view-profile" class="nav-link">👤 View Profile</a>
                     </li>
                     <li class="nav-item">
-                        <a href="/security-update-profile?officer_id={{ officer.id }}" class="nav-link">
-                            ✏️ Update Profile
-                        </a>
+                        <a href="/security-update-profile" class="nav-link">✏️ Update Profile</a>
                     </li>
                     <li class="nav-item">
-                        <a href="/security-deactivate?officer_id={{ officer.id }}" class="nav-link">
-                            ⚠️ Deactivate Account
-                        </a>
+                        <a href="/security-deactivate" class="nav-link">⚠️ Deactivate Account</a>
                     </li>
                     <li class="nav-item">
-                        <a href="/security-face-verification?officer_id={{ officer.id }}" class="nav-link">
-                            🔍 Face Verification
-                        </a>
+                        <a href="/security-face-verification" class="nav-link">🔍 Face Verification</a>
                     </li>
                     <li class="nav-item">
-                        <a href="/security/logout" class="nav-link" style="margin-top: 20px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 20px;">
-                            🚪 Logout
-                        </a>
+                        <a href="#" onclick="logout(); return false;" class="nav-link">🚪 Logout</a>
                     </li>
                 </ul>
             </nav>
@@ -250,6 +236,29 @@
     </div>
 
     <script>
+        // Load config first
+        let currentUser = null;
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            currentUser = await checkAuth(); 
+            
+            if (!currentUser) return; 
+
+            // Match exactly what is in your session['role'] in app.py
+            if (currentUser.role !== 'security_officer') {
+                window.location.href = '/login';
+                return;
+            }
+
+            // Update UI
+            const nameEl = document.getElementById('officerName');
+            const emailEl = document.getElementById('officerEmail');
+            if (nameEl) nameEl.textContent = currentUser.full_name || currentUser.username;
+            if (emailEl) emailEl.textContent = currentUser.contact_number || 'Duty Officer';
+
+            console.log("Security Dashboard Ready.");
+        });
+
         const cameraStreams = {};
 
             // document.addEventListener('DOMContentLoaded', function() {

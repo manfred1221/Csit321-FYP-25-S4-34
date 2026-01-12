@@ -13,6 +13,7 @@ class SecurityOfficer(db.Model):
     shift = db.Column(db.String(50))
     active = db.Column(db.Boolean, default=True)
     registered_at = db.Column(db.DateTime, default=datetime.utcnow)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.user_id'), nullable=True)
 
 class Resident(db.Model):
     __tablename__ = "residents"
