@@ -1,18 +1,34 @@
 // Check authentication
-const user = checkAuth();
-if (!user || user.type !== 'resident') {
-    window.location.href = 'index.html';
-}
+let user = null;
+
+document.addEventListener('DOMContentLoaded', async () => {
+    // Use the async server-side check you wrote in config.js
+    user = await checkAuth(); 
+    
+    if (!user) return; // checkAuth already redirects to /login if null
+
+    if (user.role !== 'Resident') {
+        window.location.href = '/login';
+        return;
+    }
+
+    // Initialize the page once user is confirmed
+    document.getElementById('userName').textContent = user.full_name || user.username;
+    const emailEl = document.getElementById('userEmail');
+    if (emailEl) emailEl.textContent = user.email || (user.username + '@condo.com');
+
+    loadProfile();
+});
 
 // Update user info in sidebar
-document.getElementById('userName').textContent = user.full_name || user.username;
-document.getElementById('userEmail').textContent = user.email;
+// document.getElementById('userName').textContent = user.full_name || user.username;
+// document.getElementById('userEmail').textContent = user.email;
 
 let originalProfileData = {};
 let isEditing = false;
 
 // Load profile data on page load
-loadProfile();
+// loadProfile();
 
 async function loadProfile() {
     const endpoint = API_CONFIG.ENDPOINTS.RESIDENT.GET_PROFILE(user.resident_id);
@@ -58,6 +74,7 @@ function cancelEdit() {
 }
 
 async function saveProfile() {
+    // 1. Collect data from the form
     const formData = {
         full_name: document.getElementById('fullName').value,
         unit_number: document.getElementById('unitNumber').value,
@@ -65,29 +82,26 @@ async function saveProfile() {
         email: document.getElementById('email').value,
     };
     
-    const endpoint = API_CONFIG.ENDPOINTS.RESIDENT.UPDATE_PROFILE(user.resident_id);
+    // 2. Use the resident_id from the session user
+    const residentId = user.resident_id || user.user_id;
+    const endpoint = API_CONFIG.ENDPOINTS.RESIDENT.UPDATE_PROFILE(residentId);
+    
+    // 3. Make the API call to your Flask backend
     const result = await apiCall(endpoint, {
         method: 'PUT',
         body: JSON.stringify(formData)
     });
     
     if (result.success) {
-        showMessage('message', 'Profile updated successfully!', 'success');
-        originalProfileData = { ...formData };
+        showMessage('message', 'Profile updated! Reloading...', 'success');
         
-        // Update user in localStorage
-        const updatedUser = { ...user, ...formData };
-        localStorage.setItem('user', JSON.stringify(updatedUser));
-        
-        // Update sidebar
-        document.getElementById('userName').textContent = formData.full_name;
-        document.getElementById('userEmail').textContent = formData.email;
-        
+        // 4. THE SHORTCUT: Reload the page after 1.5 seconds
+        // This forces the sidebar and session to refresh without extra code
         setTimeout(() => {
-            toggleEdit();
+            window.location.reload();
         }, 1500);
     } else {
-        showMessage('message', 'Error updating profile: ' + result.error, 'error');
+        showMessage('message', 'Error: ' + result.error, 'error');
     }
 }
 

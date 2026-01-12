@@ -1,34 +1,46 @@
-// Check authentication
-const user = checkAuth();
-if (!user || user.type !== 'resident') {
-    window.location.href = 'index.html';
-}
-
-// Update user info in sidebar
-document.getElementById('userName').textContent = user.full_name || user.username;
-document.getElementById('userEmail').textContent = user.email;
-
+// Global user variable
+let user = null;
 let allVisitors = [];
 let currentVisitorId = null;
-let videoStream = null;
-let capturedImageData = null;
+let faceStream = null;
 
-// Load visitors on page load
-loadVisitors();
+document.addEventListener('DOMContentLoaded', async () => {
+    // 1. Verify user via Flask session
+    user = await checkAuth(); 
+    
+    if (!user) return; 
 
-// Search functionality
-document.getElementById('searchInput').addEventListener('input', (e) => {
-    const searchTerm = e.target.value.toLowerCase();
-    const filteredVisitors = allVisitors.filter(v => 
-        v.visitor_name.toLowerCase().includes(searchTerm) ||
-        v.contact_number.includes(searchTerm)
-    );
-    displayVisitors(filteredVisitors);
+    // 2. Role Authorization
+    if (user.role !== 'Resident') {
+        window.location.href = '/login';
+        return;
+    }
+
+    // 3. Initialize Sidebar UI
+    document.getElementById('userName').textContent = user.full_name || user.username;
+    const emailEl = document.getElementById('userEmail');
+    if (emailEl) emailEl.textContent = user.email || (user.username + '@condo.com');
+
+    // 4. Setup Search Listener (Moved inside to ensure DOM is ready)
+    document.getElementById('searchInput').addEventListener('input', (e) => {
+        const searchTerm = e.target.value.toLowerCase();
+        const filteredVisitors = allVisitors.filter(v => 
+            v.visitor_name.toLowerCase().includes(searchTerm) ||
+            v.contact_number.includes(searchTerm)
+        );
+        displayVisitors(filteredVisitors);
+    });
+
+    // 5. Initial Data Load
+    loadVisitors(); 
 });
 
-// Load all visitors
+// --- Core Data Functions ---
+
 async function loadVisitors() {
-    const endpoint = API_CONFIG.ENDPOINTS.RESIDENT.GET_VISITORS(user.resident_id);
+    // Use resident_id with a fallback to user_id for API routes
+    const residentId = user.resident_id || user.user_id;
+    const endpoint = API_CONFIG.ENDPOINTS.RESIDENT.GET_VISITORS(residentId);
     const result = await apiCall(endpoint);
     
     if (result.success) {
@@ -37,7 +49,6 @@ async function loadVisitors() {
     }
 }
 
-// Display visitors in table
 function displayVisitors(visitors) {
     const tbody = document.querySelector('#visitorsTable tbody');
     
@@ -67,7 +78,6 @@ function displayVisitors(visitors) {
     `).join('');
 }
 
-// Get status badge color
 function getStatusBadge(status) {
     switch(status) {
         case 'APPROVED': return 'success';
@@ -77,31 +87,28 @@ function getStatusBadge(status) {
     }
 }
 
-// Open add visitor modal
+// --- Modal & Form Functions ---
+
 function openAddVisitorModal() {
     document.getElementById('modalTitle').textContent = 'Add New Visitor';
     document.getElementById('visitorForm').reset();
     document.getElementById('visitorId').value = '';
     
-    // Set default dates (today to tomorrow)
     const now = new Date();
     const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
     document.getElementById('startTime').value = formatDateForInput(now);
     document.getElementById('endTime').value = formatDateForInput(tomorrow);
     
-    // Set default unit from user profile
+    // Set default unit from user context
     document.getElementById('visitingUnit').value = user.unit_number || '';
-    
     document.getElementById('visitorModal').classList.add('active');
 }
 
-// Close visitor modal
 function closeVisitorModal() {
     document.getElementById('visitorModal').classList.remove('active');
     document.getElementById('modalMessage').style.display = 'none';
 }
 
-// Edit visitor
 function editVisitor(visitorId) {
     const visitor = allVisitors.find(v => v.visitor_id === visitorId);
     if (!visitor) return;
@@ -117,9 +124,10 @@ function editVisitor(visitorId) {
     document.getElementById('visitorModal').classList.add('active');
 }
 
-// Save visitor (create or update)
 async function saveVisitor() {
     const visitorId = document.getElementById('visitorId').value;
+    const resId = user.resident_id || user.user_id; //
+
     const formData = {
         visitor_name: document.getElementById('visitorName').value,
         contact_number: document.getElementById('contactNumber').value,
@@ -128,58 +136,42 @@ async function saveVisitor() {
         end_time: document.getElementById('endTime').value,
     };
     
-    // Validate
-    if (!formData.visitor_name || !formData.contact_number || !formData.visiting_unit || 
-        !formData.start_time || !formData.end_time) {
+    if (!formData.visitor_name || !formData.contact_number || !formData.visiting_unit) {
         showMessage('modalMessage', 'Please fill in all required fields', 'error');
         return;
     }
     
-    let result;
-    if (visitorId) {
-        // Update existing visitor
-        const endpoint = API_CONFIG.ENDPOINTS.RESIDENT.UPDATE_VISITOR(user.resident_id, visitorId);
-        result = await apiCall(endpoint, {
-            method: 'PUT',
-            body: JSON.stringify(formData)
-        });
-    } else {
-        // Create new visitor
-        const endpoint = API_CONFIG.ENDPOINTS.RESIDENT.CREATE_VISITOR(user.resident_id);
-        result = await apiCall(endpoint, {
-            method: 'POST',
-            body: JSON.stringify(formData)
-        });
-    }
+    const endpoint = visitorId ? 
+        API_CONFIG.ENDPOINTS.RESIDENT.UPDATE_VISITOR(resId, visitorId) : 
+        API_CONFIG.ENDPOINTS.RESIDENT.CREATE_VISITOR(resId);
+    
+    const result = await apiCall(endpoint, {
+        method: visitorId ? 'PUT' : 'POST',
+        body: JSON.stringify(formData)
+    });
     
     if (result.success) {
-        showMessage('modalMessage', 'Visitor saved successfully!', 'success');
-        setTimeout(() => {
-            closeVisitorModal();
-            loadVisitors();
-        }, 1500);
+        showMessage('modalMessage', 'Visitor saved!', 'success');
+        setTimeout(() => { closeVisitorModal(); loadVisitors(); }, 1500);
     } else {
-        showMessage('modalMessage', 'Error saving visitor: ' + result.error, 'error');
+        showMessage('modalMessage', 'Error: ' + result.error, 'error');
     }
 }
 
-// Delete visitor
 async function deleteVisitor(visitorId) {
-    if (!confirm('Are you sure you want to delete this visitor?')) return;
-    
-    const endpoint = API_CONFIG.ENDPOINTS.RESIDENT.DELETE_VISITOR(user.resident_id, visitorId);
+    if (!confirm('Delete this visitor?')) return;
+    const resId = user.resident_id || user.user_id;
+    const endpoint = API_CONFIG.ENDPOINTS.RESIDENT.DELETE_VISITOR(resId, visitorId);
     const result = await apiCall(endpoint, { method: 'DELETE' });
     
     if (result.success) {
-        alert('Visitor deleted successfully!');
         loadVisitors();
     } else {
-        alert('Error deleting visitor: ' + result.error);
+        alert('Error: ' + result.error);
     }
 }
 
-// Face Upload Modal Functions
-let faceStream = null;
+// --- Face Registration Functions ---
 
 function openFaceUploadModal(visitorId) {
     currentVisitorId = visitorId;
@@ -190,33 +182,7 @@ function openFaceUploadModal(visitorId) {
 
 function closeFaceUploadModal() {
     stopFaceCamera();
-    resetFaceUpload();
     document.getElementById('faceUploadModal').classList.remove('active');
-}
-
-function resetFaceUpload() {
-    const video = document.getElementById('video');
-    const preview = document.getElementById('capturedImage');
-    const faceStatus = document.getElementById('faceStatus');
-    const startBtn = document.getElementById('startCameraBtn');
-    const captureBtn = document.getElementById('capturePhotoBtn');
-    const uploadBtn = document.getElementById('uploadPhotoBtn');
-    
-    video.style.display = 'none';
-    preview.style.display = 'none';
-    
-    startBtn.disabled = false;
-    startBtn.textContent = 'Start Camera';
-    captureBtn.disabled = true;
-    uploadBtn.disabled = true;
-    
-    faceStatus.textContent = 'Ready to capture visitor\'s face';
-    faceStatus.style.background = '#f3f4f6';
-    faceStatus.style.color = '#111827';
-    
-    document.getElementById('faceModalMessage').style.display = 'none';
-    
-    stopFaceCamera();
 }
 
 function stopFaceCamera() {
@@ -226,166 +192,84 @@ function stopFaceCamera() {
     }
 }
 
-// Start Camera
+function resetFaceUpload() {
+    document.getElementById('video').style.display = 'none';
+    document.getElementById('capturedImage').style.display = 'none';
+    document.getElementById('startCameraBtn').disabled = false;
+    document.getElementById('capturePhotoBtn').disabled = true;
+    document.getElementById('uploadPhotoBtn').disabled = true;
+    document.getElementById('faceStatus').textContent = 'Ready to capture face';
+}
+
 document.getElementById('startCameraBtn').onclick = async () => {
-    const video = document.getElementById('video');
-    const preview = document.getElementById('capturedImage');
-    const faceStatus = document.getElementById('faceStatus');
-    const startBtn = document.getElementById('startCameraBtn');
-    const captureBtn = document.getElementById('capturePhotoBtn');
-    
     try {
-        faceStream = await navigator.mediaDevices.getUserMedia({ 
-            video: { 
-                facingMode: "user",
-                width: { ideal: 640 },
-                height: { ideal: 480 }
-            }, 
-            audio: false 
-        });
-        
+        faceStream = await navigator.mediaDevices.getUserMedia({ video: true });
+        const video = document.getElementById('video');
         video.srcObject = faceStream;
         video.style.display = 'block';
-        preview.style.display = 'none';
-        
-        startBtn.disabled = true;
-        captureBtn.disabled = false;
-        
-        faceStatus.textContent = "Camera started – position visitor's face in the frame";
-        faceStatus.style.background = '#d1fae5';
-        faceStatus.style.color = '#065f46';
-        
+        document.getElementById('startCameraBtn').disabled = true;
+        document.getElementById('capturePhotoBtn').disabled = false;
     } catch (e) {
-        console.error('Camera error:', e);
-        faceStatus.textContent = "Cannot access camera: " + e.message;
-        faceStatus.style.background = '#fee2e2';
-        faceStatus.style.color = '#991b1b';
+        alert("Camera access denied: " + e.message);
     }
 };
 
-// Capture Photo
 document.getElementById('capturePhotoBtn').onclick = () => {
     const video = document.getElementById('video');
     const canvas = document.getElementById('canvas');
     const preview = document.getElementById('capturedImage');
-    const faceStatus = document.getElementById('faceStatus');
-    const startBtn = document.getElementById('startCameraBtn');
-    const captureBtn = document.getElementById('capturePhotoBtn');
-    const uploadBtn = document.getElementById('uploadPhotoBtn');
     
-    const ctx = canvas.getContext('2d');
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    canvas.getContext('2d').drawImage(video, 0, 0);
     
-    // Set canvas size
-    canvas.width = video.videoWidth || 640;
-    canvas.height = video.videoHeight || 480;
-    
-    // Draw video frame to canvas
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-    
-    // Show preview
-    preview.src = canvas.toDataURL('image/jpeg', 0.9);
+    preview.src = canvas.toDataURL('image/jpeg');
     preview.style.display = 'block';
-    
-    // Hide video
     video.style.display = 'none';
     
-    // Stop camera
     stopFaceCamera();
-    
-    // Update buttons
-    startBtn.disabled = false;
-    startBtn.textContent = '🔄 Retake Photo';
-    captureBtn.disabled = true;
-    uploadBtn.disabled = false;
-    
-    faceStatus.textContent = "Preview ready – click 'Upload Image' to save";
-    faceStatus.style.background = '#dbeafe';
-    faceStatus.style.color = '#1e40af';
+    document.getElementById('capturePhotoBtn').disabled = true;
+    document.getElementById('uploadPhotoBtn').disabled = false;
+    document.getElementById('startCameraBtn').disabled = false;
 };
 
-// Upload Face Image
 document.getElementById('uploadPhotoBtn').onclick = async () => {
-    const canvas = document.getElementById('canvas');
+    const resId = user.resident_id || user.user_id;
     const visitorId = document.getElementById('faceVisitorId').value;
-    const faceStatus = document.getElementById('faceStatus');
-    const uploadBtn = document.getElementById('uploadPhotoBtn');
+    const canvas = document.getElementById('canvas');
+    const imageData = canvas.toDataURL('image/jpeg');
     
-    if (!canvas.width || !canvas.height) {
-        showMessage('faceModalMessage', 'Please capture an image first', 'error');
-        return;
-    }
+    const endpoint = API_CONFIG.ENDPOINTS.RESIDENT.UPLOAD_VISITOR_FACE(resId, visitorId);
+    const result = await apiCall(endpoint, {
+        method: 'POST',
+        body: JSON.stringify({ image_data: imageData })
+    });
     
-    try {
-        faceStatus.textContent = 'Uploading visitor face image...';
-        faceStatus.style.background = '#fef3c7';
-        faceStatus.style.color = '#92400e';
-        
-        uploadBtn.disabled = true;
-        uploadBtn.innerHTML = '<span class="loading"></span> Uploading...';
-        
-        const imageData = canvas.toDataURL('image/jpeg', 0.9);
-        const endpoint = API_CONFIG.ENDPOINTS.RESIDENT.UPLOAD_VISITOR_FACE(user.resident_id, visitorId);
-        
-        const result = await apiCall(endpoint, {
-            method: 'POST',
-            body: JSON.stringify({
-                image_data: imageData
-            })
-        });
-        
-        if (result.success) {
-            faceStatus.textContent = '✅ Visitor face image uploaded successfully!';
-            faceStatus.style.background = '#d1fae5';
-            faceStatus.style.color = '#065f46';
-            
-            setTimeout(() => {
-                closeFaceUploadModal();
-            }, 1500);
-        } else {
-            throw new Error(result.error || 'Upload failed');
-        }
-        
-    } catch (error) {
-        console.error('Upload error:', error);
-        faceStatus.textContent = '❌ Error uploading image: ' + error.message;
-        faceStatus.style.background = '#fee2e2';
-        faceStatus.style.color = '#991b1b';
-        
-        uploadBtn.disabled = false;
-        uploadBtn.innerHTML = 'Upload Image';
+    if (result.success) {
+        showMessage('faceModalMessage', 'Face uploaded successfully!', 'success');
+        setTimeout(closeFaceUploadModal, 1500);
+    } else {
+        showMessage('faceModalMessage', 'Upload failed: ' + result.error, 'error');
     }
 };
 
-// View visitor access history
 async function viewVisitorHistory(visitorId, visitorName) {
-    document.getElementById('historyVisitorName').textContent = `Access History for ${visitorName}`;
+    document.getElementById('historyVisitorName').textContent = `History for ${visitorName}`;
     document.getElementById('accessHistoryModal').classList.add('active');
     
-    const endpoint = API_CONFIG.ENDPOINTS.RESIDENT.VISITOR_ACCESS_HISTORY(user.resident_id, visitorId);
+    const resId = user.resident_id || user.user_id;
+    const endpoint = API_CONFIG.ENDPOINTS.RESIDENT.VISITOR_ACCESS_HISTORY(resId, visitorId);
     const result = await apiCall(endpoint);
     
     const tbody = document.querySelector('#visitorAccessHistoryTable tbody');
-    
     if (result.success) {
         const records = result.data.records || [];
-        
-        if (records.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="3" class="text-center">No access history found</td></tr>';
-            return;
-        }
-        
-        tbody.innerHTML = records.map(record => `
+        tbody.innerHTML = records.length ? records.map(r => `
             <tr>
-                <td>${formatDateTime(record.timestamp)}</td>
-                <td>${record.door}</td>
-                <td><span class="badge badge-${record.result === 'GRANTED' ? 'success' : 'danger'}">${record.result}</span></td>
+                <td>${formatDateTime(r.timestamp)}</td>
+                <td>${r.door}</td>
+                <td><span class="badge badge-${r.result === 'GRANTED' ? 'success' : 'danger'}">${r.result}</span></td>
             </tr>
-        `).join('');
-    } else {
-        tbody.innerHTML = '<tr><td colspan="3" class="text-center">Error loading history</td></tr>';
+        `).join('') : '<tr><td colspan="3">No history found</td></tr>';
     }
-}
-
-function closeAccessHistoryModal() {
-    document.getElementById('accessHistoryModal').classList.remove('active');
 }

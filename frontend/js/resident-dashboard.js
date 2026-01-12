@@ -1,19 +1,26 @@
 // Global user variable - accessible by all functions
 let user = null;
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {  // ⭐ Make it async
     // Check authentication and store in global variable
-    user = checkAuth();
+    user = await checkAuth();  // ⭐ Add await
     if (!user) return;
 
-    if (user.type !== 'resident') {
-        window.location.href = '/';
+    // ⭐ Check user.role instead of user.type
+    if (user.role !== 'Resident') {
+        console.log('User is not a resident, role:', user.role);
+        window.location.href = '/login';  // Redirect to login, not /
         return;
     }
 
     // Update user info in sidebar
-    document.getElementById('userName').textContent = user.full_name || user.username;
-    document.getElementById('userEmail').textContent = user.email;
+    document.getElementById('userName').textContent = user.full_name || user.username || 'User';
+    
+    // Handle email display (might not be in session)
+    const emailEl = document.getElementById('userEmail');
+    if (emailEl) {
+        emailEl.textContent = user.email || user.username + '@condo.com';
+    }
 
     // Load dashboard data
     loadDashboardData();
@@ -30,7 +37,8 @@ async function loadDashboardData() {
 
 // Load visitors
 async function loadVisitors() {
-    const endpoint = API_CONFIG.ENDPOINTS.RESIDENT.GET_VISITORS(user.resident_id);
+    const residentId = user.resident_id || user.user_id;
+    const endpoint = API_CONFIG.ENDPOINTS.RESIDENT.GET_VISITORS(residentId);
     const result = await apiCall(endpoint);
     
     if (result.success) {
@@ -44,6 +52,10 @@ async function loadVisitors() {
         // Display recent visitors (first 5)
         const recentVisitors = visitors.slice(0, 5);
         displayRecentVisitors(recentVisitors);
+    } else {
+        console.log('Could not load visitors:', result.error);
+        document.getElementById('activeVisitors').textContent = '0';
+        document.getElementById('totalVisitors').textContent = '0';
     }
 }
 
@@ -69,15 +81,27 @@ function displayRecentVisitors(visitors) {
 
 // Load access history
 async function loadAccessHistory() {
-    const endpoint = API_CONFIG.ENDPOINTS.RESIDENT.ACCESS_HISTORY(user.resident_id);
+    const residentId = user.resident_id || user.user_id;
+    const endpoint = API_CONFIG.ENDPOINTS.RESIDENT.ACCESS_HISTORY(residentId);
     const result = await apiCall(endpoint);
     
     if (result.success) {
         const history = result.data.access_logs || [];
         
+        // Update today's access count
+        const today = new Date().toDateString();
+        const todayCount = history.filter(h => {
+            const logDate = new Date(h.timestamp).toDateString();
+            return logDate === today;
+        }).length;
+        document.getElementById('todayAccess').textContent = todayCount;
+        
         // Display recent access (first 5)
         const recentAccess = history.slice(0, 5);
         displayRecentAccessHistory(recentAccess);
+    } else {
+        console.log('Could not load access history:', result.error);
+        document.getElementById('todayAccess').textContent = '0';
     }
 }
 
@@ -100,17 +124,18 @@ function displayRecentAccessHistory(history) {
 
 // Load stats
 async function loadStats() {
-    const endpoint = API_CONFIG.ENDPOINTS.RESIDENT.ALERTS(user.resident_id);
+    const residentId = user.resident_id || user.user_id;
+    const endpoint = API_CONFIG.ENDPOINTS.RESIDENT.ALERTS(residentId);
     const result = await apiCall(endpoint);
     
     if (result.success) {
         const alerts = result.data.alerts || [];
         const unreadAlerts = alerts.filter(a => a.status === 'UNREAD').length;
         document.getElementById('unreadAlerts').textContent = unreadAlerts;
+    } else {
+        console.log('Could not load alerts:', result.error);
+        document.getElementById('unreadAlerts').textContent = '0';
     }
-    
-    // You can add more stats here from other endpoints
-    // For now, access history count is handled by loadAccessHistory
 }
 
 // Toggle face access
@@ -119,7 +144,8 @@ async function toggleFaceAccess() {
         return;
     }
     
-    const endpoint = API_CONFIG.ENDPOINTS.RESIDENT.DISABLE_FACE_ACCESS(user.resident_id);
+    const residentId = user.resident_id || user.user_id;
+    const endpoint = API_CONFIG.ENDPOINTS.RESIDENT.DISABLE_FACE_ACCESS(residentId);
     const result = await apiCall(endpoint, { method: 'POST' });
     
     if (result.success) {

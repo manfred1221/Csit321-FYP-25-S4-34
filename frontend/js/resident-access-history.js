@@ -1,18 +1,37 @@
 // Check authentication
-const user = checkAuth();
-if (!user || user.type !== 'resident') {
-    window.location.href = 'index.html';
-}
+let user = null;
 
-// Update user info in sidebar
-document.getElementById('userName').textContent = user.full_name || user.username;
-document.getElementById('userEmail').textContent = user.email;
+document.addEventListener('DOMContentLoaded', async () => {
+    // 1. Verify user via Flask session
+    user = await checkAuth(); 
+    
+    if (!user) return; 
+
+    if (user.role !== 'Resident') {
+        window.location.href = '/login';
+        return;
+    }
+
+    // 2. Initialize UI
+    document.getElementById('userName').textContent = user.full_name || user.username;
+    const emailEl = document.getElementById('userEmail');
+    if (emailEl) emailEl.textContent = user.email || (user.username + '@condo.com');
+
+    // 3. Set default date filters (Moved from the bottom of the file)
+    const today = new Date();
+    const thirtyDaysAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
+    document.getElementById('dateTo').valueAsDate = today;
+    document.getElementById('dateFrom').valueAsDate = thirtyDaysAgo;
+
+    // 4. Load data now that user is verified
+    loadAccessHistory();
+});
 
 let allRecords = [];
 let filteredRecords = [];
 
 // Load access history on page load
-loadAccessHistory();
+// loadAccessHistory();
 
 async function loadAccessHistory() {
     const endpoint = API_CONFIG.ENDPOINTS.RESIDENT.ACCESS_HISTORY(user.resident_id);
@@ -125,7 +144,7 @@ function exportHistory() {
 }
 
 // Set default date filters (last 30 days)
-const today = new Date();
-const thirtyDaysAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
-document.getElementById('dateTo').valueAsDate = today;
-document.getElementById('dateFrom').valueAsDate = thirtyDaysAgo;
+//const today = new Date();
+//const thirtyDaysAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
+//document.getElementById('dateTo').valueAsDate = today;
+//document.getElementById('dateFrom').valueAsDate = thirtyDaysAgo;

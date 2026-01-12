@@ -1,20 +1,34 @@
 // Check authentication
-const user = checkAuth();
-if (!user || user.type !== 'resident') {
-    window.location.href = 'index.html';
-}
+let user = null;
 
-// Update user info in sidebar
-document.getElementById('userName').textContent = user.full_name || user.username;
-document.getElementById('userEmail').textContent = user.email;
+document.addEventListener('DOMContentLoaded', async () => {
+    user = await checkAuth(); 
+    
+    if (!user) return; 
 
-let allAlerts = [];
+    if (user.role !== 'Resident') {
+        window.location.href = '/login';
+        return;
+    }
 
-// Load alerts on page load
-loadAlerts();
+    // Initialize UI
+    document.getElementById('userName').textContent = user.full_name || user.username;
+    const emailEl = document.getElementById('userEmail');
+    if (emailEl) emailEl.textContent = user.email || (user.username + '@condo.com');
+
+    // 1. Initial load
+    loadAlerts(); 
+
+    // 2. Set the interval ONCE here, outside the loadAlerts function
+    setInterval(() => {
+        if (user) loadAlerts();
+    }, 30000);
+});
 
 async function loadAlerts() {
-    const endpoint = API_CONFIG.ENDPOINTS.RESIDENT.ALERTS(user.resident_id);
+    // Ensure we use resident_id from the authenticated user
+    const residentId = user.resident_id || user.user_id; 
+    const endpoint = API_CONFIG.ENDPOINTS.RESIDENT.ALERTS(residentId);
     const result = await apiCall(endpoint);
     
     if (result.success) {
@@ -100,6 +114,3 @@ function clearReadAlerts() {
     displayAlerts(allAlerts);
     updateUnreadCount();
 }
-
-// Auto-refresh alerts every 30 seconds
-setInterval(loadAlerts, 30000);
