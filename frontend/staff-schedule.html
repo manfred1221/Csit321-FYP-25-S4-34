@@ -10,13 +10,12 @@
 
 <body>
     <div class="dashboard">
-        <!-- Sidebar -->
         <aside class="sidebar">
             <div class="sidebar-header">
                 <h2>🏢 Condo Access</h2>
                 <div class="user-info">
-                    <strong id="staffName">Loading...</strong>
-                    <p id="staffPosition">Staff Member</p>
+                    <strong id="staffNameSidebar">Loading...</strong>
+                    <p id="staffRoleSidebar">Staff Member</p>
                 </div>
             </div>
 
@@ -32,56 +31,52 @@
                         <a href="/staff/attendance" class="nav-link">⏰ Attendance</a>
                     </li>
                     <li class="nav-item">
-                        <a href="/staff/profile" class="nav-link"> Profile</a>
+                        <a href="/staff/profile" class="nav-link">👤 My Profile</a>
                     </li>
                     <li class="nav-item">
                         <a href="/staff/face-enroll" class="nav-link">📸 Face Enrollment</a>
                     </li>
                     <li class="nav-item">
-                        <a href="/admin/login" class="nav-link" id="logoutBtn">🚪 Logout</a>
+                        <a href="#" id="logoutBtn" class="nav-link">🚪 Logout</a>
                     </li>
                 </ul>
             </nav>
         </aside>
 
-        <!-- Main Content -->
         <main class="main-content">
             <div class="page-header">
-                <h1>📅 My Schedule</h1>
-                <p>View your work schedule</p>
+                <h1>My Schedule</h1>
+                <p>View your upcoming shifts and work assignments.</p>
             </div>
 
-            <!-- Filter Options -->
-            <div class="card">
+            <div class="card" style="margin-bottom: 20px;">
                 <div class="card-header">
                     <h2>Filter Schedule</h2>
                 </div>
                 <div class="card-body">
-                    <div class="flex gap-10">
+                    <div style="display: flex; gap: 15px; flex-wrap: wrap;">
                         <div class="form-group" style="flex: 1;">
-                            <label for="startDate">Start Date</label>
+                            <label>Start Date</label>
                             <input type="date" id="startDate" class="form-control">
                         </div>
                         <div class="form-group" style="flex: 1;">
-                            <label for="endDate">End Date</label>
+                            <label>End Date</label>
                             <input type="date" id="endDate" class="form-control">
                         </div>
-                        <div class="form-group">
-                            <label style="visibility: hidden;">Filter</label>
-                            <button class="btn btn-primary" id="filterBtn">🔍 Filter</button>
+                        <div class="form-group" style="align-self: flex-end;">
+                            <button class="btn btn-primary" id="filterBtn" style="padding: 10px 20px;">Filter</button>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Schedule Display -->
             <div class="card">
                 <div class="card-header">
                     <h2>Work Schedule</h2>
                 </div>
                 <div class="card-body">
                     <div id="scheduleList">
-                        <p style="text-align: center; padding: 20px;">Loading schedule...</p>
+                        <p style="text-align: center; padding: 20px; color: #64748b;">Loading schedule...</p>
                     </div>
                 </div>
             </div>
@@ -89,6 +84,6 @@
     </div>
 
     <script src="/frontend/js/config.js"></script>
-    <script src="/frontend/js/staff-schedule.js?v=2"></script>
+    <script src="/frontend/js/staff-schedule.js"></script>
 </body>
 </html>

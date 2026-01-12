@@ -1,208 +1,161 @@
-// Staff Profile JavaScript
 let currentUser = null;
-let profileData = null;
 
-window.addEventListener('DOMContentLoaded', function() {
-    // Check authentication
-    const user = JSON.parse(localStorage.getItem('user') || 'null');
+document.addEventListener('DOMContentLoaded', async () => {
+    // 1. Verify Session
+    currentUser = await checkAuth(); 
     
-    if (!user || user.type !== 'staff') {
-        alert('Please login as staff first!');
-        window.location.href = 'index.html';
+    if (!currentUser) return;
+
+    // 2. Role Check
+    const allowedRoles = ['Internal_Staff', 'Staff', 'Security', 'internal_staff'];
+    if (!allowedRoles.includes(currentUser.role)) {
+        window.location.href = '/login';
         return;
     }
-    
-    currentUser = user;
-    
-    // Display user info in sidebar
-    displayUserInfo();
-    
-    // Load profile
+
+    // 3. Update Sidebar UI
+    const name = currentUser.full_name || currentUser.username;
+    document.getElementById('staffNameSidebar').textContent = name;
+    document.getElementById('staffRoleSidebar').textContent = currentUser.role || 'Staff Member';
+
+    // 4. Load Profile Data
     loadProfile();
-    
-    // Setup event listeners
     setupEventListeners();
 });
 
-function displayUserInfo() {
-    const name = currentUser.full_name || currentUser.username;
-    const position = currentUser.position || 'Staff';
-    
-    document.getElementById('staffName').textContent = name;
-    document.getElementById('staffPosition').textContent = position;
-}
-
 function setupEventListeners() {
     // Logout
-    document.getElementById('logoutBtn').addEventListener('click', function(e) {
-        e.preventDefault();
-        if (confirm('Are you sure you want to logout?')) {
-            localStorage.removeItem('user');
-            localStorage.removeItem('auth_token');
-            window.location.href = '/admin/login';
-        }
-    });
-    
-    // Edit button
-    document.getElementById('editBtn').addEventListener('click', toggleEditMode);
-    
-    // Cancel button
-    document.getElementById('cancelBtn').addEventListener('click', cancelEdit);
-    
-    // Profile form submit
+    const logoutBtn = document.getElementById('logoutBtn');
+    if(logoutBtn) {
+        logoutBtn.addEventListener('click', async (e) => {
+            e.preventDefault();
+            if (confirm('Are you sure you want to logout?')) {
+                await logout(); 
+            }
+        });
+    }
+
+    // Form Submit
     document.getElementById('profileForm').addEventListener('submit', saveProfile);
-    
-    // Delete account button
-    document.getElementById('deleteBtn').addEventListener('click', deleteAccount);
 }
 
 async function loadProfile() {
+    const staffId = currentUser.staff_id || currentUser.user_id;
     try {
-        const endpoint = API_CONFIG.ENDPOINTS.STAFF.GET_PROFILE(currentUser.staff_id);
-        const result = await staffApiCall(endpoint);
-        
+        const response = await fetch(`/api/staff/${staffId}/profile`);
+        const result = await response.json();
+
         if (result.success) {
-            profileData = result.data;
-            displayProfile(profileData);
+            displayProfile(result.data);
         } else {
-            showMessage('Error loading profile: ' + result.error, 'error');
+            showMessage('Error loading profile data', 'error');
         }
     } catch (error) {
         console.error('Load profile error:', error);
-        showMessage('Error loading profile', 'error');
+        showMessage('Network error loading profile', 'error');
     }
 }
 
-function displayProfile(profile) {
-    // Display in view mode
-    document.getElementById('viewName').textContent = profile.full_name || 'N/A';
-    document.getElementById('viewPosition').textContent = profile.position || 'N/A';
-    document.getElementById('viewContact').textContent = profile.contact_number || 'N/A';
-    document.getElementById('viewEmail').textContent = profile.email || 'N/A';
-    document.getElementById('viewUsername').textContent = profile.username || 'N/A';
+function displayProfile(data) {
+    // View Mode Fields
+    document.getElementById('viewName').textContent = data.full_name || currentUser.username;
+    document.getElementById('viewRole').textContent = data.position || currentUser.role;
+    document.getElementById('viewEmail').textContent = data.email || 'N/A';
+    document.getElementById('viewContact').textContent = data.contact_number || 'N/A';
+    document.getElementById('viewJoined').textContent = data.created_at ? new Date(data.created_at).toLocaleDateString() : 'N/A';
     
-    const statusBadge = profile.is_active ? 
-        '<span class="badge badge-success">Active</span>' : 
-        '<span class="badge badge-danger">Inactive</span>';
-    document.getElementById('viewStatus').innerHTML = statusBadge;
-    
-    const registeredDate = profile.registered_at ? 
-        new Date(profile.registered_at).toLocaleDateString() : 
-        'N/A';
-    document.getElementById('viewRegistered').textContent = registeredDate;
-    
-    // Fill edit form
-    document.getElementById('editName').value = profile.full_name || '';
-    document.getElementById('editContact').value = profile.contact_number || '';
-    document.getElementById('editPosition').value = profile.position || '';
+    // Avatar Initials
+    const name = data.full_name || currentUser.username;
+    document.getElementById('avatarDisplay').textContent = name.charAt(0).toUpperCase();
+
+    // Edit Mode Fields
+    document.getElementById('editName').value = data.full_name || '';
+    document.getElementById('editContact').value = data.contact_number || '';
 }
 
 function toggleEditMode() {
     document.getElementById('viewMode').style.display = 'none';
     document.getElementById('editMode').style.display = 'block';
     document.getElementById('editBtn').style.display = 'none';
+    document.getElementById('profileMessage').style.display = 'none';
 }
 
 function cancelEdit() {
     document.getElementById('viewMode').style.display = 'block';
     document.getElementById('editMode').style.display = 'none';
     document.getElementById('editBtn').style.display = 'inline-block';
-    hideMessage();
 }
 
 async function saveProfile(e) {
     e.preventDefault();
-    
+    const staffId = currentUser.staff_id || currentUser.user_id;
+    const msgDiv = document.getElementById('profileMessage');
+
     const updatedData = {
-        full_name: document.getElementById('editName').value.trim(),
-        contact_number: document.getElementById('editContact').value.trim(),
-        position: document.getElementById('editPosition').value.trim()
+        full_name: document.getElementById('editName').value,
+        contact_number: document.getElementById('editContact').value
     };
-    
-    if (!updatedData.full_name || !updatedData.contact_number || !updatedData.position) {
-        showMessage('All fields are required', 'error');
-        return;
-    }
-    
+
     try {
-        const endpoint = API_CONFIG.ENDPOINTS.STAFF.UPDATE_PROFILE(currentUser.staff_id);
-        const result = await staffApiCall(endpoint, {
+        const response = await fetch(`/api/staff/${staffId}/profile`, {
             method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(updatedData)
         });
-        
+
+        const result = await response.json();
+
         if (result.success) {
             showMessage('✅ Profile updated successfully!', 'success');
-            
-            // Update local storage
-            currentUser.full_name = updatedData.full_name;
-            currentUser.position = updatedData.position;
-            localStorage.setItem('user', JSON.stringify(currentUser));
-            
-            // Reload profile
-            await loadProfile();
-            
-            // Switch back to view mode
-            setTimeout(() => {
-                cancelEdit();
-            }, 1500);
+            // Refresh view
+            loadProfile(); 
+            // Update sidebar name immediately
+            document.getElementById('staffNameSidebar').textContent = updatedData.full_name;
+            cancelEdit();
         } else {
-            showMessage('❌ ' + (result.error || 'Update failed'), 'error');
+            showMessage('❌ ' + (result.message || 'Update failed'), 'error');
         }
     } catch (error) {
-        console.error('Save profile error:', error);
-        showMessage('❌ Error updating profile', 'error');
+        showMessage('❌ Network error', 'error');
     }
 }
 
 async function deleteAccount() {
-    const confirmation = prompt('⚠️ This action cannot be undone!\n\nType "DELETE" to confirm account deletion:');
+    if (!confirm('⚠️ Are you strictly sure? This action cannot be undone.')) return;
     
-    if (confirmation !== 'DELETE') {
-        alert('Account deletion cancelled');
-        return;
-    }
-    
-    const finalConfirm = confirm('Are you absolutely sure you want to delete your account?\n\nThis will:\n- Remove your access\n- Delete your data\n- Sign you out immediately');
-    
-    if (!finalConfirm) {
-        return;
-    }
+    const staffId = currentUser.staff_id || currentUser.user_id;
     
     try {
-        const endpoint = API_CONFIG.ENDPOINTS.STAFF.DELETE_ACCOUNT(currentUser.staff_id);
-        const result = await staffApiCall(endpoint, {
+        const response = await fetch(`/api/staff/${staffId}/account`, {
             method: 'DELETE'
         });
         
+        const result = await response.json();
+        
         if (result.success) {
-            alert('✅ Account deleted successfully\n\nYou will be logged out now.');
-            
-            // Clear storage and redirect
-            localStorage.removeItem('user');
-            localStorage.removeItem('auth_token');
-            window.location.href = 'index.html';
+            alert('Account deleted. You will be logged out.');
+            await logout();
         } else {
-            alert('❌ Error deleting account: ' + result.error);
+            alert('Failed to delete account: ' + result.message);
         }
     } catch (error) {
-        console.error('Delete account error:', error);
-        alert('❌ Error deleting account');
+        alert('Network error deleting account');
     }
 }
 
-function showMessage(message, type) {
-    const messageDiv = document.getElementById('profileMessage');
-    messageDiv.textContent = message;
-    messageDiv.className = `message ${type}`;
-    messageDiv.style.display = 'block';
+function showMessage(msg, type) {
+    const el = document.getElementById('profileMessage');
+    el.textContent = msg;
+    el.className = `message ${type}`; // Ensure .message.success/error CSS exists
+    el.style.display = 'block';
+    el.style.padding = '10px';
+    el.style.borderRadius = '6px';
     
-    setTimeout(() => {
-        hideMessage();
-    }, 5000);
-}
-
-function hideMessage() {
-    const messageDiv = document.getElementById('profileMessage');
-    messageDiv.style.display = 'none';
+    if(type === 'success') {
+        el.style.background = '#dcfce7';
+        el.style.color = '#166534';
+    } else {
+        el.style.background = '#fee2e2';
+        el.style.color = '#b91c1c';
+    }
 }

@@ -10,13 +10,12 @@
 
 <body>
     <div class="dashboard">
-        <!-- Sidebar -->
         <aside class="sidebar">
             <div class="sidebar-header">
                 <h2>🏢 Condo Access</h2>
                 <div class="user-info">
-                    <strong id="staffName">Loading...</strong>
-                    <p id="staffPosition">Staff Member</p>
+                    <strong id="staffNameSidebar">Loading...</strong>
+                    <p id="staffRoleSidebar">Staff Member</p>
                 </div>
             </div>
 
@@ -32,65 +31,60 @@
                         <a href="/staff/attendance" class="nav-link active">⏰ Attendance</a>
                     </li>
                     <li class="nav-item">
-                        <a href="/staff/profile" class="nav-link"> Profile</a>
+                        <a href="/staff/profile" class="nav-link">👤 My Profile</a>
                     </li>
                     <li class="nav-item">
                         <a href="/staff/face-enroll" class="nav-link">📸 Face Enrollment</a>
                     </li>
                     <li class="nav-item">
-                        <a href="/admin/login" class="nav-link" id="logoutBtn">🚪 Logout</a>
+                        <a href="#" id="logoutBtn" class="nav-link">🚪 Logout</a>
                     </li>
                 </ul>
             </nav>
         </aside>
 
-        <!-- Main Content -->
         <main class="main-content">
             <div class="page-header">
-                <h1>⏰ Attendance History</h1>
-                <p>View your attendance records</p>
+                <h1>Attendance History</h1>
+                <p>View your clock-in and clock-out records.</p>
             </div>
 
-            <!-- Summary Stats -->
             <div class="stats-grid">
                 <div class="stat-card">
                     <h3>This Week</h3>
-                    <div class="stat-value" id="weekHours">-- hrs</div>
+                    <div class="stat-value" id="weekHours">0 hrs</div>
                 </div>
                 <div class="stat-card">
                     <h3>This Month</h3>
-                    <div class="stat-value" id="monthHours">-- hrs</div>
+                    <div class="stat-value" id="monthHours">0 hrs</div>
                 </div>
                 <div class="stat-card">
                     <h3>Total Days</h3>
-                    <div class="stat-value" id="totalDays">--</div>
+                    <div class="stat-value" id="totalDays">0</div>
                 </div>
             </div>
 
-            <!-- Filter Options -->
-            <div class="card">
+            <div class="card" style="margin-bottom: 20px;">
                 <div class="card-header">
                     <h2>Filter Records</h2>
                 </div>
                 <div class="card-body">
-                    <div class="flex gap-10">
+                    <div style="display: flex; gap: 15px; flex-wrap: wrap;">
                         <div class="form-group" style="flex: 1;">
-                            <label for="startDate">Start Date</label>
+                            <label>Start Date</label>
                             <input type="date" id="startDate" class="form-control">
                         </div>
                         <div class="form-group" style="flex: 1;">
-                            <label for="endDate">End Date</label>
+                            <label>End Date</label>
                             <input type="date" id="endDate" class="form-control">
                         </div>
-                        <div class="form-group">
-                            <label style="visibility: hidden;">Filter</label>
-                            <button class="btn btn-primary" id="filterBtn">🔍 Filter</button>
+                        <div class="form-group" style="align-self: flex-end;">
+                            <button class="btn btn-primary" id="filterBtn" style="padding: 10px 20px;">Filter</button>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Attendance Table -->
             <div class="card">
                 <div class="card-header">
                     <h2>Attendance Records</h2>
@@ -123,6 +117,4 @@
     <script src="/frontend/js/config.js"></script>
     <script src="/frontend/js/staff-attendance.js"></script>
 </body>
-
-</html>
 </html>

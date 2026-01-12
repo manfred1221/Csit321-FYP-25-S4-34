@@ -1,70 +1,63 @@
-// Staff Attendance JavaScript
 let currentUser = null;
 
-window.addEventListener('DOMContentLoaded', function() {
-    // Check authentication
-    const user = JSON.parse(localStorage.getItem('user') || 'null');
+document.addEventListener('DOMContentLoaded', async () => {
+    // 1. Verify Session
+    currentUser = await checkAuth(); 
     
-    if (!user || user.type !== 'staff') {
-        alert('Please login as staff first!');
-        window.location.href = 'index.html';
+    if (!currentUser) return;
+
+    // 2. Role Check
+    const allowedRoles = ['Internal_Staff', 'Staff', 'Security', 'internal_staff'];
+    if (!allowedRoles.includes(currentUser.role)) {
+        window.location.href = '/login';
         return;
     }
-    
-    currentUser = user;
-    
-    // Display user info
-    displayUserInfo();
-    
-    // Set default dates (last 30 days)
+
+    // 3. Update Sidebar UI
+    const name = currentUser.full_name || currentUser.username;
+    document.getElementById('staffNameSidebar').textContent = name;
+    document.getElementById('staffRoleSidebar').textContent = currentUser.role || 'Staff Member';
+
+    // 4. Initialize Dates (Last 30 Days)
     const today = new Date();
     const monthAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
-    
     document.getElementById('startDate').value = monthAgo.toISOString().split('T')[0];
     document.getElementById('endDate').value = today.toISOString().split('T')[0];
     
-    // Load attendance
+    // 5. Load Data & Listeners
     loadAttendance();
-    
-    // Setup event listeners
     setupEventListeners();
 });
 
-function displayUserInfo() {
-    const name = currentUser.full_name || currentUser.username;
-    const position = currentUser.position || 'Staff';
-    
-    document.getElementById('staffName').textContent = name;
-    document.getElementById('staffPosition').textContent = position;
-}
-
 function setupEventListeners() {
     // Logout
-    document.getElementById('logoutBtn').addEventListener('click', function(e) {
-        e.preventDefault();
-        if (confirm('Are you sure you want to logout?')) {
-            localStorage.removeItem('user');
-            localStorage.removeItem('auth_token');
-            window.location.href = '/admin/login';
-        }
-    });
+    const logoutBtn = document.getElementById('logoutBtn');
+    if(logoutBtn) {
+        logoutBtn.addEventListener('click', async (e) => {
+            e.preventDefault();
+            if (confirm('Are you sure you want to logout?')) {
+                await logout(); 
+            }
+        });
+    }
     
     // Filter button
     document.getElementById('filterBtn').addEventListener('click', loadAttendance);
 }
 
 async function loadAttendance() {
+    const staffId = currentUser.staff_id || currentUser.user_id;
     const startDate = document.getElementById('startDate').value;
     const endDate = document.getElementById('endDate').value;
-    
+
     try {
-        let endpoint = API_CONFIG.ENDPOINTS.STAFF.GET_ATTENDANCE(currentUser.staff_id);
-        
+        let url = `/api/staff/${staffId}/attendance`;
         if (startDate && endDate) {
-            endpoint += `?start_date=${startDate}&end_date=${endDate}`;
+            url += `?start_date=${startDate}&end_date=${endDate}`;
         }
         
-        const result = await staffApiCall(endpoint);
+        const response = await fetch(url);
+        const result = await response.json();
         
         if (result.success && result.data.records && result.data.records.length > 0) {
             displayAttendance(result.data.records);
@@ -89,17 +82,22 @@ function displayAttendance(records) {
     let html = '';
     
     records.forEach(record => {
-        const entryDate = new Date(record.entry_time).toLocaleDateString();
-        const entryTime = new Date(record.entry_time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-        const exitTime = record.exit_time ? 
-            new Date(record.exit_time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : 
-            '<span style="color: #f59e0b;">In Progress</span>';
+        const entryObj = new Date(record.entry_time);
+        const entryDate = entryObj.toLocaleDateString();
+        const entryTime = entryObj.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+        
+        let exitTime = '-';
+        if (record.exit_time) {
+            exitTime = new Date(record.exit_time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+        } else {
+            exitTime = '<span style="color: #f59e0b; font-weight: bold;">In Progress</span>';
+        }
         
         const hours = record.duration_hours ? 
             record.duration_hours.toFixed(2) + ' hrs' : 
-            '<span style="color: #6b7280;">-</span>';
+            '-';
         
-        const location = record.location || 'N/A';
+        const location = record.location || 'Main Gate';
         const method = record.verification_method || 'Manual';
         
         html += `
@@ -109,7 +107,7 @@ function displayAttendance(records) {
                 <td>${exitTime}</td>
                 <td><strong>${hours}</strong></td>
                 <td>${location}</td>
-                <td>${method}</td>
+                <td><span class="badge badge-info">${method}</span></td>
             </tr>
         `;
     });
@@ -119,24 +117,24 @@ function displayAttendance(records) {
 
 function calculateStats(records) {
     const now = new Date();
+    // Week starts 7 days ago
     const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    // Month starts 30 days ago (or you can use strict calendar month)
     const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
     
-    // Week hours
+    // Calculate Week Hours
     const weekHours = records
         .filter(r => new Date(r.entry_time) >= weekAgo && r.duration_hours)
         .reduce((sum, r) => sum + r.duration_hours, 0);
     
-    // Month hours
+    // Calculate Month Hours
     const monthHours = records
         .filter(r => new Date(r.entry_time) >= monthAgo && r.duration_hours)
         .reduce((sum, r) => sum + r.duration_hours, 0);
     
-    // Total days (unique dates with completed attendance)
+    // Calculate Total Days Worked (Unique dates in the result set)
     const uniqueDates = new Set(
-        records
-            .filter(r => r.exit_time)
-            .map(r => new Date(r.entry_time).toDateString())
+        records.map(r => new Date(r.entry_time).toDateString())
     );
     
     document.getElementById('weekHours').textContent = weekHours.toFixed(1) + ' hrs';

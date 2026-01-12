@@ -6,17 +6,59 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>My Profile - Staff Portal</title>
     <link rel="stylesheet" href="/frontend/css/styles.css">
+    <style>
+        .profile-header {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .profile-avatar {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: #3b82f6;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+            font-weight: bold;
+        }
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 15px;
+        }
+        .info-item label {
+            font-weight: 600;
+            color: #64748b;
+            font-size: 13px;
+            display: block;
+            margin-bottom: 4px;
+        }
+        .info-item p {
+            color: #1e293b;
+            font-size: 16px;
+        }
+        .section-title {
+            border-bottom: 1px solid #e2e8f0;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+            font-size: 18px;
+            color: #334155;
+        }
+    </style>
 </head>
 
 <body>
     <div class="dashboard">
-        <!-- Sidebar -->
         <aside class="sidebar">
             <div class="sidebar-header">
                 <h2>🏢 Condo Access</h2>
                 <div class="user-info">
-                    <strong id="staffName">Loading...</strong>
-                    <p id="staffPosition">Staff Member</p>
+                    <strong id="staffNameSidebar">Loading...</strong>
+                    <p id="staffRoleSidebar">Staff Member</p>
                 </div>
             </div>
 
@@ -32,82 +74,89 @@
                         <a href="/staff/attendance" class="nav-link">⏰ Attendance</a>
                     </li>
                     <li class="nav-item">
-                        <a href="/staff/profile" class="nav-link active"> Profile</a>
+                        <a href="/staff/profile" class="nav-link active">👤 My Profile</a>
                     </li>
                     <li class="nav-item">
                         <a href="/staff/face-enroll" class="nav-link">📸 Face Enrollment</a>
                     </li>
                     <li class="nav-item">
-                        <a href="/admin/login" class="nav-link" id="logoutBtn">🚪 Logout</a>
+                        <a href="#" id="logoutBtn" class="nav-link">🚪 Logout</a>
                     </li>
                 </ul>
             </nav>
         </aside>
 
-        <!-- Main Content -->
         <main class="main-content">
             <div class="page-header">
-                <h1> My Profile</h1>
-                <p>View and update your personal information</p>
+                <h1>My Profile</h1>
+                <p>View and manage your account details.</p>
             </div>
 
-            <!-- Profile Information -->
             <div class="card">
                 <div class="card-header">
                     <h2>Personal Information</h2>
-                    <button class="btn btn-primary" id="editBtn">Edit Profile</button>
+                    <button class="btn btn-primary btn-sm" id="editBtn" onclick="toggleEditMode()">Edit Profile</button>
                 </div>
                 <div class="card-body">
-                    <!-- View Mode -->
+                    <div id="profileMessage" class="message" style="display:none; margin-bottom: 20px;"></div>
+
                     <div id="viewMode">
-                        <p><strong>Full Name:</strong> <span id="viewName">Loading...</span></p>
-                        <p><strong>Position:</strong> <span id="viewPosition">Loading...</span></p>
-                        <p><strong>Contact Number:</strong> <span id="viewContact">Loading...</span></p>
-                        <p><strong>Email:</strong> <span id="viewEmail">Loading...</span></p>
-                        <p><strong>Username:</strong> <span id="viewUsername">Loading...</span></p>
-                        <p><strong>Status:</strong> <span id="viewStatus">Loading...</span></p>
-                        <p><strong>Registered:</strong> <span id="viewRegistered">Loading...</span></p>
+                        <div class="profile-header">
+                            <div class="profile-avatar" id="avatarDisplay">
+                                </div>
+                            <div>
+                                <h3 id="viewName" style="margin: 0; font-size: 24px;">Loading...</h3>
+                                <p id="viewRole" style="color: #64748b; margin-top: 5px;">Staff</p>
+                            </div>
+                        </div>
+
+                        <div class="info-grid">
+                            <div class="info-item">
+                                <label>Email Address</label>
+                                <p id="viewEmail">-</p>
+                            </div>
+                            <div class="info-item">
+                                <label>Contact Number</label>
+                                <p id="viewContact">-</p>
+                            </div>
+                            <div class="info-item">
+                                <label>Account Status</label>
+                                <p id="viewStatus"><span class="badge badge-success">Active</span></p>
+                            </div>
+                            <div class="info-item">
+                                <label>Registered Since</label>
+                                <p id="viewJoined">-</p>
+                            </div>
+                        </div>
                     </div>
 
-                    <!-- Edit Mode -->
                     <div id="editMode" style="display: none;">
                         <form id="profileForm">
                             <div class="form-group">
-                                <label for="editName">Full Name</label>
+                                <label>Full Name</label>
                                 <input type="text" id="editName" class="form-control" required>
                             </div>
-
                             <div class="form-group">
-                                <label for="editContact">Contact Number</label>
-                                <input type="text" id="editContact" class="form-control" required>
+                                <label>Contact Number</label>
+                                <input type="text" id="editContact" class="form-control">
                             </div>
-
-                            <div class="form-group">
-                                <label for="editPosition">Position</label>
-                                <input type="text" id="editPosition" class="form-control" required>
-                            </div>
-
-                            <div id="profileMessage" class="message" style="display:none;"></div>
-
-                            <div class="flex gap-10 mt-20">
+                            
+                            <div style="display: flex; gap: 10px; margin-top: 20px;">
                                 <button type="submit" class="btn btn-primary">Save Changes</button>
-                                <button type="button" class="btn btn-secondary" id="cancelBtn">❌ Cancel</button>
+                                <button type="button" class="btn btn-secondary" onclick="cancelEdit()">Cancel</button>
                             </div>
                         </form>
                     </div>
                 </div>
             </div>
 
-            <!-- Account Actions -->
-            <div class="card">
-                <div class="card-header">
-                    <h2>⚙️ Account Settings</h2>
+            <div class="card" style="margin-top: 20px; border: 1px solid #fee2e2;">
+                <div class="card-header" style="background: #fef2f2;">
+                    <h2 style="color: #dc2626;">Danger Zone</h2>
                 </div>
                 <div class="card-body">
-                    <div class="alert alert-warning">
-                        <strong>⚠️ Warning:</strong> Deleting your account is permanent and cannot be undone.
-                    </div>
-                    <button class="btn btn-danger" id="deleteBtn">🗑️ Delete Account</button>
+                    <p style="color: #64748b; margin-bottom: 15px;">Deleting your account is permanent and cannot be undone. You will lose access immediately.</p>
+                    <button class="btn btn-danger" onclick="deleteAccount()">Delete My Account</button>
                 </div>
             </div>
         </main>
@@ -116,6 +165,4 @@
     <script src="/frontend/js/config.js"></script>
     <script src="/frontend/js/staff-profile.js"></script>
 </body>
-
-</html>
 </html>

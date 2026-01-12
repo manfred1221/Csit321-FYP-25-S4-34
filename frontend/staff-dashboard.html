@@ -10,13 +10,12 @@
 
 <body>
     <div class="dashboard">
-        <!-- Sidebar -->
         <aside class="sidebar">
             <div class="sidebar-header">
                 <h2>🏢 Condo Access</h2>
                 <div class="user-info">
-                    <strong id="staffName">Loading...</strong>
-                    <p id="staffPosition">Staff Member</p>
+                    <strong id="staffNameSidebar">Loading...</strong>
+                    <p id="staffRoleSidebar">Staff Member</p>
                 </div>
             </div>
 
@@ -32,73 +31,70 @@
                         <a href="/staff/attendance" class="nav-link">⏰ Attendance</a>
                     </li>
                     <li class="nav-item">
-                        <a href="/staff/profile" class="nav-link"> Profile</a>
+                        <a href="/staff/profile" class="nav-link">👤 My Profile</a>
                     </li>
                     <li class="nav-item">
                         <a href="/staff/face-enroll" class="nav-link">📸 Face Enrollment</a>
                     </li>
                     <li class="nav-item">
-                        <a href="/admin/login" class="nav-link" id="logoutBtn">🚪 Logout</a>
+                        <a href="#" id="logoutBtn" class="nav-link">🚪 Logout</a>
                     </li>
                 </ul>
             </nav>
         </aside>
 
-        <!-- Main Content -->
         <main class="main-content">
             <div class="page-header">
                 <h1>Staff Dashboard</h1>
                 <p>Welcome back, <span id="welcomeName">Staff Member</span>!</p>
             </div>
 
-            <!-- Stats Cards -->
             <div class="stats-grid">
                 <div class="stat-card">
                     <h3>This Week</h3>
-                    <div class="stat-value" id="weekHours">-- hrs</div>
+                    <div class="stat-value" id="weekHours">0 hrs</div>
                 </div>
                 <div class="stat-card">
                     <h3>This Month</h3>
-                    <div class="stat-value" id="monthHours">-- hrs</div>
+                    <div class="stat-value" id="monthHours">0 hrs</div>
                 </div>
                 <div class="stat-card">
                     <h3>Status</h3>
-                    <div class="stat-value" id="workStatus">Active</div>
+                    <div class="stat-value inactive" id="workStatus">Off Duty</div>
                 </div>
             </div>
 
-            <!-- Quick Actions -->
             <div class="card">
                 <div class="card-header">
                     <h2>⚡ Quick Actions</h2>
                 </div>
                 <div class="card-body">
-                    <div class="flex gap-10">
-                        <button class="btn btn-primary" id="clockInBtn">🕐 Clock In</button>
-                        <button class="btn btn-secondary" id="clockOutBtn">🕑 Clock Out</button>
-                        <button class="btn btn-success" onclick="window.location.href='/staff/schedule'">📅 View
-                            Schedule</button>
+                    <div style="display: flex; gap: 15px;">
+                        <button class="btn btn-primary" id="clockInBtn" style="flex: 1; padding: 15px;">
+                            🕐 Clock In
+                        </button>
+                        <button class="btn btn-secondary" id="clockOutBtn" style="flex: 1; padding: 15px;" disabled>
+                            🕑 Clock Out
+                        </button>
                     </div>
-                    <div id="actionMessage" class="message" style="display:none; margin-top:15px;"></div>
+                    <div id="actionMessage" class="message" style="display:none; margin-top:15px; padding: 10px; border-radius: 6px;"></div>
                 </div>
             </div>
 
-            <!-- Today's Schedule -->
             <div class="card">
                 <div class="card-header">
                     <h2>📅 Today's Schedule</h2>
-                    <a href="/staff/schedule" class="btn btn-sm">View All</a>
+                    <a href="/staff/schedule" class="btn btn-sm btn-secondary">View All</a>
                 </div>
                 <div class="card-body" id="todaySchedule">
-                    <p>Loading schedule...</p>
+                    <p style="text-align: center; color: #64748b;">Loading schedule...</p>
                 </div>
             </div>
 
-            <!-- Recent Attendance -->
             <div class="card">
                 <div class="card-header">
                     <h2>⏰ Recent Attendance</h2>
-                    <a href="/staff/attendance" class="btn btn-sm">View All</a>
+                    <a href="/staff/attendance" class="btn btn-sm btn-secondary">View All</a>
                 </div>
                 <div class="card-body">
                     <div class="table-container">
@@ -108,7 +104,7 @@
                                     <th>Date</th>
                                     <th>Clock In</th>
                                     <th>Clock Out</th>
-                                    <th>Hours</th>
+                                    <th>Duration</th>
                                 </tr>
                             </thead>
                             <tbody id="attendanceTableBody">
