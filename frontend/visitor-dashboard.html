@@ -6,94 +6,120 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Visitor Dashboard - Condo Access</title>
     <link rel="stylesheet" href="/frontend/css/styles.css">
+    <script src="/frontend/js/config.js"></script>
+    <style>
+        /* Specific styles for visitor status cards */
+        .status-large {
+            font-size: 1.2rem;
+            padding: 15px 25px;
+            border-radius: 8px;
+            display: inline-block;
+            font-weight: bold;
+            margin-bottom: 15px;
+        }
+        .status-large.success { background: #dcfce7; color: #166534; }
+        .status-large.warning { background: #fef3c7; color: #92400e; }
+        .status-large.danger { background: #fee2e2; color: #b91c1c; }
+        .status-large.info { background: #dbeafe; color: #1e40af; }
+        
+        .icon-large { font-size: 48px; margin-bottom: 15px; display: block; }
+    </style>
 </head>
 
 <body>
-    <div class="login-container" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
-        <div
-            style="max-width: 800px; width: 100%; background: white; border-radius: 12px; padding: 40px; box-shadow: var(--shadow-lg);">
-            <!-- Header -->
-            <div style="text-align: center; margin-bottom: 30px;">
-                <h1 style="font-size: 32px; color: var(--primary-color); margin-bottom: 10px;">🏢 Visitor Access</h1>
-                <p style="color: var(--text-secondary);">Welcome! Here are your visit details</p>
-                <a href="/admin/login">Logout</a>
+    <div class="dashboard">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h2>🏢 Condo Access</h2>
+                <div class="user-info">
+                    <strong id="visitorNameSidebar">Loading...</strong>
+                    <p id="visitorRoleSidebar">Visitor</p>
+                </div>
             </div>
 
-            <!-- Visit Status Card -->
-            <div class="card" style="margin-bottom: 20px;">
+            <nav>
+                <ul class="nav-menu">
+                    <li class="nav-item">
+                        <a href="/visitor/dashboard" class="nav-link active">📊 Dashboard</a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="#" id="logoutBtn" class="nav-link">🚪 Logout</a>
+                    </li>
+                </ul>
+            </nav>
+        </aside>
+
+        <main class="main-content">
+            <div class="page-header">
+                <h1>Visitor Access</h1>
+                <p>Welcome, <span id="welcomeName">Guest</span>. Here are your visit details.</p>
+            </div>
+
+            <div class="card" style="margin-bottom: 20px; text-align: center;">
                 <div class="card-header">
                     <h2>Visit Status</h2>
                 </div>
-                <div class="card-body text-center">
-                    <div id="visitStatus">
-                        <div class="loading" style="margin: 20px auto;"></div>
-                        <p>Loading visit information...</p>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Face Recognition Status Card -->
-            <div class="card" style="margin-bottom: 20px;">
-                <div class="card-header">
-                    <h2> Face Recognition Access</h2>
-                </div>
-                <div class="card-body text-center">
-                    <div id="faceRecognitionStatus" style="padding: 30px 20px;">
-                        <!-- Face recognition status will be displayed here -->
-                        <div class="loading" style="margin: 20px auto;"></div>
-                        <p>Checking facial recognition status...</p>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Visit Details Card -->
-            <div class="card" style="margin-bottom: 20px;">
-                <div class="card-header">
-                    <h2>Visit Details</h2>
-                </div>
                 <div class="card-body">
-                    <table style="width: 100%;">
-                        <tr>
-                            <td style="padding: 12px; font-weight: 500; color: var(--text-secondary);">Visitor Name:
-                            </td>
-                            <td style="padding: 12px;" id="visitorName">-</td>
-                        </tr>
-                        <tr>
-                            <td style="padding: 12px; font-weight: 500; color: var(--text-secondary);">Unit Visiting:
-                            </td>
-                            <td style="padding: 12px;" id="visitingUnit">-</td>
-                        </tr>
-                        <tr>
-                            <td style="padding: 12px; font-weight: 500; color: var(--text-secondary);">Visit Window:
-                            </td>
-                            <td style="padding: 12px;" id="visitWindow">-</td>
-                        </tr>
-                        <tr>
-                            <td style="padding: 12px; font-weight: 500; color: var(--text-secondary);">Contact:</td>
-                            <td style="padding: 12px;" id="contactNumber">-</td>
-                        </tr>
-                    </table>
+                    <div id="visitStatus">
+                        <p style="color: #64748b;">Loading visit information...</p>
+                    </div>
                 </div>
             </div>
 
-            <!-- Instructions Card -->
-            <div class="alert alert-info">
-                <strong>📌 Facial Recognition Access Instructions:</strong>
-                <ul style="margin-top: 10px; padding-left: 20px; margin-bottom: 0;">
-                    <li>Ensure you arrive within your scheduled visit window</li>
-                    <li>Your face has been registered by the resident for access</li>
-                    <li>Look directly at the camera at the entrance</li>
-                    <li>Remove glasses, hats, or face coverings for better recognition</li>
-                    <li>Ensure good lighting on your face</li>
-                    <li>Contact your host if you encounter any access issues</li>
-                </ul>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                <div class="card">
+                    <div class="card-header">
+                        <h2>Visit Details</h2>
+                    </div>
+                    <div class="card-body">
+                        <table style="width: 100%;">
+                            <tr>
+                                <td style="padding: 12px; font-weight: 600; color: #64748b;">Visitor Name:</td>
+                                <td style="padding: 12px;" id="visitorName">-</td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 12px; font-weight: 600; color: #64748b;">Visiting Unit:</td>
+                                <td style="padding: 12px;" id="visitingUnit">-</td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 12px; font-weight: 600; color: #64748b;">Access Window:</td>
+                                <td style="padding: 12px;" id="visitWindow">-</td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 12px; font-weight: 600; color: #64748b;">Contact:</td>
+                                <td style="padding: 12px;" id="contactNumber">-</td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h2>Face Access</h2>
+                    </div>
+                    <div class="card-body" style="text-align: center;">
+                        <div id="faceRecognitionStatus">
+                            <p>Checking status...</p>
+                        </div>
+                    </div>
+                </div>
             </div>
-        </div>
+
+            <div class="card" style="margin-top: 20px; border-left: 4px solid #3b82f6;">
+                <div class="card-body">
+                    <h3 style="margin-top: 0; color: #1e40af;">📌 Access Instructions</h3>
+                    <ul style="padding-left: 20px; color: #475569; margin-bottom: 0;">
+                        <li>Ensure you arrive within your scheduled visit window.</li>
+                        <li>Look directly at the camera at the entrance for face recognition.</li>
+                        <li>Remove sunglasses or face coverings for quicker access.</li>
+                        <li>If access fails, please contact your host or security.</li>
+                    </ul>
+                </div>
+            </div>
+        </main>
     </div>
 
     <script src="/frontend/js/config.js"></script>
     <script src="/frontend/js/visitor-dashboard.js"></script>
 </body>
-
-</html>
 </html>
