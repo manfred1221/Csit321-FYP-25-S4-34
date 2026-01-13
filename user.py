@@ -28,6 +28,16 @@ class User:
     #         print(f"Password verification error: {e}")
     #         return False
     
+    # Map role names
+    role_map = {
+        'ADMIN': 1, 'Admin': 1,
+        'RESIDENT': 2, 'Resident': 2, 'USER': 2,
+        # 'VISITOR': 3, 'Visitor': 3,
+        'SECURITY': 4, 'Security': 4,
+        'INTERNAL_STAFF': 9, 'Internal Staff': 9,
+        # 'TEMP_WORKER': 6, 'TempWorker': 6
+    }
+
     @staticmethod
     def create(data):
         """Create a new user with associated resident record if needed"""
@@ -39,18 +49,8 @@ class User:
             cursor = conn.cursor(cursor_factory=RealDictCursor)
             
             # Get role_id from role name
-            role_name = data.get('role', 'Resident')
-            
-            # Map role names
-            role_map = {
-                'ADMIN': 1, 'Admin': 1,
-                'RESIDENT': 2, 'Resident': 2, 'USER': 2,
-                'VISITOR': 3, 'Visitor': 3,
-                'SECURITY': 4, 'Security': 4,
-                'INTERNAL_STAFF': 5, 'Internal Staff': 5,
-                'TEMP_WORKER': 6, 'TempWorker': 6
-            }
-            role_id = role_map.get(role_name, 2)
+            role_input = data.get('role', 'Resident')   
+            role_id = User.role_map.get(role_input, 2)
             
             # Determine initial status
             status = data.get('status', 'active')
@@ -88,7 +88,7 @@ class User:
                 raise ValueError(f"Invalid user_id returned: {user_id}")
             
             # Create resident record for residents and temp workers
-            if role_id in [2, 6]:  # Resident or Temp Worker
+            if role_id in [2, 9]:  # Resident or Temp Worker
                 cursor.execute("""
                     INSERT INTO residents (full_name, unit_number, contact_number, user_id)
                     VALUES (%s, %s, %s, %s)
@@ -107,7 +107,7 @@ class User:
                 resident_id = res_result['resident_id']
                 
                 # If temp worker, create temp worker record
-                if role_id == 6:
+                if role_id == 9:
                     cursor.execute("""
                         INSERT INTO temp_workers (
                             user_id, work_start_date, work_end_date, 
@@ -138,45 +138,117 @@ class User:
             if conn:
                 conn.close()
     
+    # ============================================================================
+    # user.py - REPLACE User.authenticate() method
+    # Uses PLAIN TEXT password comparison (no hashing)
+    # ============================================================================
+
     @staticmethod
     def authenticate(username, password):
+        """
+        Authenticate user with plain text password comparison.
+        Returns user dict with role_id and role_name from roles table.
+        """
+        from psycopg2.extras import RealDictCursor
+        import logging
+        
+        logger = logging.getLogger(__name__)
+        
         try:
             conn = get_db_connection()
-            cursor = conn.cursor()
-            print(f"[DEBUG] authenticate called with username='{username}', password='{password}'")
-
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+            
+            # Query with JOIN to get role_id and role_name
             cursor.execute("""
-                SELECT user_id, username, password_hash
-                FROM users
-                WHERE username = %s
-                LIMIT 1
+                SELECT 
+                    u.user_id,
+                    u.username,
+                    u.password_hash,        -- Actually stores plain text password
+                    u.email,
+                    u.full_name,
+                    u.contact_number,
+                    u.status,
+                    u.access_level,
+                    u.role_id,              -- ⭐ The role ID number
+                    r.role_name,            -- ⭐ The role name string
+                    u.created_at
+                FROM users u
+                LEFT JOIN roles r ON u.role_id = r.role_id
+                WHERE u.username = %s
             """, (username,))
-
-            row = cursor.fetchone()
+            
+            user = cursor.fetchone()
+            
+            if not user:
+                logger.info(f"❌ User not found: {username}")
+                cursor.close()
+                conn.close()
+                return None
+            
+            # Get stored password (plain text in your case)
+            db_password = user.get('password_hash')
+            
+            # Debug log
+            logger.info(f"[DEBUG] authenticate called with username='{username}'")
+            logger.info(f"[DEBUG] Found user: role_id={user.get('role_id')}, role_name={user.get('role_name')}")
+            
+            # Check if user is active
+            if user.get('status') != 'active':
+                logger.info(f"❌ User inactive: {username}")
+                cursor.close()
+                conn.close()
+                return None
+            
+            # Plain text password comparison
+            if password != db_password:
+                logger.info(f"❌ Incorrect password for: {username}")
+                logger.info(f"[DEBUG] Password mismatch: provided != stored")
+                cursor.close()
+                conn.close()
+                return None
+            
+            # Check if user is a resident and get resident_id
+            resident_id = None
+            if user.get('role_id') == 2:  # Resident role
+                cursor.execute("""
+                    SELECT resident_id FROM residents WHERE user_id = %s
+                """, (user['user_id'],))
+                resident_row = cursor.fetchone()
+                if resident_row:
+                    resident_id = resident_row['resident_id']
+                    logger.info(f"[DEBUG] Found resident_id: {resident_id}")
+            
+            # Build result dictionary
+            result = {
+                'id': user['user_id'],
+                'username': user['username'],
+                'email': user.get('email'),
+                'full_name': user.get('full_name'),
+                'phone': user.get('contact_number'),
+                'status': user.get('status'),
+                'role': user.get('role_name'),       # Role name string
+                'role_id': user.get('role_id'),      # ⭐ Role ID number
+                'resident_id': resident_id,
+                'access_level': user.get('access_level')
+            }
+            
+            logger.info(f"✅ Authentication successful: {username}")
+            logger.info(f"   → user_id={result['id']}")
+            logger.info(f"   → role_id={result['role_id']}")
+            logger.info(f"   → role_name={result['role']}")
+            logger.info(f"   → resident_id={result['resident_id']}")
+            
             cursor.close()
             conn.close()
-
-            if not row:
-                print("[DEBUG] User not found")
-                return None
-
-            user_id, db_username, db_password = row
-
-            if password != db_password:
-                print("[DEBUG] Incorrect password (plain-text check failed)")
-                return None
-
-            # Successful login
-            return {
-                'id': user_id,
-                'username': db_username,
-                'role': 'Admin'
-            }
-
+            
+            return result
+            
         except Exception as e:
-            print("[AUTHENTICATION ERROR]", e)
+            logger.error(f"❌ Authentication error for {username}: {e}")
+            import traceback
+            traceback.print_exc()
             return None
-    
+        
     @staticmethod
     def get_by_id(user_id):
         conn = get_db_connection()
@@ -265,12 +337,54 @@ class User:
             conn.close()
     
     @staticmethod
+    def get_all(role=None, status=None):
+        conn = get_db_connection()
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
+        try:
+            query = """
+                SELECT u.user_id as id, u.username, u.email, u.status,  -- ✅ ADDED THIS (u.status)
+                       u.role_id, r.role_name as role, u.created_at,
+                       res.full_name, res.unit_number, res.contact_number as phone,
+                       res.resident_id,
+                       tw.work_start_date, tw.work_end_date,
+                       CASE WHEN fe.embedding_id IS NOT NULL THEN 1 ELSE 0 END as has_face
+                FROM users u
+                JOIN roles r ON u.role_id = r.role_id
+                LEFT JOIN residents res ON u.user_id = res.user_id
+                LEFT JOIN temp_workers tw ON u.user_id = tw.user_id
+                LEFT JOIN face_embeddings fe ON res.resident_id = fe.reference_id AND fe.user_type = 'resident'
+                WHERE 1=1
+            """
+            params = []
+            
+            if role:
+                query += " AND r.role_name = %s"
+                params.append(role)
+            
+            if status:
+                query += " AND LOWER(u.status) = LOWER(%s)"
+                params.append(status)
+            
+            query += " ORDER BY u.created_at DESC"
+            cursor.execute(query, params)
+            
+            users = []
+            for u in cursor.fetchall():
+                user_dict = dict(u)
+                user_dict['face_encoding_path'] = user_dict.get('has_face', 0) == 1
+                users.append(user_dict)
+            return users
+        finally:
+            cursor.close()
+            conn.close()
+    
+    @staticmethod
     def search(keyword, role=None, status=None):
         conn = get_db_connection()
         cursor = conn.cursor(cursor_factory=RealDictCursor)
         try:
             query = """
-                SELECT u.user_id as id, u.username, u.email,
+                SELECT u.user_id as id, u.username, u.email, u.status,  -- ✅ ADDED THIS (u.status)
                        u.role_id, r.role_name as role, u.created_at,
                        res.full_name, res.unit_number, res.contact_number as phone,
                        res.resident_id,
@@ -368,29 +482,10 @@ class User:
                 user_params.append(data['password'])
                         
             if 'role' in data:
-                # Get role_id from database
-                cursor.execute("""
-                    SELECT role_id FROM roles
-                    WHERE LOWER(role_name) = LOWER(%s)
-                    LIMIT 1
-                """, (data['role'],))
-                role_result = cursor.fetchone()
-                print("role_result", role_result)
-
-                if role_result:
-                    role_id = role_result[0]
-                else:
-                    # Default to Resident role if not found
-                    cursor.execute("""
-                        SELECT role_id FROM roles
-                        WHERE LOWER(role_name) = 'resident'
-                        LIMIT 1
-                    """)
-                    default_role = cursor.fetchone()
-                    role_id = default_role[0] if default_role else 2
-
-                user_fields.append("role_id = %s")
-                user_params.append(role_id)
+                role_id = User.role_map.get(data['role'])
+                if role_id:
+                    user_fields.append("role_id = %s")
+                    user_params.append(role_id)
             
             if 'status' in data:
                 user_fields.append("status = %s")
