@@ -944,6 +944,7 @@ if SECURITY_OFFICER_AVAILABLE:
                 return jsonify({
                     "status": "success",
                     "result": "granted",
+                    "type": best_match.user_type.capitalize(),
                     "person_type": best_match.user_type,
                     "name": person.full_name,
                     "message": "Face recognized",   

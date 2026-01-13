@@ -97,7 +97,7 @@
                                     <th>Officer</th>
                                 </tr>
                             </thead>
-                                <tbody>
+                                <tbody id="verificationTableBody">
                                 {% for log in access_logs %}
                                 <tr>
                                     <td>{{ log.time }}</td>
@@ -196,6 +196,39 @@
         let totalTime = 0;
         let attempts = 0;
         
+        function appendVerificationLog(data) {
+            const tbody = document.getElementById('verificationTableBody');
+
+            const now = new Date().toLocaleTimeString();
+
+            const confidence = data.confidence ?? "N/A";
+            const verified = data.confidence !== null && data.confidence >= 65;
+
+            const typeBadge =
+                data.type === "Resident"
+                    ? '<span class="badge badge-info">Resident</span>'
+                : data.type === "Visitor"
+                    ? '<span class="badge badge-warning">Visitor</span>'
+                    : '<span class="badge badge-danger">Unknown</span>';
+
+            const resultBadge = verified
+                ? '<span class="badge badge-success">VERIFIED</span>'
+                : '<span class="badge badge-danger">FAILED</span>';
+
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${now}</td>
+                <td>${data.name || "Unknown"}</td>
+                <td>${typeBadge}</td>
+                <td>${confidence}</td>
+                <td>${resultBadge}</td>
+                <td>${currentUser.full_name || "Officer"}</td>
+            `;
+
+            // prepend newest on top
+            tbody.prepend(row);
+        }
+
         async function verifyFace() {
             if (!stream) {
                 showMessage('Please start the camera first', 'error');
@@ -241,6 +274,7 @@
                     let current = parseInt(document.getElementById('failCount').textContent);
                     document.getElementById('failCount').textContent = current + 1;
                 }
+                appendVerificationLog(data);
 
             } catch (err) {
                 showMessage("Error verifying face: " + err.message, "error");
