@@ -1,0 +1,42 @@
+<component name="InspectionProjectProfileManager">
+  <profile version="1.0">
+    <option name="myName" value="Project Default" />
+    <inspection_tool class="PyPackageRequirementsInspection" enabled="true" level="WARNING" enabled_by_default="true">
+      <option name="ignoredPackages">
+        <list>
+          <option value="pytest" />
+          <option value="pytest-cov" />
+          <option value="flake8" />
+          <option value="numpy" />
+          <option value="pandas" />
+          <option value="torch" />
+          <option value="certifi" />
+          <option value="charset-normalizer" />
+          <option value="facenet-pytorch" />
+          <option value="filelock" />
+          <option value="Flask-SQLAlchemy" />
+          <option value="fsspec" />
+          <option value="greenlet" />
+          <option value="idna" />
+          <option value="joblib" />
+          <option value="mpmath" />
+          <option value="networkx" />
+          <option value="opencv-python" />
+          <option value="pgvector" />
+          <option value="pillow" />
+          <option value="requests" />
+          <option value="scikit-learn" />
+          <option value="scipy" />
+          <option value="setuptools" />
+          <option value="SQLAlchemy" />
+          <option value="sympy" />
+          <option value="threadpoolctl" />
+          <option value="torchvision" />
+          <option value="tqdm" />
+          <option value="typing_extensions" />
+          <option value="urllib3" />
+        </list>
+      </option>
+    </inspection_tool>
+  </profile>
+</component>
