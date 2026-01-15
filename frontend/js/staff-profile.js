@@ -42,8 +42,7 @@ function setupEventListeners() {
 async function loadProfile() {
     const staffId = currentUser.staff_id || currentUser.user_id;
     try {
-        const response = await fetch(`/api/staff/${staffId}/profile`);
-        const result = await response.json();
+        const result = await staffApiCall(`/api/staff/${staffId}/profile`);
 
         if (result.success) {
             displayProfile(result.data);
@@ -97,13 +96,11 @@ async function saveProfile(e) {
     };
 
     try {
-        const response = await fetch(`/api/staff/${staffId}/profile`, {
+        const result = await staffApiCall(`/api/staff/${staffId}/profile`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(updatedData)
         });
-
-        const result = await response.json();
 
         if (result.success) {
             showMessage('✅ Profile updated successfully!', 'success');
@@ -126,11 +123,9 @@ async function deleteAccount() {
     const staffId = currentUser.staff_id || currentUser.user_id;
     
     try {
-        const response = await fetch(`/api/staff/${staffId}/account`, {
+        const result = await staffApiCall(`/api/staff/${staffId}/account`, {
             method: 'DELETE'
         });
-        
-        const result = await response.json();
         
         if (result.success) {
             alert('Account deleted. You will be logged out.');
