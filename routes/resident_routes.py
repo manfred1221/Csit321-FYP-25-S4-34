@@ -3,7 +3,29 @@ from datetime import datetime
 from psycopg2.extras import RealDictCursor
 from database import get_db_connection
 
+# --- NEW imports for face embedding ---
+import base64
+import re
+import numpy as np
+import cv2
+import torch
+from facenet_pytorch import MTCNN, InceptionResnetV1
+
 resident_bp = Blueprint("resident_bp", __name__, url_prefix="/api/resident")
+
+# ----------------------------------------------------------------------
+# Face models (loaded once)
+# ----------------------------------------------------------------------
+_device = torch.device("cpu")
+
+_mtcnn = MTCNN(
+    image_size=160,
+    margin=20,
+    keep_all=False,
+    device=_device
+)
+
+_facenet = InceptionResnetV1(pretrained="vggface2").eval().to(_device)
 
 
 # ----------------------------------------------------------------------
@@ -34,41 +56,115 @@ def _get_resident_id_by_user_id(user_id: int):
 
 def _json_error(msg, status=400, details=None):
     payload = {"error": msg}
-    if details:
+    if details is not None:
         payload["details"] = str(details)
     return jsonify(payload), status
 
 
+def _decode_base64_image(data_url: str):
+    """
+    Accepts:
+      - 'data:image/jpeg;base64,...'
+      - raw base64 string
+    Returns OpenCV BGR image (numpy array) or None.
+    """
+    if not data_url:
+        return None
+
+    m = re.match(r"^data:image\/[a-zA-Z]+;base64,(.*)$", data_url)
+    b64 = m.group(1) if m else data_url
+
+    try:
+        img_bytes = base64.b64decode(b64)
+        arr = np.frombuffer(img_bytes, dtype=np.uint8)
+        img_bgr = cv2.imdecode(arr, cv2.IMREAD_COLOR)
+        return img_bgr
+    except Exception:
+        return None
+
+
+def _get_embedding_from_bgr(img_bgr: np.ndarray):
+    """
+    Returns a normalized 512-d embedding as a Python list of floats, or None if no face detected.
+    """
+    if img_bgr is None:
+        return None
+
+    # Convert to RGB for facenet-pytorch
+    img_rgb = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB)
+
+    # Detect + align face, returns torch tensor [3,160,160]
+    face = _mtcnn(img_rgb)
+    if face is None:
+        return None
+
+    # Add batch dimension [1,3,160,160]
+    face = face.unsqueeze(0).to(_device)
+
+    with torch.no_grad():
+        emb = _facenet(face)  # [1,512]
+
+    emb = emb.squeeze(0).cpu().numpy().astype(np.float32)
+
+    # Normalize for stable cosine similarity
+    norm = np.linalg.norm(emb) + 1e-12
+    emb = emb / norm
+
+    return emb.tolist()
+
+
 # ----------------------------------------------------------------------
-# UC-R1: Register Face Data (DB-backed placeholder embedding)
+# UC-R1: Register Face Data (NOW generates real embeddings)
 # ----------------------------------------------------------------------
 @resident_bp.route("/register-face", methods=["POST"])
 def register_face():
     data = request.get_json(silent=True) or {}
     resident_id = data.get("resident_id")
-    image_data = data.get("image_data")  # still not used (future FaceNet)
+    image_data = data.get("image_data")
 
     if not resident_id or not image_data:
         return _json_error("Missing fields", 400, {"required": ["resident_id", "image_data"]})
+
+    # Decode image
+    img_bgr = _decode_base64_image(image_data)
+    if img_bgr is None:
+        return _json_error("Invalid image_data (base64 decode failed)", 400)
+
+    # Generate embedding
+    embedding = _get_embedding_from_bgr(img_bgr)
+    if embedding is None:
+        return _json_error("No face detected. Please center your face and try again.", 400)
 
     try:
         conn = get_db_connection()
         cur = conn.cursor()
 
+        # Ensure resident exists
         cur.execute("SELECT resident_id FROM residents WHERE resident_id = %s;", (resident_id,))
         if not cur.fetchone():
             cur.close()
             conn.close()
             return _json_error("Resident not found", 404)
 
+        # Keep only ONE embedding per resident (recommended)
         cur.execute(
             """
-            INSERT INTO face_embeddings (user_type, reference_id, embedding)
-            VALUES ('resident', %s, NULL)
-            RETURNING embedding_id;
+            DELETE FROM face_embeddings
+            WHERE user_type = 'resident' AND reference_id = %s;
             """,
             (resident_id,)
         )
+
+        # Insert new embedding (pgvector accepts python list)
+        cur.execute(
+            """
+            INSERT INTO face_embeddings (user_type, reference_id, embedding, created_at)
+            VALUES ('resident', %s, %s, NOW())
+            RETURNING embedding_id;
+            """,
+            (resident_id, embedding)
+        )
+
         embedding_id = cur.fetchone()[0]
         conn.commit()
         cur.close()
@@ -76,13 +172,13 @@ def register_face():
 
         return jsonify({
             "success": True,
-            "message": "Face data registered (placeholder, no embedding yet)",
+            "message": "Face embedding registered successfully",
             "resident_id": resident_id,
             "embedding_id": embedding_id
         }), 201
 
     except Exception as e:
-        return _json_error("DB error while saving face data", 500, e)
+        return _json_error("DB error while saving face embedding", 500, e)
 
 
 # ----------------------------------------------------------------------
@@ -116,7 +212,6 @@ def view_personal_data(resident_id):
         if not row:
             return _json_error("Resident not found", 404)
 
-        # format datetime
         if row.get("registered_at"):
             row["registered_at"] = row["registered_at"].isoformat()
 

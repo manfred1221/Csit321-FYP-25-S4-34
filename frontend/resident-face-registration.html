@@ -1,163 +1,170 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Face Registration - Condo Access</title>
-    <link rel="stylesheet" href="/frontend/css/styles.css">
-    <script src="/frontend/js/config.js"></script>
-    <style>
-        /* Page-specific styles matching the Admin 'Edit User' look */
-        .upload-area { 
-            border: 2px dashed #cbd5e1; 
-            padding: 40px 20px; 
-            cursor: pointer; 
-            text-align: center; 
-            border-radius: 8px; 
-            transition: all 0.2s ease;
-            background-color: #f8fafc;
-            position: relative;
-        }
-        .upload-area:hover, .upload-area.is-dragover { 
-            border-color: #3b82f6; 
-            background-color: #eff6ff; 
-        }
-        .preview-box {
-            width: 100%;
-            aspect-ratio: 1 / 1;
-            background: #f1f5f9;
-            border-radius: 8px;
-            border: 1px solid #e2e8f0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            overflow: hidden;
-            margin-bottom: 15px;
-        }
-        .preview-box img { 
-            width: 100%; 
-            height: 100%; 
-            object-fit: cover; 
-            display: none; 
-        }
-        .icon-large {
-            width: 64px; height: 64px; 
-            background: #e0e7ff; 
-            color: #3730a3;
-            border-radius: 50%;
-            display: flex; align-items: center; justify-content: center;
-            margin: 0 auto 15px;
-        }
-        .status-message {
-            margin-top: 15px;
-            padding: 10px;
-            border-radius: 6px;
-            text-align: center;
-            display: none;
-            font-weight: 500;
-        }
-        .status-message.error { background: #fee2e2; color: #b91c1c; border: 1px solid #fca5a5; }
-        .status-message.success { background: #dcfce7; color: #166534; border: 1px solid #86efac; }
-        .status-message.processing { background: #e0f2fe; color: #0369a1; border: 1px solid #7dd3fc; }
-        
-        .tips-list { padding-left: 20px; color: #64748b; font-size: 0.9em; line-height: 1.6; }
-        .tips-list li { margin-bottom: 5px; }
-    </style>
-</head>
-<body>
-    <div class="dashboard">
-        <aside class="sidebar">
-            <div class="sidebar-header">
-                <h2>🏢 Condo Access</h2>
-                <div class="user-info">
-                    <strong id="residentName">Loading...</strong>
-                    <p>Resident</p>
-                </div>
-            </div>
-            <nav>
-                <ul class="nav-menu">
-                    <li class="nav-item"><a href="/resident/dashboard" class="nav-link">📊 Dashboard</a></li>
-                    <li class="nav-item"><a href="/resident/profile" class="nav-link">👤 My Profile</a></li>
-                    <li class="nav-item"><a href="/resident/face-registration" class="nav-link active">📸 Face Registration</a></li>
-                    <li class="nav-item"><a href="/resident/visitors" class="nav-link">👥 Visitors</a></li>
-                    <li class="nav-item"><a href="/resident/access-history" class="nav-link">📋 Access History</a></li>
-                    <li class="nav-item"><a href="/resident/alerts" class="nav-link">🔔 Alerts</a></li>
-                    <li class="nav-item"><a href="/admin/logout" class="nav-link" onclick="logout()">🚪 Logout</a>
-                </ul>
-            </nav>
-        </aside>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Face Registration - Condo Access</title>
 
-        <main class="main-content">
-            <div class="page-header">
-                <h1>Face Registration</h1>
-                <p>Upload a clear photo to enable facial recognition access.</p>
-            </div>
-
-            <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 24px;">
-                <div class="card">
-                    <div class="card-header">
-                        <h2>Upload Photo</h2>
-                    </div>
-                    <div class="card-body">
-                        <div id="dropzone" class="upload-area">
-                            <div class="icon-large">
-                                <svg width="32" height="32" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path>
-                                </svg>
-                            </div>
-                            <h3 style="margin: 0 0 8px 0; font-size: 1.1rem;">Click to upload or drag and drop</h3>
-                            <p style="color: #64748b; margin: 0;">SVG, PNG, JPG or JPEG (max. 5MB)</p>
-                            
-                            <input type="file" id="fileInput" accept="image/*" style="display: none;">
-                        </div>
-
-                        <div style="margin-top: 20px; display: flex; gap: 10px; justify-content: flex-end;">
-                            <button id="clearBtn" class="btn btn-secondary" disabled>Clear</button>
-                            <button id="uploadBtn" class="btn btn-primary" disabled>Upload & Register</button>
-                        </div>
-
-                        <div id="statusMsg" class="status-message"></div>
-                        <div id="fileMeta" style="margin-top: 10px; font-size: 0.85em; color: #64748b; text-align: right;"></div>
-                    </div>
-                </div>
-
-                <div style="display: flex; flex-direction: column; gap: 24px;">
-                    <div class="card">
-                        <div class="card-header">
-                            <h2>Preview</h2>
-                        </div>
-                        <div class="card-body">
-                            <div class="preview-box">
-                                <img id="previewImg" alt="Preview">
-                                <div id="previewPlaceholder" style="text-align: center; color: #94a3b8;">
-                                    <svg width="48" height="48" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="margin: 0 auto 8px;">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-                                    </svg>
-                                    <p style="margin: 0; font-size: 0.9em;">No image selected</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="card">
-                        <div class="card-header">
-                            <h2>Guidelines</h2>
-                        </div>
-                        <div class="card-body">
-                            <ul class="tips-list">
-                                <li>✅ Face centered and looking at the camera</li>
-                                <li>✅ Good lighting, avoid strong shadows</li>
-                                <li>❌ No sunglasses or face coverings</li>
-                                <li>❌ Avoid heavy filters or blurry photos</li>
-                            </ul>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </main>
-    </div>
-
+  <link rel="stylesheet" href="/frontend/css/styles.css" />
   <script src="/frontend/js/config.js"></script>
+
+  <style>
+    .camera-box {
+      width: 100%;
+      aspect-ratio: 1 / 1;
+      background: #f1f5f9;
+      border-radius: 8px;
+      border: 2px dashed #cbd5e1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .camera-box video,
+    .camera-box img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: none;
+    }
+
+    .placeholder {
+      text-align: center;
+      color: #94a3b8;
+      font-size: 0.9em;
+      padding: 20px;
+    }
+
+    .camera-actions {
+      margin-top: 20px;
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+      flex-wrap: wrap;
+    }
+
+    .status-message {
+      margin-top: 15px;
+      padding: 10px;
+      border-radius: 6px;
+      text-align: center;
+      display: none;
+      font-weight: 500;
+    }
+
+    .status-message.error { background: #fee2e2; color: #b91c1c; border: 1px solid #fca5a5; }
+    .status-message.success { background: #dcfce7; color: #166534; border: 1px solid #86efac; }
+    .status-message.processing { background: #e0f2fe; color: #0369a1; border: 1px solid #7dd3fc; }
+
+    /* Prevent purple visited links in sidebar for this page */
+    .sidebar a,
+    .sidebar a:visited {
+      color: inherit;
+      text-decoration: none;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="dashboard">
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <h2>🏢 Condo Access</h2>
+        <div class="user-info">
+          <strong id="residentName">Loading...</strong>
+          <p>Resident</p>
+        </div>
+      </div>
+
+      <!-- ✅ Fixed sidebar classes to match styles.css -->
+      <nav>
+        <ul class="nav-menu">
+          <li class="nav-item">
+            <a href="/resident/dashboard" class="nav-link">📊 Dashboard</a>
+          </li>
+          <li class="nav-item">
+            <a href="/resident/profile" class="nav-link">👤 My Profile</a>
+          </li>
+          <li class="nav-item">
+            <a href="/resident/face-registration" class="nav-link active">📸 Face Registration</a>
+          </li>
+          <li class="nav-item">
+            <a href="/resident/visitors" class="nav-link">👥 Visitors</a>
+          </li>
+          <li class="nav-item">
+            <a href="/resident/access-history" class="nav-link">📋 Access History</a>
+          </li>
+          <li class="nav-item">
+            <a href="/resident/alerts" class="nav-link">🔔 Alerts</a>
+          </li>
+
+          <!-- ✅ Logout now uses JS POST /api/auth/logout to avoid Method Not Allowed -->
+          <li class="nav-item">
+            <a href="#" class="nav-link" id="logoutLink">🚪 Logout</a>
+          </li>
+        </ul>
+      </nav>
+    </aside>
+
+    <main class="main-content">
+      <div class="page-header">
+        <h1>Face Registration</h1>
+        <p>Use your camera to capture a clear photo for facial recognition.</p>
+      </div>
+
+      <div style="display:grid; grid-template-columns:2fr 1fr; gap:24px;">
+        <!-- CAMERA -->
+        <div class="card">
+          <div class="card-header"><h2>Camera Capture</h2></div>
+          <div class="card-body">
+            <div class="camera-box">
+              <video id="webcam" autoplay playsinline muted></video>
+              <img id="capturedImg" alt="Captured face" />
+              <div id="cameraPlaceholder" class="placeholder">Camera is off</div>
+              <canvas id="canvas" style="display:none;"></canvas>
+            </div>
+
+            <div class="camera-actions">
+              <button id="startBtn" class="btn btn-secondary">Start Camera</button>
+              <button id="captureBtn" class="btn btn-primary" disabled>Capture</button>
+              <button id="retakeBtn" class="btn btn-secondary" disabled>Retake</button>
+              <button id="uploadBtn" class="btn btn-success" disabled>Upload & Register</button>
+            </div>
+
+            <div id="statusMsg" class="status-message"></div>
+          </div>
+        </div>
+
+        <!-- GUIDELINES -->
+        <div class="card">
+          <div class="card-header"><h2>Guidelines</h2></div>
+          <div class="card-body">
+            <ul style="padding-left: 18px; color:#64748b; line-height:1.6;">
+              <li>✅ Face centered and looking at the camera</li>
+              <li>✅ Good lighting, no harsh shadows</li>
+              <li>❌ No sunglasses or masks</li>
+              <li>❌ Avoid blurry images</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
   <script src="/frontend/js/resident-face-registration.js"></script>
+
+  <!-- ✅ Logout handler -->
+  <script>
+    document.getElementById("logoutLink")?.addEventListener("click", async (e) => {
+      e.preventDefault();
+      if (typeof logout === "function") {
+        await logout(); // POST /api/auth/logout then redirect to /login
+      } else {
+        window.location.href = "/login";
+      }
+    });
+  </script>
 </body>
 </html>
