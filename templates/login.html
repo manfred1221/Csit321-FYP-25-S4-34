@@ -143,6 +143,23 @@
                         userType = 'Visitor';
                     }
 
+                    // ✅ STORE STAFF AUTHENTICATION DATA
+                    if (role === 'Internal_Staff' || role === 'Staff' || role === 'temp_staff') {
+                        const staffData = {
+                            id: data.user_data?.staff_id || data.user_data?.user_id,
+                            staff_id: data.user_data?.staff_id || data.user_data?.user_id,
+                            user_id: data.user_data?.user_id,
+                            username: data.user_data?.username || username,
+                            full_name: data.user_data?.full_name || username,
+                            position: role,
+                            type: 'staff',
+                            email: data.user_data?.email
+                        };
+                        console.log('✅ Storing staffAuth:', staffData);
+                        localStorage.setItem('staffAuth', JSON.stringify(staffData));
+                        localStorage.setItem('auth_token', `staff-token-${staffData.staff_id}`);
+                    }
+
                     showMessage(`Welcome! ${userType} authenticated successfully!`, 'success');
                     
                     // Redirect immediately
@@ -174,4 +191,4 @@
         });
     </script>
 </body>
-</html> 
+</html>
