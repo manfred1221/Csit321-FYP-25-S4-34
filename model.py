@@ -12,7 +12,7 @@ import base64
 import logging
 from datetime import datetime
 from psycopg2.extras import RealDictCursor
-from db import get_db_connection
+from database import get_db_connection
 import sys
 from keras_facenet import FaceNet
 

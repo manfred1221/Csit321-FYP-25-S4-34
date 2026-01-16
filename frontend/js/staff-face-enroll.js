@@ -4,14 +4,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     // ==========================================
     let currentUser = null;
 
-    // Try using the global checkAuth if available (from config.js)
-    if (typeof checkAuth === 'function') {
-        currentUser = await checkAuth();
-    } else {
-        // Fallback: Check localStorage manually
-        const userString = localStorage.getItem('user');
-        if (userString) {
-            currentUser = JSON.parse(userString);
+    // Check staffAuth from localStorage
+    const staffAuthString = localStorage.getItem('staffAuth');
+    if (staffAuthString) {
+        try {
+            currentUser = JSON.parse(staffAuthString);
+        } catch (e) {
+            console.error('Failed to parse staffAuth:', e);
         }
     }
 
@@ -21,8 +20,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         return;
     }
 
-    const allowedRoles = ['Internal_Staff', 'Staff', 'Security', 'internal_staff'];
-    if (currentUser.role && !allowedRoles.includes(currentUser.role) && currentUser.type !== 'staff') {
+    if (currentUser.type !== 'staff') {
         window.location.href = '/login';
         return;
     }
@@ -40,7 +38,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         logoutBtn.addEventListener('click', async (e) => {
             e.preventDefault();
             if (confirm('Are you sure you want to logout?')) {
-                localStorage.removeItem('user');
+                localStorage.removeItem('staffAuth');
+                localStorage.removeItem('auth_token');
                 try { await fetch('/api/auth/logout', { method: 'POST' }); } catch (e) {}
                 window.location.href = '/login';
             }

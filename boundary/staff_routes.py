@@ -225,9 +225,8 @@ def delete_account(staff_id):
 @staff_bp.route("/enroll-face", methods=["POST"])
 def enroll_face():
     """
-    Staff face enrollment endpoint.
-    Accepts staff_id and image_data (base64), stores face embedding in database.
-    Currently stores placeholder (NULL embedding) - will integrate FaceNet later.
+    Staff face enrollment endpoint with FaceNet integration.
+    Accepts staff_id and image_data (base64), processes with FaceNet, stores embedding.
     
     Body JSON:
     {
@@ -238,6 +237,17 @@ def enroll_face():
     try:
         from database import get_db_connection
         from datetime import datetime
+        import uuid
+        import numpy as np
+        
+        # Import FaceNet functions from existing model.py
+        try:
+            from model import extract_embedding_from_base64
+        except ImportError as e:
+            return jsonify({
+                "success": False,
+                "error": f"FaceNet module not available: {str(e)}"
+            }), 500
         
         data = request.get_json(silent=True) or {}
         staff_id = data.get("staff_id")
@@ -245,6 +255,7 @@ def enroll_face():
 
         if not staff_id or not image_data:
             return jsonify({
+                "success": False,
                 "error": "Missing fields",
                 "required": ["staff_id", "image_data"]
             }), 400
@@ -252,46 +263,111 @@ def enroll_face():
         conn = get_db_connection()
         cur = conn.cursor()
 
-        # Verify staff exists
-        cur.execute("SELECT staff_id, full_name FROM staff WHERE staff_id = %s;", (staff_id,))
+        # ✅ FIX: Verify staff exists in temp_workers table (not staff table)
+        cur.execute("""
+            SELECT tw.user_id, u.username, u.full_name
+            FROM temp_workers tw
+            JOIN users u ON tw.user_id = u.user_id
+            WHERE tw.user_id = %s
+        """, (staff_id,))
+        
         staff_row = cur.fetchone()
         if not staff_row:
             cur.close()
             conn.close()
-            return jsonify({"error": "Staff member not found"}), 404
+            return jsonify({
+                "success": False,
+                "error": "Staff member not found"
+            }), 404
+
+        staff_name = staff_row[2] if len(staff_row) > 2 else staff_row[1]
 
         # Generate filename for the image
         timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
         image_filename = f"staff_{staff_id}_{timestamp}.jpg"
 
-        # TODO: In the future, process image_data with FaceNet here
-        # and generate the actual embedding vector instead of NULL
+        # ✅ PROCESS IMAGE WITH FACENET using existing model.py function
+        print(f"Processing face enrollment for staff_id={staff_id} ({staff_name})")
+        embedding, error = extract_embedding_from_base64(image_data)
         
-        # Insert face embedding record
-        cur.execute(
-            """
-            INSERT INTO face_embeddings (user_type, reference_id, embedding, image_filename)
-            VALUES ('staff', %s, NULL, %s)
-            RETURNING embedding_id;
-            """,
-            (staff_id, image_filename)
-        )
-        embedding_id = cur.fetchone()[0]
+        if error:
+            cur.close()
+            conn.close()
+            return jsonify({
+                "success": False,
+                "error": error
+            }), 400
+        
+        if embedding is None:
+            cur.close()
+            conn.close()
+            return jsonify({
+                "success": False,
+                "error": "Failed to extract face embedding"
+            }), 400
+        
+        # Convert embedding to PostgreSQL vector format
+        embedding_list = embedding.tolist() if isinstance(embedding, np.ndarray) else list(embedding)
+        embedding_vector = '[' + ','.join(map(str, embedding_list)) + ']'
+        
+        print(f"✓ Generated embedding vector with {len(embedding_list)} dimensions")
+
+        # Check if face embedding already exists for this staff
+        cur.execute("""
+            SELECT embedding_id FROM face_embeddings
+            WHERE reference_id = %s AND user_type = 'internal_staff'
+        """, (staff_id,))
+        
+        existing = cur.fetchone()
+        
+        if existing:
+            # Update existing record with real embedding
+            cur.execute("""
+                UPDATE face_embeddings
+                SET image_filename = %s,
+                    embedding = %s
+                WHERE reference_id = %s AND user_type = 'internal_staff'
+                RETURNING embedding_id
+            """, (image_filename, embedding_vector, staff_id))
+            embedding_id = cur.fetchone()[0]
+            message = "Face enrollment updated successfully"
+            print(f"✓ Updated face enrollment: embedding_id={embedding_id}")
+        else:
+            # Insert new face embedding record with real embedding
+            cur.execute("""
+                INSERT INTO face_embeddings (user_type, reference_id, embedding, image_filename)
+                VALUES ('internal_staff', %s, %s, %s)
+                RETURNING embedding_id
+            """, (staff_id, embedding_vector, image_filename))
+            embedding_id = cur.fetchone()[0]
+            message = "Face enrolled successfully"
+            print(f"✓ Created face enrollment: embedding_id={embedding_id}")
+        
         conn.commit()
         cur.close()
         conn.close()
 
         return jsonify({
             "success": True,
-            "message": "Face enrolled successfully",
-            "staff_id": staff_id,
-            "embedding_id": embedding_id,
-            "image_filename": image_filename
+            "message": message,
+            "data": {
+                "staff_id": staff_id,
+                "staff_name": staff_name,
+                "embedding_id": embedding_id,
+                "image_filename": image_filename,
+                "embedding_dimensions": len(embedding_list)
+            }
         }), 201
 
     except Exception as e:
         print(f"Enroll face error: {e}")
-        return jsonify({"error": "Failed to enroll face", "details": str(e)}), 500
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            "success": False,
+            "error": "Failed to enroll face",
+            "details": str(e)
+        }), 500
 
 
 # ----------------------------------------------------------------------

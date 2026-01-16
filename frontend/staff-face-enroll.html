@@ -199,14 +199,14 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', async () => {
-            // 1. Populate Sidebar User Info
-            const userString = localStorage.getItem('user');
-            if (userString) {
-                const user = JSON.parse(userString);
+            // 1. Populate Sidebar User Info - Use staffAuth
+            const staffAuthString = localStorage.getItem('staffAuth');
+            if (staffAuthString) {
+                const user = JSON.parse(staffAuthString);
                 // Ensure correct role
-                if (user.type === 'staff' || user.role === 'Internal_Staff' || user.role === 'staff') {
-                    document.getElementById('staffName').textContent = user.full_name || user.username;
-                    document.getElementById('staffPosition').textContent = user.role.replace('_', ' ');
+                if (user.type === 'staff' || user.position === 'temp_staff') {
+                    document.getElementById('staffNameSidebar').textContent = user.full_name || user.username;
+                    document.getElementById('staffPosition').textContent = (user.position || 'Staff Member').replace('_', ' ');
                 } else {
                     window.location.href = '/login';
                 }
@@ -217,7 +217,8 @@
             // 2. Logout Handler
             document.getElementById('logoutBtn').addEventListener('click', async (e) => {
                 e.preventDefault();
-                localStorage.removeItem('user');
+                localStorage.removeItem('staffAuth');
+                localStorage.removeItem('auth_token');
                 try { await fetch('/api/auth/logout', { method: 'POST' }); } catch(e){}
                 window.location.href = '/login';
             });

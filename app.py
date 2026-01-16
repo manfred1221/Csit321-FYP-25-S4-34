@@ -2087,6 +2087,85 @@ def delete_staff_account(staff_id):
         logger.error(f"Error deleting staff account: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
+@app.route('/api/staff/enroll-face', methods=['POST'])
+def enroll_staff_face():
+    """Enroll staff member's face for biometric access"""
+    try:
+        data = request.get_json()
+        staff_id = data.get('staff_id')
+        image_data = data.get('image_data')  # Base64 encoded image
+        
+        if not staff_id or not image_data:
+            return jsonify({'success': False, 'error': 'Missing required fields'}), 400
+        
+        # Verify staff exists
+        conn = get_db_connection()
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
+        
+        cursor.execute("""
+            SELECT u.user_id, u.username, u.full_name, r.role_name
+            FROM users u
+            LEFT JOIN roles r ON u.role_id = r.role_id
+            WHERE u.user_id = %s AND r.role_id IN (8, 13)
+        """, (staff_id,))
+        
+        staff = cursor.fetchone()
+        
+        if not staff:
+            cursor.close()
+            conn.close()
+            return jsonify({'success': False, 'error': 'Staff member not found'}), 404
+        
+        # Process the image data (remove data URL prefix if present)
+        if ',' in image_data:
+            image_data = image_data.split(',')[1]
+        
+        # Generate unique filename
+        filename = f"staff_{staff_id}_{uuid.uuid4().hex[:8]}.jpg"
+        
+        # Check if face embedding already exists
+        cursor.execute("""
+            SELECT embedding_id FROM face_embeddings
+            WHERE reference_id = %s AND user_type = 'staff'
+        """, (staff_id,))
+        
+        existing = cursor.fetchone()
+        
+        if existing:
+            # Update existing record
+            cursor.execute("""
+                UPDATE face_embeddings
+                SET image_filename = %s,
+                    embedding = NULL,
+                    updated_at = NOW()
+                WHERE reference_id = %s AND user_type = 'staff'
+            """, (filename, staff_id))
+            logger.info(f"Updated face enrollment for staff_id={staff_id}")
+        else:
+            # Insert new record
+            cursor.execute("""
+                INSERT INTO face_embeddings (reference_id, user_type, image_filename)
+                VALUES (%s, 'staff', %s)
+            """, (staff_id, filename))
+            logger.info(f"Created face enrollment for staff_id={staff_id}")
+        
+        conn.commit()
+        cursor.close()
+        conn.close()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Face enrolled successfully',
+            'data': {
+                'staff_id': staff_id,
+                'filename': filename
+            }
+        })
+        
+    except Exception as e:
+        logger.error(f"Error enrolling staff face: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
 @app.route('/api/staff/attendance/record', methods=['POST'])
 def record_staff_attendance():
     """Record staff clock in/out"""
