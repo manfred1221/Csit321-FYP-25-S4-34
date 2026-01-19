@@ -111,11 +111,13 @@
             document.getElementById('officerEmail').textContent = currentUser.email || currentUser.contact_number;
         });
 
-        function deactivateAccount() {
+        async function deactivateAccount() {
             const reason = document.getElementById('reason').value;
+            const comments = document.getElementById('comments').value;
             const password = document.getElementById('password').value;
             const confirmed = document.getElementById('confirmCheck').checked;
-            
+
+            // Validation
             if (!reason) {
                 showMsg('Please select a reason for deactivation', 'error');
                 return;
@@ -128,15 +130,38 @@
                 showMsg('Please confirm that you understand this action is permanent', 'error');
                 return;
             }
-            
-            if (confirm('Are you absolutely sure you want to deactivate your account? This cannot be undone.')) {
-                showMsg('Account deactivation request submitted. Your supervisor will review this request.', 'success');
-                setTimeout(() => {
-                    window.location.href = 'index.html';
-                }, 3000);
+
+            if (!confirm('Are you absolutely sure you want to deactivate your account? This cannot be undone.')) {
+                return;
+            }
+
+            try {
+                // Call your backend API
+                const res = await fetch(`/api/security_officer/deactivate_account/${currentUser.officer_id}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        password, 
+                        reason,
+                        comments 
+                    })
+                });
+
+                const data = await res.json();
+
+                if (res.ok) {
+                    showMsg(data.message, 'success');
+                } else {
+                    showMsg(data.error || 'Failed to deactivate account', 'error');
+                }
+
+            } catch (err) {
+                console.error(err);
+                showMsg('Server error during deactivation', 'error');
             }
         }
-        
+
+        // Reuse your existing message display
         function showMsg(msg, type) {
             const el = document.getElementById('message');
             el.textContent = msg;

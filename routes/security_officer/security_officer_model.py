@@ -14,6 +14,7 @@ class SecurityOfficer(db.Model):
     active = db.Column(db.Boolean, default=True)
     registered_at = db.Column(db.DateTime, default=datetime.utcnow)
     user_id = db.Column(db.Integer, db.ForeignKey('users.user_id'), nullable=True)
+    user = db.relationship("User", backref="officer", uselist=False)
 
 class Resident(db.Model):
     __tablename__ = "residents"
@@ -143,6 +144,7 @@ class User(db.Model):
     email = db.Column(db.String(100), unique=True, nullable=False)
     password_hash = db.Column(db.Text, nullable=False)
     role_id = db.Column(db.Integer, db.ForeignKey('roles.role_id'), nullable=False)
+    status = db.Column(db.String(20), default="active")
     created_at = db.Column(db.DateTime, server_default=db.func.now())
 
     role = db.relationship("Role", back_populates="users")

@@ -787,7 +787,29 @@ if SECURITY_OFFICER_AVAILABLE:
 
     @app.route("/api/security_officer/deactivate_account/<int:officer_id>", methods=["POST"])
     def route_deactivate_account(officer_id):
-        return deactivate_account(officer_id)
+        data = request.get_json()
+        password = data.get("password")
+
+        if not password:
+            return jsonify({"error": "Password is required to deactivate"}), 400
+
+        officer = SecurityOfficer.query.get(officer_id)
+        if not officer:
+            return jsonify({"error": "Officer not found"}), 404
+
+        # Check password (plain-text for now)
+        if not officer.user or officer.user.password_hash != password:
+            return jsonify({"error": "Password incorrect"}), 401
+
+        # Deactivate officer
+        officer.active = False  # your security_officers table is boolean, so False is fine
+
+        # Deactivate linked user (string column: "active"/"inactive")
+        officer.user.status = "inactive"  # <- important: set string, not False
+
+        db.session.commit()
+
+        return jsonify({"message": f"Officer {officer.full_name} deactivated successfully"})
 
     @app.route("/api/security_officer/monitor_camera")
     def route_monitor_camera():
@@ -1058,6 +1080,7 @@ if SECURITY_OFFICER_AVAILABLE:
     @app.route("/api/security_officer/change_password", methods=["POST"])
     @officer_required
     def change_password():
+        from sqlalchemy import text
         data = request.get_json()
 
         current_password = data.get("current_password")
@@ -1067,13 +1090,17 @@ if SECURITY_OFFICER_AVAILABLE:
             return jsonify({"error": "Missing fields"}), 400
 
         officer = SecurityOfficer.query.get(session["officer_id"])
+        
+        # user = User.query.get(officer.user_id)
+        # if not user:
+        #     return jsonify({"error": "Linked user not found"}), 404
 
         # ✅ Plain-text comparison
-        if officer.password != current_password:
+        if officer.user.password_hash != current_password:
             return jsonify({"error": "Current password is incorrect"}), 401
-
-        # ✅ Update password directly
-        officer.password = new_password
+        
+        # Update the user's password
+        officer.user.password_hash = new_password
         db.session.commit()
 
         return jsonify({"message": "Password updated successfully"})
