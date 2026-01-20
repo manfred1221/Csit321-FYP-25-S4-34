@@ -3,15 +3,933 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Condo Access - Login</title>
-    <link rel="stylesheet" href="/frontend/css/styles.css">
+    <title>The Grand Residences</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        :root {
+            --primary-gradient: linear-gradient(135deg, #8B7355 0%, #6D4C41 100%);
+            --primary-color: #8B7355;
+            --text-primary: #3E2723;
+            --text-secondary: #6D4C41;
+            --bg-cream: #FFFEFB;
+            --bg-light: #F5EFE7;
+            --border-color: #D7CCC8;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-cream);
+            color: var(--text-primary);
+            line-height: 1.6;
+        }
+
+        /* Background with Image */
+        .hero-background {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100vh;
+            z-index: 0;
+            background-image: url('/frontend/loginpic.jpg');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+        }
+
+        .hero-background::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(
+                135deg,
+                rgba(139, 115, 85, 0.6) 0%,
+                rgba(109, 76, 65, 0.6) 50%,
+                rgba(62, 39, 35, 0.5) 100%
+            );
+        }
+
+        /* Top Navigation */
+        .top-nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+            background: rgba(255, 255, 255, 0.98);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            padding: 16px 32px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s ease;
+        }
+
+        .top-nav.scrolled {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .nav-brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+        }
+
+        .nav-icon {
+            width: 40px;
+            height: 40px;
+            background: var(--primary-gradient);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .nav-icon svg {
+            width: 24px;
+            height: 24px;
+            fill: white;
+        }
+
+        .nav-text h1 {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin: 0;
+        }
+
+        .nav-text p {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin: 0;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 24px;
+            align-items: center;
+        }
+
+        .nav-links a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            transition: color 0.2s;
+            cursor: pointer;
+        }
+
+        .nav-links a:hover,
+        .nav-links a.active {
+            color: var(--primary-color);
+        }
+
+        .login-btn {
+            padding: 10px 20px;
+            background: var(--primary-gradient);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 8px rgba(139, 115, 85, 0.3);
+        }
+
+        .login-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(139, 115, 85, 0.4);
+        }
+
+        /* Hero Section */
+        .hero-section {
+            position: relative;
+            z-index: 10;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: flex-start;
+            padding: 120px 80px 80px;
+            color: white;
+        }
+
+        .hero-content {
+            max-width: 700px;
+        }
+
+        .hero-content h1 {
+            font-size: 56px;
+            font-weight: 700;
+            line-height: 1.2;
+            margin-bottom: 24px;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+        }
+
+        .hero-content p {
+            font-size: 20px;
+            line-height: 1.6;
+            margin-bottom: 40px;
+            opacity: 0.95;
+            text-shadow: 0 1px 5px rgba(0, 0, 0, 0.3);
+        }
+
+        .hero-buttons {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 64px;
+        }
+
+        /* Hero Stats */
+        .hero-stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 24px;
+            width: 100%;
+            max-width: 900px;
+            margin-top: auto;
+        }
+
+        .hero-stat-card {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 32px 24px;
+            border-radius: 16px;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .hero-stat-card:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-4px);
+            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        .hero-stat-card h3 {
+            font-size: 48px;
+            font-weight: 700;
+            margin-bottom: 8px;
+            text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        .hero-stat-card p {
+            font-size: 14px;
+            font-weight: 500;
+            margin: 0;
+            opacity: 0.95;
+            text-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .btn {
+            padding: 16px 32px;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            text-decoration: none;
+            border: none;
+        }
+
+        .btn-primary {
+            background: white;
+            color: var(--text-primary);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: 2px solid rgba(255, 255, 255, 0.5);
+            backdrop-filter: blur(10px);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.3);
+            border-color: white;
+        }
+
+        /* Content Sections */
+        .content-section {
+            position: relative;
+            z-index: 10;
+            background: var(--bg-cream);
+            padding: 80px 0;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 40px;
+        }
+
+        /* About Section */
+        .about-section {
+            padding: 100px 0;
+        }
+
+        .section-header {
+            text-align: center;
+            margin-bottom: 64px;
+        }
+
+        .section-header h2 {
+            font-size: 48px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 16px;
+        }
+
+        .section-header p {
+            font-size: 20px;
+            color: var(--text-secondary);
+        }
+
+        .about-content {
+            margin-bottom: 64px;
+        }
+
+        .about-content p {
+            font-size: 18px;
+            line-height: 1.8;
+            color: var(--text-secondary);
+            margin-bottom: 20px;
+            text-align: center;
+            max-width: 900px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        /* Features Grid */
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 32px;
+            margin-bottom: 64px;
+        }
+
+        .feature-card {
+            background: white;
+            padding: 40px;
+            border-radius: 16px;
+            box-shadow: 0 4px 12px rgba(62, 39, 35, 0.08);
+            transition: all 0.3s ease;
+            text-align: center;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 12px 24px rgba(62, 39, 35, 0.12);
+        }
+
+        .feature-icon {
+            width: 80px;
+            height: 80px;
+            background: var(--primary-gradient);
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 40px;
+            margin: 0 auto 24px;
+        }
+
+        .feature-card h3 {
+            font-size: 22px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 12px;
+        }
+
+        .feature-card p {
+            font-size: 16px;
+            color: var(--text-secondary);
+            line-height: 1.6;
+            margin: 0;
+        }
+
+        /* Stats Section */
+        .stats-section {
+            background: var(--bg-light);
+            padding: 64px 40px;
+            border-radius: 24px;
+            margin-bottom: 64px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 48px;
+            text-align: center;
+        }
+
+        .stat-item h3 {
+            font-size: 56px;
+            font-weight: 700;
+            color: var(--primary-color);
+            margin-bottom: 8px;
+        }
+
+        .stat-item p {
+            font-size: 16px;
+            color: var(--text-secondary);
+            margin: 0;
+        }
+
+        /* Contact Section */
+        .contact-section {
+            padding: 100px 0;
+            background: white;
+        }
+
+        .contact-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 64px;
+            margin-top: 48px;
+        }
+
+        /* Contact Info */
+        .contact-info h3 {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 24px;
+        }
+
+        .contact-info p {
+            font-size: 16px;
+            color: var(--text-secondary);
+            margin-bottom: 32px;
+            line-height: 1.8;
+        }
+
+        .info-item {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 24px;
+            padding: 20px;
+            background: var(--bg-light);
+            border-radius: 12px;
+            transition: all 0.3s ease;
+        }
+
+        .info-item:hover {
+            background: var(--bg-cream);
+            box-shadow: 0 4px 12px rgba(62, 39, 35, 0.08);
+        }
+
+        .info-icon {
+            width: 48px;
+            height: 48px;
+            background: var(--primary-gradient);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            flex-shrink: 0;
+        }
+
+        .info-content h4 {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 4px;
+        }
+
+        .info-content p {
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin: 0;
+        }
+
+        /* Contact Form */
+        .contact-form {
+            background: var(--bg-light);
+            padding: 40px;
+            border-radius: 24px;
+        }
+
+        .contact-form h3 {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 24px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            font-size: 14px;
+            color: var(--text-primary);
+        }
+
+        .form-group input,
+        .form-group textarea,
+        .form-group select {
+            width: 100%;
+            padding: 14px 16px;
+            border: 2px solid var(--border-color);
+            border-radius: 12px;
+            font-size: 15px;
+            background: white;
+            color: var(--text-primary);
+            font-family: inherit;
+            transition: all 0.3s ease;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(139, 115, 85, 0.1);
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 120px;
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 16px;
+            background: var(--primary-gradient);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(139, 115, 85, 0.3);
+        }
+
+        .submit-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(139, 115, 85, 0.4);
+        }
+
+        .submit-btn:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+        }
+
+        /* Message */
+        .message {
+            padding: 14px 16px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            font-weight: 500;
+            display: none;
+        }
+
+        .message.success {
+            background: #d1fae5;
+            color: #065f46;
+            border: 1px solid #10b981;
+            display: block;
+        }
+
+        .message.error {
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #ef4444;
+            display: block;
+        }
+
+        /* Footer */
+        .footer {
+            background: var(--text-primary);
+            color: white;
+            padding: 32px 40px;
+            text-align: center;
+        }
+
+        .footer p {
+            margin: 0;
+            opacity: 0.8;
+        }
+
+        /* Loading Spinner */
+        .loading-spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-right: 8px;
+            vertical-align: middle;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Login Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(5px);
+            z-index: 999;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .login-modal {
+            background: rgba(255, 255, 255, 0.98);
+            backdrop-filter: blur(20px);
+            border-radius: 24px;
+            padding: 48px 40px;
+            width: 100%;
+            max-width: 450px;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
+            position: relative;
+            animation: slideUp 0.3s ease;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .close-btn {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            width: 36px;
+            height: 36px;
+            background: rgba(139, 115, 85, 0.1);
+            border: none;
+            border-radius: 50%;
+            font-size: 24px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .close-btn:hover {
+            background: rgba(139, 115, 85, 0.2);
+            transform: rotate(90deg);
+        }
+
+        .logo {
+            text-align: center;
+            margin-bottom: 36px;
+        }
+
+        .logo-icon {
+            width: 80px;
+            height: 80px;
+            background: var(--primary-gradient);
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
+            box-shadow: 0 8px 24px rgba(139, 115, 85, 0.3);
+        }
+
+        .logo-icon svg {
+            width: 48px;
+            height: 48px;
+            fill: white;
+        }
+
+        .logo h2 {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin: 0 0 8px 0;
+        }
+
+        .logo p {
+            font-size: 15px;
+            color: var(--text-secondary);
+            margin: 0;
+        }
+
+        /* Responsive */
+        @media (max-width: 968px) {
+            .contact-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .features-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .hero-content h1 {
+                font-size: 40px;
+            }
+
+            .nav-links a:not(.login-btn) {
+                display: none;
+            }
+
+            .hero-section {
+                padding: 100px 40px 60px;
+            }
+
+            .hero-stats {
+                grid-template-columns: 1fr;
+                gap: 16px;
+            }
+
+            .hero-stat-card {
+                padding: 24px;
+            }
+
+            .hero-stat-card h3 {
+                font-size: 36px;
+            }
+        }
+    </style>
 </head>
 <body>
-    <div class="login-container">
-        <div class="login-box">
+    <!-- Background (only for hero) -->
+    <div class="hero-background"></div>
+
+    <!-- Top Navigation -->
+    <div class="top-nav" id="topNav">
+        <a href="#home" class="nav-brand">
+            <div class="nav-icon">
+                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 3L2 9v12h20V9l-10-6zm8 16h-4v-6h-4v6H8V10.2l4-2.4 4 2.4V19z"/>
+                </svg>
+            </div>
+            <div class="nav-text">
+                <h1>The Grand Residences</h1>
+                <p>Luxury Condominium</p>
+            </div>
+        </a>
+        <div class="nav-links">
+            <a href="#home">Home</a>
+            <a href="#about">About Us</a>
+            <a href="#contact">Contact</a>
+            <button class="login-btn" onclick="openLoginModal()"> Login</button>
+        </div>
+    </div>
+
+    <!-- Hero Section -->
+    <section id="home" class="hero-section">
+        <div class="hero-content">
+            <h1>Welcome to The Grand Residences</h1>
+            <p>Experience secure, seamless living with our advanced AI-powered facial recognition access control system. Your safety and comfort are our top priorities.</p>
+            
+            <div class="hero-buttons">
+                <button class="btn btn-primary" onclick="openLoginModal()">
+                     Resident Access
+                </button>
+                <a href="#about" class="btn btn-secondary">
+                     Learn More
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- About Section -->
+    <section id="about" class="content-section about-section">
+        <div class="container">
+            <div class="section-header">
+                <h2>About The Grand Residences</h2>
+                <p>Redefining luxury living with cutting-edge technology</p>
+            </div>
+
+            <div class="about-content">
+                <p>
+                    The Grand Residences is a premier luxury condominium offering modern living spaces with state-of-the-art amenities and services. Our building combines elegant architecture with cutting-edge technology to create a safe, comfortable environment for our residents.
+                </p>
+                <p>
+                    We've pioneered facial recognition access control system to ensure the highest level of security and convenience. This technology allows seamless, contactless entry for residents while maintaining strict access controls for guests and staff.
+                </p>
+                <p>
+                    Our management team and 24/7 security personnel work tirelessly to create a welcoming environment where every resident can enjoy true peace of mind. From visitor registration to staff management, every aspect of our building access is intelligently controlled.
+                </p>
+            </div>
+
+            <!-- Features Grid -->
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">🔒</div>
+                    <h3>AI-Powered Security</h3>
+                    <p>Advanced facial recognition technology ensures only authorized access, providing peace of mind 24/7.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">✨</div>
+                    <h3>Luxury Amenities</h3>
+                    <p>Premium facilities including gym, pool, lounge areas, and concierge services for your comfort.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">🏙️</div>
+                    <h3>Prime Location</h3>
+                    <p>Strategically located with easy access to shopping, dining, and entertainment districts.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">🌿</div>
+                    <h3>Sustainable Living</h3>
+                    <p>Eco-friendly design with energy-efficient systems and green spaces throughout the property.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">📱</div>
+                    <h3>Smart Home Ready</h3>
+                    <p>Fully integrated smart home capabilities for complete control of your living environment.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">👥</div>
+                    <h3>Community Focus</h3>
+                    <p>Vibrant community events and shared spaces that foster connections among residents.</p>
+                </div>
+            </div>
+
+            <!-- Stats Section -->
+            <div class="stats-section">
+                <div class="stats-grid">
+                    <div class="hero-stat-card" style="background: rgba(139, 115, 85, 0.1); border: 1px solid var(--border-color); backdrop-filter: none;">
+                        <h3 style="color: var(--primary-color); text-shadow: none;">24/7</h3>
+                        <p style="color: var(--text-secondary); text-shadow: none;">Security Monitoring</p>
+                    </div>
+                    <div class="hero-stat-card" style="background: rgba(139, 115, 85, 0.1); border: 1px solid var(--border-color); backdrop-filter: none;">
+                        <h3 style="color: var(--primary-color); text-shadow: none;">99.9%</h3>
+                        <p style="color: var(--text-secondary); text-shadow: none;">System Accuracy</p>
+                    </div>
+                    <div class="hero-stat-card" style="background: rgba(139, 115, 85, 0.1); border: 1px solid var(--border-color); backdrop-filter: none;">
+                        <h3 style="color: var(--primary-color); text-shadow: none;">&lt;1s</h3>
+                        <p style="color: var(--text-secondary); text-shadow: none;">Access Speed</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Contact Section -->
+    <section id="contact" class="content-section contact-section">
+        <div class="container">
+            <div class="section-header">
+                <h2>Get in Touch</h2>
+                <p>We'd love to hear from you. Reach out to us through any of the channels below.</p>
+            </div>
+
+            <!-- Contact Information - Centered -->
+            <div style="max-width: 800px; margin: 0 auto;">
+                <div class="contact-info">
+                    <div class="info-item">
+                        <div class="info-icon">📍</div>
+                        <div class="info-content">
+                            <h4>Address</h4>
+                            <p>123 Grand Boulevard<br>Luxury District, Singapore 123456</p>
+                        </div>
+                    </div>
+
+                    <div class="info-item">
+                        <div class="info-icon">📧</div>
+                        <div class="info-content">
+                            <h4>Email</h4>
+                            <p>info@grandresidences.com<br>
+                            support@grandresidences.com</p>
+                        </div>
+                    </div>
+
+                    <div class="info-item">
+                        <div class="info-icon">📞</div>
+                        <div class="info-content">
+                            <h4>Phone</h4>
+                            <p>+65 1234 5678<br>Mon - Fri: 9:00 AM - 6:00 PM</p>
+                        </div>
+                    </div>
+
+                    <div class="info-item">
+                        <div class="info-icon">🕐</div>
+                        <div class="info-content">
+                            <h4>Office Hours</h4>
+                            <p>Monday - Friday: 9:00 AM - 6:00 PM<br>Saturday: 10:00 AM - 4:00 PM</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <div class="footer">
+        <p>&copy; 2026 The Grand Residences. All rights reserved.</p>
+    </div>
+
+    <!-- Login Modal -->
+    <div class="modal-overlay" id="loginModal" onclick="closeModalOnOverlay(event)">
+        <div class="login-modal" onclick="event.stopPropagation()">
+            <button class="close-btn" onclick="closeLoginModal()">×</button>
+            
             <div class="logo">
-                <h1>🏢 Condo Access</h1>
-                <p>Facial Recognition System</p>
+                <div class="logo-icon">
+                    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M12 3L2 9v12h20V9l-10-6zm8 16h-4v-6h-4v6H8V10.2l4-2.4 4 2.4V19z"/>
+                    </svg>
+                </div>
+                <h2>Welcome Back</h2>
+                <p>Sign in to access your dashboard</p>
             </div>
 
             <div id="message" class="message"></div>
@@ -37,30 +955,81 @@
                         required
                         autocomplete="current-password"
                     >
-                    <small style="color: #6b7280; font-size: 12px;">
+                    <small style="font-size: 12px; color: var(--text-secondary); display: block; margin-top: 6px;">
                         Security Officers: Leave password blank if using ID
                     </small>
                 </div>
 
-                <button type="submit" class="btn btn-primary btn-full" id="loginBtn">
+                <button type="submit" id="loginBtn" class="submit-btn">
                     Login
                 </button>
             </form>
 
-            <div class="help-text">
+            <div style="text-align: center; margin-top: 24px; font-size: 13px; color: var(--text-secondary); padding: 12px; background: rgba(139, 115, 85, 0.05); border-radius: 8px;">
                 Enter your credentials to access the system
             </div>
         </div>
     </div>
 
-    <script>
+    <script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+        // Smooth scroll for navigation
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+
+        // Change nav background on scroll
+        window.addEventListener('scroll', () => {
+            const nav = document.getElementById('topNav');
+            if (window.scrollY > 50) {
+                nav.classList.add('scrolled');
+            } else {
+                nav.classList.remove('scrolled');
+            }
+        });
+
+        // Modal Functions
+        function openLoginModal() {
+            document.getElementById('loginModal').classList.add('active');
+            document.body.style.overflow = 'hidden';
+            setTimeout(() => {
+                document.getElementById('username').focus();
+            }, 100);
+        }
+
+        function closeLoginModal() {
+            document.getElementById('loginModal').classList.remove('active');
+            document.body.style.overflow = 'auto';
+            hideMessage();
+        }
+
+        function closeModalOnOverlay(event) {
+            if (event.target === document.getElementById('loginModal')) {
+                closeLoginModal();
+            }
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && document.getElementById('loginModal').classList.contains('active')) {
+                closeLoginModal();
+            }
+        });
+
+        // Message Functions
         function showMessage(text, type = 'error') {
             const msgEl = document.getElementById('message');
             msgEl.textContent = text;
             msgEl.className = `message ${type}`;
             msgEl.style.display = 'block';
             
-            // Auto-hide success messages
             if (type === 'success') {
                 setTimeout(() => {
                     msgEl.style.display = 'none';
@@ -69,25 +1038,39 @@
         }
 
         function hideMessage() {
-            const msgEl = document.getElementById('message');
-            msgEl.style.display = 'none';
+            document.getElementById('message').style.display = 'none';
         }
 
-        function setLoading(isLoading) {
-            const btn = document.getElementById('loginBtn');
-            const form = document.getElementById('loginForm');
+        function showContactMessage(text, type = 'error') {
+            const msgEl = document.getElementById('contactMessage');
+            msgEl.textContent = text;
+            msgEl.className = `message ${type}`;
+            msgEl.style.display = 'block';
             
-            if (isLoading) {
-                btn.disabled = true;
-                btn.innerHTML = '<span class="loading-spinner"></span>Logging in...';
-                form.style.opacity = '0.7';
-            } else {
-                btn.disabled = false;
-                btn.innerHTML = 'Login';
-                form.style.opacity = '1';
+            if (type === 'success') {
+                setTimeout(() => {
+                    msgEl.style.display = 'none';
+                }, 5000);
             }
         }
 
+        function hideContactMessage() {
+            document.getElementById('contactMessage').style.display = 'none';
+        }
+
+        function setLoading(isLoading, btnId = 'loginBtn', text = 'Login') {
+            const btn = document.getElementById(btnId);
+            
+            if (isLoading) {
+                btn.disabled = true;
+                btn.innerHTML = '<span class="loading-spinner"></span>' + (btnId === 'loginBtn' ? 'Logging in...' : 'Sending...');
+            } else {
+                btn.disabled = false;
+                btn.innerHTML = text;
+            }
+        }
+
+        // Handle Login
         async function handleLogin(event) {
             event.preventDefault();
             hideMessage();
@@ -100,14 +1083,13 @@
                 return;
             }
 
-            // Security officers can leave password blank
             const isSecurityOfficer = /^\d+$/.test(username);
             if (!password && !isSecurityOfficer) {
                 showMessage('Please enter your password', 'error');
                 return;
             }
 
-            setLoading(true);
+            setLoading(true, 'loginBtn', 'Login');
             showMessage('Authenticating...', 'info');
 
             try {
@@ -118,18 +1100,15 @@
                     },
                     body: JSON.stringify({
                         username: username,
-                        password: password || 'temp' // Send temp password for security officers
+                        password: password || 'temp'
                     })
                 });
 
                 const data = await response.json();
 
                 if (data.success) {
-                    // Determine user type for message based on actual role returned
                     let userType = 'User';
                     const role = data.role;
-                    
-                    console.log('Login successful, role:', role); // Debug log
                     
                     if (role === 'security_officer') {
                         userType = 'Security Officer';
@@ -139,11 +1118,8 @@
                         userType = 'Resident';
                     } else if (role === 'Internal_Staff' || role === 'Staff') {
                         userType = 'Staff Member';
-                    } else if (role === 'Visitor' || role === 'VISITOR') {
-                        userType = 'Visitor';
                     }
 
-                    // ✅ STORE STAFF AUTHENTICATION DATA
                     if (role === 'Internal_Staff' || role === 'Staff' || role === 'temp_staff') {
                         const staffData = {
                             id: data.user_data?.staff_id || data.user_data?.user_id,
@@ -155,40 +1131,25 @@
                             type: 'staff',
                             email: data.user_data?.email
                         };
-                        console.log('✅ Storing staffAuth:', staffData);
                         localStorage.setItem('staffAuth', JSON.stringify(staffData));
                         localStorage.setItem('auth_token', `staff-token-${staffData.staff_id}`);
                     }
 
                     showMessage(`Welcome! ${userType} authenticated successfully!`, 'success');
                     
-                    // Redirect immediately
                     setTimeout(() => {
-                        console.log('Redirecting to:', data.redirect); // Debug log
                         window.location.href = data.redirect;
                     }, 500);
                 } else {
                     showMessage(data.message || 'Invalid username or password. Please try again.', 'error');
-                    setLoading(false);
+                    setLoading(false, 'loginBtn', 'Login');
                 }
             } catch (error) {
                 console.error('Login error:', error);
                 showMessage('Connection error. Please check your network and try again.', 'error');
-                setLoading(false);
+                setLoading(false, 'loginBtn', 'Login');
             }
         }
-
-        // Auto-focus username field on page load
-        window.addEventListener('DOMContentLoaded', () => {
-            document.getElementById('username').focus();
-        });
-
-        // Handle Enter key in password field
-        document.getElementById('password').addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                handleLogin(e);
-            }
-        });
     </script>
 </body>
 </html>
