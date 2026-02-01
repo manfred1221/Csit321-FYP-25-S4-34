@@ -1,7 +1,7 @@
 # routes/auth_routes.py
 # REAL DATABASE VERSION - Queries Supabase users + residents tables
 
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, session
 from psycopg2.extras import RealDictCursor
 from database import get_db_connection
 
@@ -113,7 +113,13 @@ def login():
         
         # Step 6: Generate token (TODO: use JWT in production)
         token = f"mock-jwt-token-{user['user_id']}"
-        
+
+        # Step 6.5: Set Flask session for server-side authentication
+        session['user_id'] = user['user_id']
+        session['resident_id'] = resident['resident_id']
+        session['role'] = user['role_name']
+        session['username'] = user['username']
+
         # Step 7: Return complete user + resident data
         return jsonify({
             "user_id": user['user_id'],

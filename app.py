@@ -124,12 +124,12 @@ def check_user_has_face_embedding(user):
             reference_id = user_id
         elif user_role == 'resident':
             user_type = 'resident'
-            resident_id = user.get('resident_id')
-            if not resident_id:
+            user_id = user.get('user_id')
+            if not user_id:
                 cursor.close()
                 conn.close()
                 return None
-            reference_id = resident_id
+            reference_id = user_id
         else:
             cursor.close()
             conn.close()
@@ -242,8 +242,10 @@ def admin_login():
         session['user_id'] = user_id
         session['username'] = user['username']
         session['role'] = 'Admin'
+        session['full_name'] = user.get('full_name', user['username'])
+        session['email'] = user.get('email', '')
         session.permanent = True
-        
+
         logger.info(f"✅ Admin logged in: {username}")
         
         return jsonify({
@@ -269,8 +271,10 @@ def admin_login():
         session['resident_id'] = resident_id
         session['username'] = user['username']
         session['role'] = 'Resident'
+        session['full_name'] = user.get('full_name', user['username'])
+        session['email'] = user.get('email', '')
         session.permanent = True
-        
+
         logger.info(f"✅ Resident logged in: {username} | resident_id={resident_id}")
         
         return jsonify({
@@ -667,7 +671,7 @@ def auth_login():
 
     return jsonify({
         "user_id": user["id"],
-        "resident_id": user.get("resident_id"),
+        "user_id": user.get("user_id"),
         "username": user["username"],
         "role": user["role"],
         "token": token,
@@ -717,18 +721,160 @@ def staff_login():
 def check_session():
     """Check if user is authenticated via Flask session"""
     uid = session.get('user_id') or session.get('officer_id')
-    
+
     if not uid:
         return jsonify({'authenticated': False}), 401
-    
+
     user_data = {
         'user_id': session.get('user_id'),
         'username': session.get('username'),
         'role': session.get('role'),
+        'full_name': session.get('full_name'),
+        'email': session.get('email'),
         'resident_id': session.get('resident_id'),
         'visitor_id': session.get('visitor_id'),
         'officer_id': session.get('officer_id'),
         'staff_id': session.get('staff_id')
+    }
+
+    return jsonify({'authenticated': True, 'user': user_data}), 200
+
+# ============================================
+# VISITOR ROUTES (from visitor_routes.py)
+# ============================================
+
+@app.route("/api/visitor/visitors", methods=["POST"])
+def create_visitor_entry():
+    """UC-R8 Create Visitor Entry (stub)"""
+    payload = request.get_json() or {}
+    return jsonify({"message": "Visitor entry created (stub)", "payload": payload}), 201
+
+@app.route("/api/visitor/visitors", methods=["GET"])
+def view_registered_visitors():
+    """UC-R10 View Registered Visitors (stub)"""
+    demo_visitors = [
+        {
+            "visitor_id": 1,
+            "full_name": "Mary Lee",
+            "visiting_unit": "B-12-05",
+            "check_in": "2025-11-12T11:06:13",
+        }
+    ]
+    return jsonify(demo_visitors), 200
+
+
+# ============================================
+# RESIDENT ROUTES (from resident_routes.py)
+# ============================================
+
+def parse_iso(dt_str):
+    """Parse ISO datetime string safely; return None if invalid."""
+    if not dt_str:
+        return None
+    try:
+        return datetime.fromisoformat(dt_str)
+    except ValueError:
+        return None
+
+
+@app.route("/api/resident/register-face", methods=["POST"])
+def register_face():
+    """UC-R1: Register Face Data"""
+    data = request.get_json() or {}
+    user_id = data.get("user_id")
+    image_data = data.get("image_data")
+
+    if not user_id or not image_data:
+        return jsonify({
+            "error": "Missing fields",
+            "required": ["user_id", "image_data"]
+        }), 400
+
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+
+        cur.execute(
+            "SELECT user_id FROM residents WHERE user_id = %s;",
+            (user_id,)
+        )
+        row = cur.fetchone()
+        if not row:
+            cur.close()
+            conn.close()
+            return jsonify({"error": "Resident not found"}), 404
+
+        cur.execute(
+            """
+            INSERT INTO face_embeddings (user_type, reference_id, embedding)
+            VALUES ('resident', %s, NULL)
+            RETURNING embedding_id;
+            """,
+            (user_id,)
+        )
+        embedding_id = cur.fetchone()[0]
+        conn.commit()
+        cur.close()
+        conn.close()
+
+        return jsonify({
+            "message": "Face data registered (placeholder, no embedding yet)",
+            "user_id": user_id,
+            "embedding_id": embedding_id
+        }), 201
+
+    except Exception as e:
+        return jsonify({"error": "DB error while saving face data", "details": str(e)}), 500
+
+@app.route("/api/resident/<int:user_id>", methods=["GET"])
+def view_personal_data(user_id):
+    """UC-R2: View Personal Data"""
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute(
+            """
+            SELECT r.user_id,
+                   r.full_name,
+                   r.unit_number,
+                   r.contact_number,
+                   r.registered_at,
+                   u.email
+            FROM residents r
+            LEFT JOIN users u ON r.user_id = u.user_id
+            WHERE r.user_id = %s;
+            """,
+            (user_id,)
+        )
+        row = cur.fetchone()
+        cur.close()
+        conn.close()
+
+        if not row:
+            return jsonify({"error": "Resident not found"}), 404
+
+        resident = {
+            "user_id": row[0],
+            "full_name": row[1],
+            "unit_number": row[2],
+            "contact_number": row[3],
+            "registered_at": row[4].isoformat() if row[4] else None,
+            "email": row[5],
+        }
+        return jsonify(resident), 200
+
+    except Exception as e:
+        return jsonify({"error": "DB error while reading resident", "details": str(e)}), 500
+
+@app.route("/api/resident/<int:user_id>", methods=["PUT"])
+def update_personal_data(user_id):
+    """UC-R3: Update Personal Data"""
+    data = request.get_json() or {}
+
+    allowed_fields = {
+        "full_name": "full_name",
+        "contact_number": "contact_number",
+        "unit_number": "unit_number",
     }
     
     # Remove None values
@@ -742,10 +888,547 @@ def api_logout():
     """Logout endpoint - clears Flask session"""
     session.clear()
     return jsonify({'success': True, 'message': 'Logged out'}), 200
+# params.append(user_id)
+
+#     try:
+#         conn = get_db_connection()
+#         cur = conn.cursor()
+#         cur.execute(
+#             f"""
+#             UPDATE residents
+#             SET {", ".join(sets)}
+#             WHERE user_id = %s
+#             RETURNING user_id;
+#             """,
+#             tuple(params)
+#         )
+#         row = cur.fetchone()
+#         conn.commit()
+#         cur.close()
+#         conn.close()
+
+    params.append(user_id)
+
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute(
+            f"""
+            UPDATE residents
+            SET {", ".join(sets)}
+            WHERE user_id = %s
+            RETURNING user_id;
+            """,
+            tuple(params)
+        )
+        row = cur.fetchone()
+        conn.commit()
+        cur.close()
+        conn.close()
 
 
+        return jsonify({
+            "message": "Personal data updated",
+            "user_id": user_id,
+            "updated_fields": {k: v for k, v in data.items() if k in allowed_fields}
+        }), 200
 
+    except Exception as e:
+        return jsonify({"error": "DB error while updating resident", "details": str(e)}), 500
 
+@app.route("/api/resident/<int:user_id>", methods=["DELETE"])
+def delete_personal_data(user_id):
+    """UC-R4: Delete Personal Data"""
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute(
+            "DELETE FROM residents WHERE user_id = %s RETURNING user_id;",
+            (user_id,)
+        )
+        row = cur.fetchone()
+        conn.commit()
+        cur.close()
+        conn.close()
+
+        if not row:
+            return jsonify({"error": "Resident not found"}), 404
+
+        return jsonify({
+            "message": "Resident account deleted",
+            "user_id": user_id
+        }), 200
+
+    except Exception as e:
+        return jsonify({"error": "DB error while deleting resident", "details": str(e)}), 500
+
+@app.route("/api/resident/<int:user_id>/access-history", methods=["GET"])
+def view_personal_access_history(user_id):
+    """UC-R22: View Personal Access History"""
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+
+        cur.execute(
+            "SELECT full_name FROM residents WHERE user_id = %s;",
+            (user_id,)
+        )
+        row = cur.fetchone()
+        if not row:
+            cur.close()
+            conn.close()
+            return jsonify({"error": "Resident not found"}), 404
+        full_name = row[0]
+
+        cur.execute(
+            """
+            SELECT access_time,
+                   person_type,
+                   confidence,
+                   access_result
+            FROM access_logs
+            WHERE person_type = 'resident' AND recognized_person = %s
+            ORDER BY access_time DESC;
+            """,
+            (full_name,)
+        )
+        logs = cur.fetchall()
+        cur.close()
+        conn.close()
+
+        records = [
+            {
+                "timestamp": r[0].isoformat() if r[0] else None,
+                "person_type": r[1],
+                "confidence": r[2],
+                "result": r[3],
+            }
+            for r in logs
+        ]
+
+        return jsonify({
+            "user_id": user_id,
+            "resident_name": full_name,
+            "records": records
+        }), 200
+
+    except Exception as e:
+        return jsonify({"error": "DB error while reading access history", "details": str(e)}), 500
+
+@app.route("/api/resident/<int:user_id>/visitors", methods=["POST"])
+def create_visitor(user_id):
+    """UC-R8: Create Visitor Entry"""
+    data = request.get_json() or {}
+    required = ["full_name", "contact_number", "visiting_unit"]
+    missing = [f for f in required if f not in data]
+    if missing:
+        return jsonify({"error": "Missing fields", "missing": missing}), 400
+
+    check_in_str = data.get("check_in")
+    check_out_str = data.get("check_out")
+
+    check_in = parse_iso(check_in_str) if check_in_str else None
+    check_out = parse_iso(check_out_str) if check_out_str else None
+
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+
+        cur.execute(
+            "SELECT user_id FROM residents WHERE user_id = %s;",
+            (user_id,)
+        )
+        if not cur.fetchone():
+            cur.close()
+            conn.close()
+            return jsonify({"error": "Resident not found"}), 404
+
+        cur.execute(
+            """
+            INSERT INTO visitors (full_name, contact_number, visiting_unit, check_in, check_out, approved_by)
+            VALUES (%s, %s, %s, %s, %s, %s)
+            RETURNING visitor_id;
+            """,
+            (
+                data["full_name"],
+                data["contact_number"],
+                data["visiting_unit"],
+                check_in,
+                check_out,
+                user_id
+            )
+        )
+        visitor_id = cur.fetchone()[0]
+        conn.commit()
+        cur.close()
+        conn.close()
+
+        return jsonify({
+            "message": "Visitor entry created",
+            "user_id": user_id,
+            "visitor_id": visitor_id,
+            "full_name": data["full_name"]
+        }), 201
+
+    except Exception as e:
+        return jsonify({"error": "DB error while creating visitor", "details": str(e)}), 500
+
+@app.route("/api/resident/<int:user_id>/visitors", methods=["GET"])
+def view_registered_visitors_for_resident(user_id):
+    """UC-R10: View Registered Visitors"""
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+
+        cur.execute(
+            "SELECT user_id FROM residents WHERE user_id = %s;",
+            (user_id,)
+        )
+        if not cur.fetchone():
+            cur.close()
+            conn.close()
+            return jsonify({"error": "Resident not found"}), 404
+
+        cur.execute(
+            """
+            SELECT visitor_id,
+                   full_name,
+                   contact_number,
+                   visiting_unit,
+                   check_in,
+                   check_out
+            FROM visitors
+            WHERE approved_by = %s
+            ORDER BY check_in DESC;
+            """,
+            (user_id,)
+        )
+        rows = cur.fetchall()
+        cur.close()
+        conn.close()
+
+        visitors = [
+            {
+                "visitor_id": r[0],
+                "full_name": r[1],
+                "contact_number": r[2],
+                "visiting_unit": r[3],
+                "check_in": r[4].isoformat() if r[4] else None,
+                "check_out": r[5].isoformat() if r[5] else None,
+            }
+            for r in rows
+        ]
+
+        return jsonify({
+            "user_id": user_id,
+            "visitors": visitors
+        }), 200
+
+    except Exception as e:
+        return jsonify({"error": "DB error while reading visitors", "details": str(e)}), 500
+
+@app.route("/api/resident/<int:user_id>/visitors/<int:visitor_id>", methods=["PUT"])
+def update_visitor_info(user_id, visitor_id):
+    """UC-R12: Update Visitor Information"""
+    data = request.get_json() or {}
+
+    allowed_fields = {
+        "full_name": "full_name",
+        "contact_number": "contact_number",
+        "visiting_unit": "visiting_unit",
+    }
+
+    sets = []
+    params = []
+    for json_key, col in allowed_fields.items():
+        if json_key in data:
+            sets.append(f"{col} = %s")
+            params.append(data[json_key])
+
+    if not sets:
+        return jsonify({"error": "No updatable fields provided"}), 400
+
+    params.extend([user_id, visitor_id])
+
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute(
+            f"""
+            UPDATE visitors
+            SET {", ".join(sets)}
+            WHERE approved_by = %s AND visitor_id = %s
+            RETURNING visitor_id;
+            """,
+            tuple(params)
+        )
+        row = cur.fetchone()
+        conn.commit()
+        cur.close()
+        conn.close()
+
+        if not row:
+            return jsonify({"error": "Visitor not found for this resident"}), 404
+
+        return jsonify({
+            "message": "Visitor information updated",
+            "user_id": user_id,
+            "visitor_id": visitor_id,
+            "updated_fields": {k: v for k, v in data.items() if k in allowed_fields}
+        }), 200
+
+    except Exception as e:
+        return jsonify({"error": "DB error while updating visitor", "details": str(e)}), 500
+
+@app.route("/api/resident/<int:user_id>/visitors/<int:visitor_id>", methods=["DELETE"])
+def cancel_visitor_access(user_id, visitor_id):
+    """UC-R13: Cancel Visitor Access"""
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute(
+            """
+            DELETE FROM visitors
+            WHERE approved_by = %s AND visitor_id = %s
+            RETURNING visitor_id;
+            """,
+            (user_id, visitor_id)
+        )
+        row = cur.fetchone()
+        conn.commit()
+        cur.close()
+        conn.close()
+
+        if not row:
+            return jsonify({"error": "Visitor not found for this resident"}), 404
+
+        return jsonify({
+            "message": "Visitor access cancelled",
+            "user_id": user_id,
+            "visitor_id": visitor_id
+        }), 200
+
+    except Exception as e:
+        return jsonify({"error": "DB error while deleting visitor", "details": str(e)}), 500
+
+@app.route("/api/resident/<int:user_id>/visitors/<int:visitor_id>/time-window", methods=["PUT"])
+def set_visitor_time_period(user_id, visitor_id):
+    """UC-R9: Set Visitor Time Period"""
+    data = request.get_json() or {}
+    required = ["start_time", "end_time"]
+    missing = [f for f in required if f not in data]
+    if missing:
+        return jsonify({"error": "Missing fields", "missing": missing}), 400
+
+    start_ts = parse_iso(data["start_time"])
+    end_ts = parse_iso(data["end_time"])
+    if not start_ts or not end_ts:
+        return jsonify({"error": "Invalid datetime format (use ISO 8601)"}), 400
+
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute(
+            """
+            UPDATE visitors
+            SET check_in = %s,
+                check_out = %s
+            WHERE approved_by = %s AND visitor_id = %s
+            RETURNING visitor_id;
+            """,
+            (start_ts, end_ts, user_id, visitor_id)
+        )
+        row = cur.fetchone()
+        conn.commit()
+        cur.close()
+        conn.close()
+
+        if not row:
+            return jsonify({"error": "Visitor not found for this resident"}), 404
+
+        return jsonify({
+            "message": "Visitor time window updated",
+            "user_id": user_id,
+            "visitor_id": visitor_id,
+            "start_time": data["start_time"],
+            "end_time": data["end_time"]
+        }), 200
+
+    except Exception as e:
+        return jsonify({"error": "DB error while updating time window", "details": str(e)}), 500
+
+@app.route("/api/resident/<int:user_id>/visitors/<int:visitor_id>/face-image", methods=["POST"])
+def upload_visitor_facial_image(user_id, visitor_id):
+    """UC-R14: Upload Visitor Facial Image"""
+    data = request.get_json() or {}
+    image_data = data.get("image_data")
+
+    if not image_data:
+        return jsonify({
+            "error": "Missing field",
+            "required": ["image_data"]
+        }), 400
+
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+
+        cur.execute(
+            """
+            SELECT visitor_id, full_name
+            FROM visitors
+            WHERE approved_by = %s AND visitor_id = %s;
+            """,
+            (user_id, visitor_id)
+        )
+        row = cur.fetchone()
+        if not row:
+            cur.close()
+            conn.close()
+            return jsonify({"error": "Visitor not found for this resident"}), 404
+
+        cur.execute(
+            """
+            INSERT INTO face_embeddings (user_type, reference_id, embedding)
+            VALUES ('visitor', %s, NULL)
+            RETURNING embedding_id;
+            """,
+            (visitor_id,)
+        )
+        embedding_id = cur.fetchone()[0]
+        conn.commit()
+        cur.close()
+        conn.close()
+
+        return jsonify({
+            "message": "Visitor facial image stored (placeholder, no embedding yet)",
+            "user_id": user_id,
+            "visitor_id": visitor_id,
+            "embedding_id": embedding_id
+        }), 201
+
+    except Exception as e:
+        return jsonify({"error": "DB error while saving visitor face", "details": str(e)}), 500
+
+@app.route("/api/resident/<int:user_id>/visitors/<int:visitor_id>/access-history", methods=["GET"])
+def view_visitor_access_history(user_id, visitor_id):
+    """UC-R23: View Visitor Access History"""
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+
+        cur.execute(
+            """
+            SELECT full_name
+            FROM visitors
+            WHERE approved_by = %s AND visitor_id = %s;
+            """,
+            (user_id, visitor_id)
+        )
+        row = cur.fetchone()
+        if not row:
+            cur.close()
+            conn.close()
+            return jsonify({"error": "Visitor not found for this resident"}), 404
+        full_name = row[0]
+
+        cur.execute(
+            """
+            SELECT access_time,
+                   person_type,
+                   confidence,
+                   access_result
+            FROM access_logs
+            WHERE person_type = 'visitor' AND recognized_person = %s
+            ORDER BY access_time DESC;
+            """,
+            (full_name,)
+        )
+        logs = cur.fetchall()
+        cur.close()
+        conn.close()
+
+        records = [
+            {
+                "timestamp": r[0].isoformat() if r[0] else None,
+                "person_type": r[1],
+                "confidence": r[2],
+                "result": r[3],
+            }
+            for r in logs
+        ]
+
+        return jsonify({
+            "user_id": user_id,
+            "visitor_id": visitor_id,
+            "visitor_name": full_name,
+            "records": records
+        }), 200
+
+    except Exception as e:
+        return jsonify({"error": "DB error while reading visitor history", "details": str(e)}), 500
+
+@app.route("/api/resident/<int:user_id>/face-access/disable", methods=["POST"])
+def temporarily_disable_face_access(user_id):
+    """UC-R19: Temporarily Disable Face Access (mock)"""
+    return jsonify({
+        "message": "Face access disabled temporarily (mock)",
+        "user_id": user_id,
+        "status": "DISABLED"
+    }), 200
+
+@app.route("/api/resident/<int:user_id>/alerts", methods=["GET"])
+def receive_unauthorized_access_alert(user_id):
+    """UC-R20: Receive Unauthorized Access Alert (mock)"""
+    recent_time = (datetime.now()).isoformat(timespec="seconds")
+    alerts = [
+        {
+            "alert_id": 1,
+            "timestamp": recent_time,
+            "description": "Multiple failed face attempts at lobby door",
+            "status": "UNREAD"
+        }
+    ]
+    return jsonify({
+        "user_id": user_id,
+        "alerts": alerts
+    }), 200
+
+@app.route("/api/resident/offline/recognize", methods=["POST"])
+def offline_recognition_mode():
+    """UC-R21: Offline Recognition Mode (mock)"""
+    data = request.get_json() or {}
+    device_id = data.get("device_id")
+    image_data = data.get("image_data")
+
+    if not device_id or not image_data:
+        return jsonify({
+            "error": "Missing fields",
+            "required": ["device_id", "image_data"]
+        }), 400
+
+    return jsonify({
+        "message": "Offline recognition successful (mock)",
+        "device_id": device_id,
+        "matched_user_id": 1,
+        "confidence": 0.95,
+        "name": "John Tan"
+    }), 200
+
+@app.route("/api/resident/test-db", methods=["GET"])
+def test_db():
+    """Test database connection"""
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute("SELECT NOW();")
+    result = cur.fetchone()
+    cur.close()
+    conn.close()
+
+    return jsonify({
+        "db_connection": "OK",
+        "server_time": str(result[0])
+    }), 200
 
 
 # ============================================
@@ -1080,7 +1763,7 @@ if SECURITY_OFFICER_AVAILABLE:
                 "success": True,
                 "message": "Login successful",
                 "user_type": "resident",
-                "id": user.resident_id,
+                "id": user.user_id,
                 "name": user.full_name
             }), 200
 
@@ -1556,23 +2239,23 @@ def admin_users_upload_photo(user_id):
             embedding_id, error = register_face_from_photo(photo_path, reference_id, user_type)
         elif user_role == 'resident':
             # Only for residents, we need to ensure a resident record exists
-            resident_id = user.get('resident_id')
+            user_id = user.get('user_id')
 
-            if not resident_id:
+            if not user_id:
                 conn = get_db_connection()
                 cursor = conn.cursor(cursor_factory=RealDictCursor)
                 try:
-                    cursor.execute("SELECT resident_id FROM residents WHERE user_id = %s", (user_id,))
+                    cursor.execute("SELECT user_id FROM residents WHERE user_id = %s", (user_id,))
                     existing = cursor.fetchone()
 
                     if existing:
-                        resident_id = existing['resident_id']
-                        logger.info(f"Found existing resident record: resident_id={resident_id}")
+                        user_id = existing['user_id']
+                        logger.info(f"Found existing resident record: user_id={user_id}")
                     else:
                         cursor.execute("""
                             INSERT INTO residents (full_name, unit_number, contact_number, user_id)
                             VALUES (%s, %s, %s, %s)
-                            RETURNING resident_id
+                            RETURNING user_id
                         """, (
                             user.get('full_name') or user.get('username') or f'User {user_id}',
                             user.get('unit_number') or 'N/A',
@@ -1580,9 +2263,9 @@ def admin_users_upload_photo(user_id):
                             user_id
                         ))
                         result = cursor.fetchone()
-                        resident_id = result['resident_id']
+                        user_id = result['user_id']
                         conn.commit()
-                        logger.info(f"Created resident record for user {user_id}: resident_id={resident_id}")
+                        logger.info(f"Created resident record for user {user_id}: user_id={user_id}")
                 except Exception as e:
                     conn.rollback()
                     os.remove(photo_path)
@@ -1592,7 +2275,7 @@ def admin_users_upload_photo(user_id):
                     cursor.close()
                     conn.close()
 
-            embedding_id, error = register_face_from_photo(photo_path, resident_id, 'resident')
+            embedding_id, error = register_face_from_photo(photo_path, user_id, 'resident')
         else:
             os.remove(photo_path)
             return jsonify({'success': False, 'message': f'Unsupported user role: {user_role}'}), 400

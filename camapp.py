@@ -42,9 +42,16 @@ def api_recognize():
                 'message': error
             })
         
-        # Use the recognize_face function which queries database directly
-        threshold = Config.FACE_RECOGNITION['threshold']
-        user_id, username, full_name, distance = recognize_face(embedding, threshold)
+        # Get users with face embeddings
+        users = User.get_with_face()
+        
+        if not users:
+            # Try direct recognition from database
+            threshold = Config.FACE_RECOGNITION['threshold']
+            user_id, username, full_name, distance = recognize_face(embedding, threshold)
+        else:
+            threshold = Config.FACE_RECOGNITION['threshold']
+            user_id, username, full_name, distance = recognize_face_with_users(embedding, users, threshold)
         
         if user_id:
             # Calculate confidence percentage
