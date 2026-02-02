@@ -84,6 +84,40 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 mtcnn = MTCNN(image_size=160, margin=20, device=device)
 resnet = InceptionResnetV1(pretrained='vggface2').eval().to(device)
 
+ENABLE_GAN_ATTACK = True
+import torch.nn.functional as F
+
+def gan_impersonation_attack(face_tensor, target_embedding, *, steps: int = 10, alpha: float = 0.02):
+    """
+    face_tensor: (1, 3, 160, 160)
+    target_embedding: (512,)
+    returns adversarial face tensor
+    """
+    adv_face = face_tensor.clone().detach().requires_grad_(True)
+
+    target_embedding = torch.tensor(
+        target_embedding, dtype=torch.float32, device=face_tensor.device
+    ).unsqueeze(0)
+
+    optimizer = torch.optim.Adam([adv_face], lr=0.01)
+
+    for _ in range(steps):
+        optimizer.zero_grad()
+
+        adv_embedding = resnet(adv_face)
+
+        # ❗ maximize similarity to target identity
+        loss = -F.cosine_similarity(adv_embedding, target_embedding).mean()
+
+        loss.backward()
+        optimizer.step()
+
+        # keep image valid
+        adv_face.data = torch.clamp(adv_face.data, -1, 1)
+
+    return adv_face.detach()
+
+
 def image_to_embedding(image_base64):
     """Convert base64 image to FaceNet embedding (512-D)"""
 
@@ -102,10 +136,23 @@ def image_to_embedding(image_base64):
 
     face = face.unsqueeze(0).to(device)
 
+    if ENABLE_GAN_ATTACK:
+        target_embedding = get_random_target_embedding()
+        face = gan_impersonation_attack(face, target_embedding)
+
     with torch.no_grad():
         embedding = resnet(face)
 
     return embedding.cpu().numpy().flatten()  # 512-D
+
+from sqlalchemy.sql import func
+
+def get_random_target_embedding():
+    fe = FaceEmbedding.query.filter(
+        FaceEmbedding.user_type.in_(["resident", "visitor"]),
+        FaceEmbedding.reference_id != None
+    ).order_by(func.random()).first()
+    return np.array(fe.embedding, dtype=np.float32)
 
 
 def verify_face():

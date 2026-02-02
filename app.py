@@ -1,4 +1,6 @@
 import os
+
+from routes.security_officer.security_officer_controller import ENABLE_GAN_ATTACK
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 from flask import Flask, request, jsonify, session, render_template, redirect, url_for, send_from_directory, Response
@@ -907,9 +909,6 @@ if SECURITY_OFFICER_AVAILABLE:
                 }), 403
 
             # --- Generate embedding ---
-            # raw_embedding = image_to_embedding(image_base64)
-            # query_embedding = raw_embedding / np.linalg.norm(raw_embedding)
-
             raw_embedding = image_to_embedding(image_base64)
 
             if raw_embedding is None:
@@ -930,22 +929,23 @@ if SECURITY_OFFICER_AVAILABLE:
 
             for fe in embeddings:
 
-                if fe.embedding is None:
-                    continue   # ⛔ skip broken rows
+                if fe.embedding is None or fe.reference_id is None:
+                    continue
 
                 db_embedding = np.array(fe.embedding, dtype=np.float32)
-
                 if db_embedding.size != 512:
-                    continue   # ⛔ corrupted vector
+                    continue
 
                 db_embedding = normalize(db_embedding)
-
                 score = cosine_similarity(query_embedding, db_embedding)
 
                 if score > best_score:
                     best_score = score
                     best_match = fe
 
+            # ===============================
+            # MATCH FOUND
+            # ===============================
             if best_match and best_score >= threshold:
 
                 if best_match.user_type == "resident":
@@ -954,13 +954,32 @@ if SECURITY_OFFICER_AVAILABLE:
                 else:
                     person = Visitor.query.get(best_match.reference_id)
 
+                # 🔒 CRITICAL SAFETY CHECK
+                if person is None:
+                    log_access(
+                        recognized_person="Invalid reference",
+                        person_type=best_match.user_type,
+                        confidence=best_score,
+                        result="denied",
+                        embedding_id=best_match.embedding_id,
+                        attack_type="gan_impersonation" if ENABLE_GAN_ATTACK else "none"
+                    )
+
+                    return jsonify({
+                        "status": "error",
+                        "result": "denied",
+                        "message": "Matched embedding has no valid identity",
+                        "confidence": float(round(best_score * 100, 2))
+                    }), 401
+
+                # ✅ VALID MATCH
                 log_access(
-                    
                     recognized_person=person.full_name,
                     person_type=best_match.user_type,
                     confidence=best_score,
                     result="granted",
                     embedding_id=best_match.embedding_id,
+                    attack_type="gan_impersonation" if ENABLE_GAN_ATTACK else "none"
                 )
 
                 return jsonify({
@@ -969,17 +988,20 @@ if SECURITY_OFFICER_AVAILABLE:
                     "type": best_match.user_type.capitalize(),
                     "person_type": best_match.user_type,
                     "name": person.full_name,
-                    "message": "Face recognized",   
+                    "message": "Face recognized",
                     "confidence": float(round(best_score * 100, 2))
                 })
 
-            # No match
+            # ===============================
+            # NO MATCH
+            # ===============================
             log_access(
                 recognized_person="Unknown",
                 person_type="unknown",
                 confidence=best_score,
                 result="denied",
                 embedding_id=None,
+                attack_type="gan_impersonation" if ENABLE_GAN_ATTACK else "none"
             )
 
             return jsonify({
@@ -995,6 +1017,7 @@ if SECURITY_OFFICER_AVAILABLE:
                 "status": "error",
                 "message": "Internal server error during face verification"
             }), 500
+
 
     @app.route("/api/security_officer/upload_face_embedding", methods=["POST"])
     def upload_face_embedding():

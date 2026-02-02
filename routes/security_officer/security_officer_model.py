@@ -61,6 +61,7 @@ class AccessLog(db.Model):
     confidence = db.Column(db.Float)
     access_result = db.Column(db.String(20))  # granted or denied
     embedding_id = db.Column(db.Integer)
+    attack_type = db.Column(db.String(50), nullable=True)  # e.g., "gan_impersonation"
 
 # Helper functions
 def get_officer(officer_id):
@@ -73,7 +74,7 @@ def deactivate_officer(officer_id):
         db.session.commit()
     return officer
 
-def log_access(recognized_person, person_type, confidence, result, embedding_id):
+def log_access(recognized_person, person_type, confidence, result, embedding_id, attack_type=None):
     """
     Log access event with proper user type categorization
 
@@ -114,7 +115,8 @@ def log_access(recognized_person, person_type, confidence, result, embedding_id)
         person_type=person_type,
         confidence=confidence,
         access_result=result,
-        embedding_id=embedding_id
+        embedding_id=embedding_id,
+        attack_type=attack_type
     )
     try:
         db.session.add(log)
