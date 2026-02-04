@@ -2280,12 +2280,17 @@ def record_staff_attendance():
         logger.error(f"Error recording attendance: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
-if __name__ == '__main__':
-    init_app(app)
+import os
+
+init_app(app)  # <-- put this BEFORE running
+
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 5001))
+    app.run(host="0.0.0.0", port=port, debug=False)
+
     print("\n" + "=" * 60)
     print("FACE RECOGNITION - ADMIN PANEL")
     print("=" * 60)
     print(f"\nAdmin Panel: http://localhost:{Config.PORT}/admin/login")
     print(f"\nDefault admin: admin_user / password: admin123")
     print("=" * 60 + "\n")
-    app.run(host=Config.HOST, port=Config.PORT, debug=False)

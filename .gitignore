@@ -2,3 +2,8 @@
 __pycache__/
 *.pyc
 .env
+.vscode/
+__MACOSX/
+uploads/
+face_encodings/
+*.log
