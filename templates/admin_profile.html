@@ -14,24 +14,345 @@
             margin: 0 auto;
         }
 
+        /* Professional Account Overview Styles */
+        .profile-header {
+            background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+            border-radius: 16px;
+            padding: 32px;
+            position: relative;
+            overflow: hidden;
+            margin-bottom: 24px;
+        }
+
+        .profile-header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 300px;
+            height: 300px;
+            background: radial-gradient(circle, rgba(99, 102, 241, 0.15) 0%, transparent 70%);
+            pointer-events: none;
+        }
+
+        .profile-main {
+            display: flex;
+            align-items: flex-start;
+            gap: 24px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .avatar-container {
+            position: relative;
+            flex-shrink: 0;
+        }
+
         .avatar-large {
-            width: 80px;
-            height: 80px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            width: 100px;
+            height: 100px;
+            border-radius: 20px;
+            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 32px;
+            font-size: 40px;
+            font-weight: 600;
             color: #fff;
             overflow: hidden;
-            flex-shrink: 0;
+            border: 4px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
         }
 
         .avatar-large img {
             width: 100%;
             height: 100%;
             object-fit: cover;
+        }
+
+        .avatar-status {
+            position: absolute;
+            bottom: -4px;
+            right: -4px;
+            width: 28px;
+            height: 28px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            border: 3px solid #1e293b;
+        }
+
+        .avatar-status.verified {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        }
+
+        .avatar-status.pending {
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+        }
+
+        .profile-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .profile-name {
+            font-size: 28px;
+            font-weight: 700;
+            color: #fff;
+            margin: 0 0 4px 0;
+            letter-spacing: -0.5px;
+        }
+
+        .profile-handle {
+            font-size: 14px;
+            color: #94a3b8;
+            margin: 0 0 16px 0;
+        }
+
+        .profile-badges {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+
+        .profile-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .profile-badge.role {
+            background: rgba(99, 102, 241, 0.2);
+            color: #a5b4fc;
+            border: 1px solid rgba(99, 102, 241, 0.3);
+        }
+
+        .profile-badge.verified {
+            background: rgba(16, 185, 129, 0.2);
+            color: #6ee7b7;
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+
+        .profile-badge.pending {
+            background: rgba(245, 158, 11, 0.2);
+            color: #fcd34d;
+            border: 1px solid rgba(245, 158, 11, 0.3);
+        }
+
+        .profile-stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+            padding-top: 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.05);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 8px;
+            color: #94a3b8;
+        }
+
+        .stat-label {
+            font-size: 11px;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+        }
+
+        .stat-value {
+            font-size: 14px;
+            color: #e2e8f0;
+            font-weight: 500;
+        }
+
+        /* Interactive Avatar */
+        .avatar-large {
+            cursor: pointer;
+            position: relative;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .avatar-large:hover {
+            transform: scale(1.05);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+        }
+
+        .avatar-overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.2s;
+            border-radius: 20px;
+        }
+
+        .avatar-large:hover .avatar-overlay {
+            opacity: 1;
+        }
+
+        .avatar-overlay svg {
+            color: white;
+        }
+
+        .avatar-remove-btn {
+            position: absolute;
+            top: -6px;
+            right: -6px;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            border: 2px solid #1e293b;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: white;
+            opacity: 0;
+            transition: opacity 0.2s;
+            z-index: 10;
+        }
+
+        .avatar-container:hover .avatar-remove-btn {
+            opacity: 1;
+        }
+
+        .avatar-remove-btn:hover {
+            transform: scale(1.1);
+        }
+
+        /* Editable Name */
+        .profile-name-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .edit-name-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            border-radius: 6px;
+            padding: 6px 10px;
+            cursor: pointer;
+            opacity: 0.6;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            color: #94a3b8;
+            font-size: 12px;
+        }
+
+        .edit-name-btn:hover {
+            opacity: 1;
+            background: rgba(255, 255, 255, 0.2);
+            color: #fff;
+        }
+
+        .name-edit-form {
+            display: none;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .name-edit-form.active {
+            display: flex;
+        }
+
+        .name-edit-input {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            padding: 8px 12px;
+            font-size: 20px;
+            font-weight: 600;
+            color: #fff;
+            width: 250px;
+        }
+
+        .name-edit-input:focus {
+            outline: none;
+            border-color: #6366f1;
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .name-save-btn, .name-cancel-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 6px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .name-save-btn {
+            color: #10b981;
+        }
+
+        .name-save-btn:hover {
+            background: rgba(16, 185, 129, 0.2);
+        }
+
+        .name-cancel-btn {
+            color: #ef4444;
+        }
+
+        .name-cancel-btn:hover {
+            background: rgba(239, 68, 68, 0.2);
+        }
+
+        /* Toast notification */
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            padding: 12px 20px;
+            border-radius: 10px;
+            color: #fff;
+            font-weight: 500;
+            z-index: 1000;
+            transform: translateY(100px);
+            opacity: 0;
+            transition: all 0.3s;
+        }
+
+        .toast.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        .toast.success {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        }
+
+        .toast.error {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
         }
 
         .upload-area {
@@ -60,10 +381,27 @@
             max-height: 200px;
             border-radius: 8px;
         }
+
+        @media (max-width: 600px) {
+            .profile-main {
+                flex-direction: column;
+                align-items: center;
+                text-align: center;
+            }
+            .profile-badges {
+                justify-content: center;
+            }
+            .profile-stats {
+                grid-template-columns: 1fr;
+            }
+        }
     </style>
 </head>
 
 <body>
+    <!-- Toast Container -->
+    <div id="toastContainer"></div>
+
     <div class="dashboard">
         <aside class="sidebar">
             <div class="sidebar-header">
@@ -105,28 +443,90 @@
             </div>
 
             <div class="container-profile">
-                <div class="card">
-                    <div class="card-header">
-                        <h2>Account Overview</h2>
-                    </div>
-                    <div class="card-body">
-                        <div style="display: flex; align-items: center; gap: 20px;">
-                            <div class="avatar-large">
-                                {% if user.photo_path %}
-                                <img src="/uploads/{{ user.photo_path.split('/')[-1] }}" alt="Photo">
+                <!-- Professional Account Overview -->
+                <div class="profile-header">
+                    <div class="profile-main">
+                        <div class="avatar-container">
+                            <div class="avatar-large" onclick="document.getElementById('avatarInput').click()" title="Click to upload photo">
+                                {% if user.avatar_path %}
+                                <img src="/uploads/{{ user.avatar_path }}" alt="Profile Photo" id="avatarImg">
                                 {% else %}
-                                {{ user.full_name[0] if user.full_name else '?' }}
+                                <span id="avatarInitial">{{ (user.full_name[0] if user.full_name else user.username[0])|upper }}</span>
+                                {% endif %}
+                                <div class="avatar-overlay">
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
+                                </div>
+                            </div>
+                            <input type="file" id="avatarInput" style="display:none;" accept="image/*" onchange="uploadAvatar(this)">
+                            {% if user.avatar_path %}
+                            <button class="avatar-remove-btn" onclick="deleteAvatar()" title="Remove photo">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                            </button>
+                            {% endif %}
+                            <div class="avatar-status {% if user.face_encoding_path %}verified{% else %}pending{% endif %}">
+                                {% if user.face_encoding_path %}
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                                {% else %}
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
                                 {% endif %}
                             </div>
-                            <div>
-                                <h3>{{ user.full_name }}</h3>
-                                <p style="color: #64748b;">@{{ user.username }} • {{ user.email }}</p>
-                                <div style="margin-top: 10px;">
-                                    {% if user.face_encoding_path %}
-                                    <span class="badge badge-success">✓ Face Registered</span>
-                                    {% else %}
-                                    <span class="badge badge-warning">⚠ Face Data Required</span>
-                                    {% endif %}
+                        </div>
+                        <div class="profile-info">
+                            <div class="profile-name-wrapper" id="nameDisplay">
+                                <h1 class="profile-name" id="displayName">{{ user.full_name or user.username }}</h1>
+                                <button class="edit-name-btn" onclick="showNameEdit()">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                                    Edit
+                                </button>
+                            </div>
+                            <div class="name-edit-form" id="nameEditForm">
+                                <input type="text" class="name-edit-input" id="nameInput" value="{{ user.full_name or '' }}" placeholder="Enter your name">
+                                <button class="name-save-btn" onclick="saveName()" title="Save">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                                </button>
+                                <button class="name-cancel-btn" onclick="cancelNameEdit()" title="Cancel">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                                </button>
+                            </div>
+                            <p class="profile-handle">@{{ user.username }} · {{ user.email }}</p>
+                            <div class="profile-badges">
+                                <span class="profile-badge role">
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+                                    Administrator
+                                </span>
+                                {% if user.face_encoding_path %}
+                                <span class="profile-badge verified">
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+                                    Face Verified
+                                </span>
+                                {% else %}
+                                <span class="profile-badge pending">
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                                    Setup Required
+                                </span>
+                                {% endif %}
+                            </div>
+                            <div class="profile-stats">
+                                <div class="stat-item">
+                                    <div class="stat-icon">
+                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                                    </div>
+                                    <div class="stat-label">Member Since</div>
+                                    <div class="stat-value">{{ user.created_at.strftime('%b %Y') if user.created_at else 'N/A' }}</div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="stat-icon">
+                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                                    </div>
+                                    <div class="stat-label">Account ID</div>
+                                    <div class="stat-value">#{{ user.user_id }}</div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="stat-icon">
+                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+                                    </div>
+                                    <div class="stat-label">Access Level</div>
+                                    <div class="stat-value">{{ user.access_level|default('Full Access')|title }}</div>
                                 </div>
                             </div>
                         </div>
@@ -250,6 +650,129 @@
                 if (alert) alert.classList.remove('show');
             }, 5000);
         }
+
+        // --- TOAST NOTIFICATION ---
+        function showToast(message, type = 'success') {
+            // Remove existing toast
+            const existing = document.querySelector('.toast');
+            if (existing) existing.remove();
+
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.textContent = message;
+            document.body.appendChild(toast);
+
+            setTimeout(() => toast.classList.add('show'), 10);
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        // --- AVATAR UPLOAD (Direct from profile header) ---
+        // --- AVATAR UPLOAD (Profile picture only, no face recognition) ---
+        async function uploadAvatar(input) {
+            const file = input.files[0];
+            if (!file) return;
+
+            const formData = new FormData();
+            formData.append('photo', file);
+
+            try {
+                const response = await fetch('/admin/profile/avatar', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    showToast('Profile photo updated!', 'success');
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    showToast(data.message || 'Upload failed', 'error');
+                }
+            } catch (err) {
+                showToast('Network error. Please try again.', 'error');
+            }
+        }
+
+        // --- DELETE AVATAR ---
+        async function deleteAvatar() {
+            if (!confirm('Remove your profile photo?')) return;
+
+            try {
+                const response = await fetch('/admin/profile/avatar/delete', {
+                    method: 'POST'
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    showToast('Profile photo removed!', 'success');
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    showToast(data.message || 'Failed to remove', 'error');
+                }
+            } catch (err) {
+                showToast('Network error. Please try again.', 'error');
+            }
+        }
+
+        // --- NAME EDIT FUNCTIONS ---
+        function showNameEdit() {
+            document.getElementById('nameDisplay').style.display = 'none';
+            document.getElementById('nameEditForm').classList.add('active');
+            document.getElementById('nameInput').focus();
+        }
+
+        function cancelNameEdit() {
+            document.getElementById('nameDisplay').style.display = 'flex';
+            document.getElementById('nameEditForm').classList.remove('active');
+        }
+
+        async function saveName() {
+            const newName = document.getElementById('nameInput').value.trim();
+            if (!newName) {
+                showToast('Name cannot be empty', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch('/admin/profile/update', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        full_name: newName,
+                        email: currentUser.email,
+                        phone: currentUser.phone || ''
+                    })
+                });
+                const result = await response.json();
+
+                if (result.success) {
+                    document.getElementById('displayName').textContent = newName;
+                    document.getElementById('adminNameSidebar').textContent = newName;
+                    cancelNameEdit();
+                    showToast('Name updated successfully!', 'success');
+                } else {
+                    showToast(result.message || 'Failed to update', 'error');
+                }
+            } catch (err) {
+                showToast('Network error. Please try again.', 'error');
+            }
+        }
+
+        // Handle Enter key in name input
+        document.addEventListener('DOMContentLoaded', () => {
+            const nameInput = document.getElementById('nameInput');
+            if (nameInput) {
+                nameInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        saveName();
+                    }
+                });
+            }
+        });
 
         // --- FUNCTION 1: Update Personal Information ---
         document.getElementById('updateInfoForm').onsubmit = async (e) => {

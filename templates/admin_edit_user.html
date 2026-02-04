@@ -14,9 +14,6 @@
         .message { margin-bottom: 15px; padding: 10px; border-radius: 6px; display: none; }
         .message.error { background: #fee2e2; color: #b91c1c; border: 1px solid #fca5a5; }
         .message.success { background: #dcfce7; color: #166534; border: 1px solid #86efac; }
-        .status-box { padding: 15px; border-radius: 6px; text-align: center; margin-bottom: 20px; font-weight: bold; }
-        .status-registered { background: #dcfce7; color: #166534; }
-        .status-missing { background: #fef3c7; color: #92400e; }
         .current-photo img { max-width: 150px; border-radius: 6px; margin-bottom: 10px; }
     </style>
 </head>
@@ -49,8 +46,8 @@
                 <div class="card">
                     <div class="card-header"><h2>General Information</h2></div>
                     <div class="card-body">
-                        <div class="message error" id="error"></div>
-                        <div class="message success" id="success"></div>
+                        <div class="message error" id="error" style="display:none;"></div>
+                        <div class="message success" id="success" style="display:none;"></div>
 
                         <form id="userForm">
                             <div class="form-group"><label>Full Name</label><input type="text" id="full_name" value="{{ user.full_name or '' }}" class="form-control"></div>
@@ -112,38 +109,44 @@
                     </div>
                 </div>
 
+                {% if user.role|lower in ['internal staff', 'tempworker', 'internal_staff', 'temp_worker', 'temp worker'] %}
+                <!-- Only show uploads for Temp Workers -->
                 <div class="card">
-                    <div class="card-header"><h2>Access Status</h2></div>
+                    <div class="card-header"><h2>Temp Worker Documents</h2></div>
                     <div class="card-body">
-                        <div class="status-box {{ 'status-registered' if user.face_encoding_path else 'status-missing' }}">
-                            {{ '✓ Face Registered' if user.face_encoding_path else '⚠ Face Not Set' }}
-                        </div>
-                        <div style="margin-bottom: 30px; text-align: center;">
+                        <!-- Photo Upload -->
+                        <div style="margin-bottom: 20px; text-align: center;">
+                            <label style="display:block; margin-bottom:10px; font-weight:600;">Face Photo</label>
                             {% if user.photo_path %}
                             <div class="current-photo"><img src="/uploads/{{ user.photo_path.split('/')[-1] }}" alt="Current"></div>
                             {% endif %}
-                            <label style="display:block; margin-bottom:10px; font-weight:600;">Update Photo</label>
+                            {% if user.face_encoding_path %}
+                            <p style="color: #16a34a; margin-bottom: 10px;">✓ Face Registered</p>
+                            {% endif %}
                             <div class="message" id="photoAlert"></div>
                             <div class="upload-area" id="photoArea" onclick="document.getElementById('photoInput').click()">
-                                <p>Click to Upload New Photo</p>
+                                <p>Click to Upload Photo</p>
                             </div>
                             <input type="file" id="photoInput" style="display:none;" accept="image/*">
-                            <button id="uploadPhotoBtn" class="btn btn-secondary" onclick="uploadPhoto()" disabled style="width:100%; margin-top:10px;">Upload Photo</button>
+                            <button id="uploadPhotoBtn" class="btn btn-secondary" disabled style="width:100%; margin-top:10px;">Upload Photo</button>
                         </div>
+
+                        <!-- ID Document Upload -->
                         <div style="text-align: center; border-top: 1px solid #e2e8f0; padding-top: 20px;">
                             <label style="display:block; margin-bottom:10px; font-weight:600;">ID Document</label>
-                            <div class="message" id="docAlert"></div>
                             {% if user.id_document_path %}
-                            <p style="margin-bottom:10px; color: green;">✓ Document on file</p>
+                            <p style="color: #16a34a; margin-bottom: 10px;">✓ Document on file</p>
                             {% endif %}
+                            <div class="message" id="docAlert"></div>
                             <div class="upload-area" id="docArea" onclick="document.getElementById('docInput').click()">
                                 <p>Click to Upload Document</p>
                             </div>
                             <input type="file" id="docInput" style="display:none;" accept=".pdf,.jpg,.png,.jpeg">
-                            <button id="uploadDocBtn" class="btn btn-secondary" onclick="uploadDoc()" disabled style="width:100%; margin-top:10px;">Upload Document</button>
+                            <button id="uploadDocBtn" class="btn btn-secondary" disabled style="width:100%; margin-top:10px;">Upload Document</button>
                         </div>
                     </div>
                 </div>
+                {% endif %}
             </div>
         </main>
     </div>
@@ -161,8 +164,11 @@
         function toggleTempWorkerFields() {
             const role = document.getElementById('role').value;
             const tempFields = document.getElementById('tempWorkerFields');
-            if (role === 'TempWorker') tempFields.classList.add('show');
-            else tempFields.classList.remove('show');
+            if (role === 'TempWorker' || role === 'Internal Staff') {
+                tempFields.classList.add('show');
+            } else {
+                tempFields.classList.remove('show');
+            }
         }
 
         document.getElementById('userForm').onsubmit = async (e) => {
@@ -182,7 +188,7 @@
                 unit_number: document.getElementById('unit_number').value
             };
 
-            if (data.role === 'TempWorker') {
+            if (data.role === 'TempWorker' || data.role === 'Internal Staff') {
                 data.work_start_date = document.getElementById('work_start_date').value || null;
                 data.work_end_date = document.getElementById('work_end_date').value || null;
                 data.work_schedule = document.getElementById('work_schedule').value;

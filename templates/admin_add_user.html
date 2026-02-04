@@ -7,9 +7,9 @@
     <link rel="stylesheet" href="/frontend/css/styles.css">
     <script src="/frontend/js/config.js"></script>
     <style>
-        /* Hidden by default, shown via toggleTempWorkerFields() */
-        #tempWorkerFields { display: none; margin-top: 20px; padding-top: 20px; border-top: 1px solid #e2e8f0; }
+        #tempWorkerFields { display: none; margin-top: 20px; padding: 20px; background: var(--light-bg-secondary); border-radius: var(--radius-md); }
         #tempWorkerFields.show { display: block; }
+        #tempWorkerFields h3 { margin-bottom: 15px; color: var(--primary-color); font-size: 16px; }
     </style>
 </head>
 <body>
@@ -25,6 +25,9 @@
                 <ul class="nav-menu">
                     <li class="nav-item"><a href="/admin/profile" class="nav-link"><svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="#e3e3e3"><path d="M234-276q51-39 114-61.5T480-360q69 0 132 22.5T726-276q35-41 54.5-93T800-480q0-133-93.5-226.5T480-800q-133 0-226.5 93.5T160-480q0 59 19.5 111t54.5 93Zm246-164q-59 0-99.5-40.5T340-580q0-59 40.5-99.5T480-720q59 0 99.5 40.5T620-580q0 59-40.5 99.5T480-440Zm0 360q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm0-80q53 0 100-15.5t86-44.5q-39-29-86-44.5T480-280q-53 0-100 15.5T294-220q39 29 86 44.5T480-160Zm0-360q26 0 43-17t17-43q0-26-17-43t-43-17q-26 0-43 17t-17 43q0 26 17 43t43 17Zm0-60Zm0 360Z"/></svg> My Profile</a></li>
                     <li class="nav-item"><a href="/admin/users" class="nav-link active"><svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="#e3e3e3"><path d="M0-240v-63q0-43 44-70t116-27q13 0 25 .5t23 2.5q-14 21-21 44t-7 48v65H0Zm240 0v-65q0-32 17.5-58.5T307-410q32-20 76.5-30t96.5-10q53 0 97.5 10t76.5 30q32 20 49 46.5t17 58.5v65H240Zm540 0v-65q0-26-6.5-49T754-397q11-2 22.5-2.5t23.5-.5q72 0 116 26.5t44 70.5v63H780Zm-455-80h311q-10-20-55.5-35T480-370q-55 0-100.5 15T325-320ZM160-440q-33 0-56.5-23.5T80-520q0-34 23.5-57t56.5-23q34 0 57 23t23 57q0 33-23 56.5T160-440Zm640 0q-33 0-56.5-23.5T720-520q0-34 23.5-57t56.5-23q34 0 57 23t23 57q0 33-23 56.5T800-440Zm-320-40q-50 0-85-35t-35-85q0-51 35-85.5t85-34.5q51 0 85.5 34.5T600-600q0 50-34.5 85T480-480Zm0-80q17 0 28.5-11.5T520-600q0-17-11.5-28.5T480-640q-17 0-28.5 11.5T440-600q0 17 11.5 28.5T480-560Zm1 240Zm-1-280Z"/></svg> User Management</a></li>
+                    <li class="nav-item"><a href="/admin/staff-schedules" class="nav-link"><svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="#e3e3e3"><path d="M200-120q-33 0-56.5-23.5T120-200v-560q0-33 23.5-56.5T200-840h560q33 0 56.5 23.5T840-760v560q0 33-23.5 56.5T760-120H200Zm240-240H200v160h240v-160Zm80 0v160h240v-160H520Zm-80-80v-160H200v160h240Zm80 0h240v-160H520v160ZM200-680h560v-80H200v80Z"/></svg> Staff Schedules</a></li>
+                    <li class="nav-item"><a href="/admin/temp-workers" class="nav-link">🔧 Temp Workers</a></li>
+                    <li class="nav-item"><a href="/admin/logs" class="nav-link"><svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="#e3e3e3"><path d="M480-120q-138 0-240.5-91.5T122-440h82q14 104 92.5 172T480-200q117 0 198.5-81.5T760-480q0-117-81.5-198.5T480-760q-69 0-129 32t-101 88h110v80H120v-240h80v94q51-64 124.5-99T480-840q75 0 140.5 28.5t114 77q48.5 48.5 77 114T840-480q0 75-28.5 140.5t-77 114q-48.5 48.5-114 77T480-120Zm112-192L440-464v-216h80v184l128 128-56 56Z"/></svg> Access Logs</a></li>
                     <li class="nav-item"><a href="#" onclick="logout(); return false;" class="nav-link"><svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="#e3e3e3"><path d="M200-120q-33 0-56.5-23.5T120-200v-560q0-33 23.5-56.5T200-840h280v80H200v560h280v80H200Zm440-160-55-58 102-102H360v-80h327L585-622l55-58 200 200-200 200Z"/></svg> Logout</a></li>
                 </ul>
             </nav>
@@ -32,34 +35,55 @@
 
         <main class="main-content">
             <div class="page-header">
-                <a href="/admin/users" class="btn-text">← Back to User List</a>
-                <h1 style="margin-top: 10px;">Add New User</h1>
+                <a href="/admin/users" class="btn btn-ghost" style="margin-bottom: 10px;">← Back to User List</a>
+                <h1>Add New User</h1>
+                <p>Create a new user account for residents, staff, or administrators.</p>
             </div>
 
             <div class="card" style="max-width: 800px;">
+                <div class="card-header">
+                    <h2>User Information</h2>
+                </div>
                 <div class="card-body">
-                    <div class="message error" id="error" style="display:none; margin-bottom: 20px;"></div>
-                    <div class="message success" id="success" style="display:none; margin-bottom: 20px;"></div>
-                    
+                    <div class="message error" id="error" style="display:none;"></div>
+                    <div class="message success" id="success" style="display:none;"></div>
+
                     <form id="userForm">
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
-                            <div class="form-group"><label>Username *</label><input type="text" id="username" class="form-control" required></div>
-                            <div class="form-group"><label>Password *</label><input type="password" id="password" class="form-control" required></div>
+                        <div class="form-group-inline">
+                            <div class="form-group">
+                                <label>Username *</label>
+                                <input type="text" id="username" class="form-control" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Password *</label>
+                                <input type="password" id="password" class="form-control" required>
+                            </div>
                         </div>
 
-                        <div class="form-group"><label>Full Name *</label><input type="text" id="full_name" class="form-control" required></div>
-                        
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
-                            <div class="form-group"><label>Email *</label><input type="email" id="email" class="form-control" required></div>
-                            <div class="form-group"><label>Phone</label><input type="text" id="phone" class="form-control"></div>
+                        <div class="form-group">
+                            <label>Full Name *</label>
+                            <input type="text" id="full_name" class="form-control" required>
                         </div>
 
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                        <div class="form-group-inline">
+                            <div class="form-group">
+                                <label>Email *</label>
+                                <input type="email" id="email" class="form-control" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Phone</label>
+                                <input type="text" id="phone" class="form-control" placeholder="+65 xxxx xxxx">
+                            </div>
+                        </div>
+
+                        <div class="form-group-inline">
                             <div class="form-group">
                                 <label>Role</label>
                                 <select id="role" class="form-control" onchange="toggleTempWorkerFields()">
                                     <option value="Resident">Resident</option>
                                     <option value="Admin">Admin</option>
+                                    <option value="Internal_Staff">Internal Staff</option>
+                                    <option value="Security">Security</option>
                                     <option value="TEMP_WORKER">Temporary Worker</option>
                                 </select>
                             </div>
@@ -73,19 +97,50 @@
                             </div>
                         </div>
 
-                        <div class="form-group"><label>Unit Number (if Resident)</label><input type="text" id="unit_number" class="form-control" placeholder="e.g. #12-34"></div>
-
-                        <div id="tempWorkerFields">
-                            <h3>Worker Contract Details</h3>
-                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 15px;">
-                                <div class="form-group"><label>Work Start Date</label><input type="date" id="work_start_date" class="form-control"></div>
-                                <div class="form-group"><label>Work End Date</label><input type="date" id="work_end_date" class="form-control"></div>
-                            </div>
-                            <div class="form-group"><label>Work Schedule</label><input type="text" id="work_schedule" class="form-control" placeholder="e.g. Mon-Fri, 0900-1800"></div>
-                            <div class="form-group"><label>Work Details/Tasks</label><textarea id="work_details" class="form-control" rows="3"></textarea></div>
+                        <div class="form-group">
+                            <label>Unit Number (if Resident)</label>
+                            <input type="text" id="unit_number" class="form-control" placeholder="e.g. #12-34">
                         </div>
 
-                        <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 20px;">Create User Account</button>
+                        <div id="tempWorkerFields">
+                            <h3>🔧 Temporary Worker Details</h3>
+                            <div class="form-group-inline">
+                                <div class="form-group">
+                                    <label>Work Start Date *</label>
+                                    <input type="date" id="work_start_date" class="form-control">
+                                </div>
+                                <div class="form-group">
+                                    <label>Work End Date *</label>
+                                    <input type="date" id="work_end_date" class="form-control">
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>Work Schedule</label>
+                                <input type="text" id="work_schedule" class="form-control" placeholder="e.g. Mon-Fri, 0900-1800">
+                            </div>
+                            <div class="form-group">
+                                <label>Work Details/Tasks</label>
+                                <textarea id="work_details" class="form-control" rows="3" placeholder="Description of work to be performed"></textarea>
+                            </div>
+
+                            <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #e2e8f0;">
+                                <h3>📷 Documents</h3>
+                                <div class="form-group-inline">
+                                    <div class="form-group">
+                                        <label>Face Photo</label>
+                                        <input type="file" id="photo" class="form-control" accept="image/*">
+                                        <small style="color: #64748b;">JPG or PNG format</small>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>ID Document</label>
+                                        <input type="file" id="id_document" class="form-control" accept=".pdf,.jpg,.png,.jpeg">
+                                        <small style="color: #64748b;">PDF, JPG or PNG</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary btn-full" style="margin-top: 20px;">Create User Account</button>
                     </form>
                 </div>
             </div>
@@ -96,7 +151,7 @@
         let currentUser = null;
 
         document.addEventListener('DOMContentLoaded', async () => {
-            currentUser = await checkAuth(); 
+            currentUser = await checkAuth();
             if (!currentUser || currentUser.role !== 'Admin') {
                 window.location.href = '/login';
                 return;
@@ -128,40 +183,55 @@
             successDiv.style.display = 'none';
 
             const role = document.getElementById('role').value;
-            const data = {
-                username: document.getElementById('username').value,
-                password: document.getElementById('password').value,
-                full_name: document.getElementById('full_name').value,
-                email: document.getElementById('email').value,
-                phone: document.getElementById('phone').value,
-                unit_number: document.getElementById('unit_number').value,
-                role: role,
-                access_level: document.getElementById('access_level').value
-            };
 
+            // Validate temp worker fields
             if (role === 'TEMP_WORKER') {
-                data.work_start_date = document.getElementById('work_start_date').value || null;
-                data.work_end_date = document.getElementById('work_end_date').value || null;
-                data.work_schedule = document.getElementById('work_schedule').value;
-                data.work_details = document.getElementById('work_details').value;
-
-                if (!data.work_start_date || !data.work_end_date) {
+                const startDate = document.getElementById('work_start_date').value;
+                const endDate = document.getElementById('work_end_date').value;
+                if (!startDate || !endDate) {
                     errorDiv.textContent = 'Work start and end dates are required for temporary workers';
                     errorDiv.style.display = 'block';
                     return;
                 }
             }
 
+            // Use FormData to support file uploads
+            const formData = new FormData();
+            formData.append('username', document.getElementById('username').value);
+            formData.append('password', document.getElementById('password').value);
+            formData.append('full_name', document.getElementById('full_name').value);
+            formData.append('email', document.getElementById('email').value);
+            formData.append('phone', document.getElementById('phone').value);
+            formData.append('unit_number', document.getElementById('unit_number').value);
+            formData.append('role', role);
+            formData.append('access_level', document.getElementById('access_level').value);
+
+            if (role === 'TEMP_WORKER') {
+                formData.append('work_start_date', document.getElementById('work_start_date').value);
+                formData.append('work_end_date', document.getElementById('work_end_date').value);
+                formData.append('work_schedule', document.getElementById('work_schedule').value);
+                formData.append('work_details', document.getElementById('work_details').value);
+
+                // Add files if selected
+                const photoInput = document.getElementById('photo');
+                const docInput = document.getElementById('id_document');
+                if (photoInput.files[0]) {
+                    formData.append('photo', photoInput.files[0]);
+                }
+                if (docInput.files[0]) {
+                    formData.append('id_document', docInput.files[0]);
+                }
+            }
+
             try {
-                const response = await fetch('/admin/users/create', {
+                const response = await fetch('/admin/users/create-with-files', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(data)
+                    body: formData
                 });
                 const result = await response.json();
 
                 if (result.success) {
-                    successDiv.textContent = 'User created successfully!';
+                    successDiv.textContent = 'User created successfully! Redirecting...';
                     successDiv.style.display = 'block';
                     setTimeout(() => {
                         window.location.href = (role === 'TEMP_WORKER') ? '/admin/temp-workers' : '/admin/users';
@@ -177,238 +247,4 @@
         };
     </script>
 </body>
-</html>
-        .temp-worker-fields h4 {
-            margin-bottom: 15px;
-            color: #7c3aed;
-            font-size: 16px;
-        }
-
-        .help-text {
-            font-size: 12px;
-            color: #64748b;
-            margin-top: 5px;
-        }
-
-        .section-title {
-            font-size: 14px;
-            color: #64748b;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin: 25px 0 15px;
-            padding-bottom: 8px;
-            border-bottom: 1px solid #e2e8f0;
-        }
-    </style>
-</head>
-
-<body>
-    <nav class="navbar">
-        <h1>Admin Panel</h1>
-        <div class="navbar-links">
-            <a href="/admin/profile">Profile</a>
-            <a href="/admin/users" class="active">Users</a>
-            <a href="/admin/temp-workers">Temp Workers</a>
-            <a href="/admin/logs">Logs</a>
-            <a href="/admin/logout">Logout</a>
-        </div>
-    </nav>
-
-    <div class="container">
-        <a href="/admin/users" class="back-link">← Back to Users</a>
-
-        <div class="card">
-            <div class="card-header">
-                <h2>Add New User</h2>
-            </div>
-            <div class="card-body">
-                <div class="error" id="error"></div>
-                <div class="success" id="success"></div>
-
-                <form id="userForm">
-                    <div class="section-title">Account Information</div>
-
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Username <span class="required">*</span></label>
-                            <input type="text" id="username" required>
-                        </div>
-                        <div class="form-group">
-                            <label>Password <span class="required">*</span></label>
-                            <input type="password" id="password" required>
-                        </div>
-                    </div>
-
-                    <div class="section-title">Personal Information</div>
-
-                    <div class="form-group">
-                        <label>Full Name <span class="required">*</span></label>
-                        <input type="text" id="full_name" required>
-                    </div>
-
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Email <span class="required">*</span></label>
-                            <input type="email" id="email" required>
-                        </div>
-                        <div class="form-group">
-                            <label>Phone</label>
-                            <input type="text" id="phone" placeholder="+65 xxx xxx xxx">
-                        </div>
-                    </div>
-
-                    <div class="form-group">
-                        <label>Unit Number</label>
-                        <input type="text" id="unit_number" placeholder="e.g., A-101, B-205">
-                        <p class="help-text">Building and unit number for residents</p>
-                    </div>
-
-                    <div class="section-title">Access Settings</div>
-
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Role</label>
-                            <select id="role" onchange="toggleTempWorkerFields()">
-                                <option value="Resident">Resident</option>
-                                <option value="Admin">Admin</option>
-                                <option value="Internal_Staff">Internal Staff</option>
-                                <option value="Security">Security</option>
-                                <option value="internal_staff">Internal Staff</option>
-                                <option value="TEMP_WORKER">Temporary Worker</option>
-                            </select>
-
-                        </div>
-                        <div class="form-group">
-                            <label>Access Level</label>
-                            <select id="access_level">
-                                <option value="standard">Standard (Common Areas)</option>
-                                <option value="level_1">Level 1 (Floor 1-5)</option>
-                                <option value="level_2">Level 2 (Floor 6-10)</option>
-                                <option value="level_3">Level 3 (Floor 11-15)</option>
-                                <option value="vip">VIP (Full Access)</option>
-                            </select>
-                            <p class="help-text">Determines which areas/floors the user can access</p>
-                        </div>
-                    </div>
-
-                    <!-- Temporary Worker Fields -->
-                    <div class="temp-worker-fields" id="tempWorkerFields">
-                        <h4>🔧 Temporary Worker Details</h4>
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label>Work Start Date <span class="required">*</span></label>
-                                <input type="date" id="work_start_date">
-                            </div>
-                            <div class="form-group">
-                                <label>Work End Date <span class="required">*</span></label>
-                                <input type="date" id="work_end_date">
-                                <p class="help-text">Access automatically revoked after this date</p>
-                            </div>
-                        </div>
-                        <div class="form-group">
-                            <label>Work Schedule</label>
-                            <input type="text" id="work_schedule" placeholder="e.g., Mon-Fri 8:00-17:00">
-                        </div>
-                        <div class="form-group">
-                            <label>Work Details</label>
-                            <textarea id="work_details"
-                                placeholder="Description of work to be performed (e.g., Plumbing repair in Unit A-301)"></textarea>
-                        </div>
-                    </div>
-
-                    <button type="submit" class="btn btn-primary">Create User</button>
-                </form>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        function toggleTempWorkerFields() {
-            const role = document.getElementById('role').value;
-            const tempFields = document.getElementById('tempWorkerFields');
-
-            if (role === 'TEMP_WORKER') {
-                tempFields.classList.add('show');
-                // Set default dates
-                const today = new Date().toISOString().split('T')[0];
-                if (!document.getElementById('work_start_date').value) {
-                    document.getElementById('work_start_date').value = today;
-                }
-            } else {
-                tempFields.classList.remove('show');
-            }
-        }
-
-        document.getElementById('userForm').onsubmit = async (e) => {
-            e.preventDefault();
-
-            const errorDiv = document.getElementById('error');
-            const successDiv = document.getElementById('success');
-            errorDiv.style.display = 'none';
-            successDiv.style.display = 'none';
-
-            const role = document.getElementById('role').value;
-
-            const data = {
-                username: document.getElementById('username').value,
-                password: document.getElementById('password').value,
-                full_name: document.getElementById('full_name').value,
-                email: document.getElementById('email').value,
-                phone: document.getElementById('phone').value,
-                unit_number: document.getElementById('unit_number').value,
-                role: role,
-                access_level: document.getElementById('access_level').value
-            };
-
-            // Validate temp worker fields
-            if (role === 'TEMP_WORKER') {
-                data.work_start_date = document.getElementById('work_start_date').value || null;
-                data.work_end_date = document.getElementById('work_end_date').value || null;
-                data.work_schedule = document.getElementById('work_schedule').value;
-                data.work_details = document.getElementById('work_details').value;
-
-                if (!data.work_start_date || !data.work_end_date) {
-                    errorDiv.textContent = 'Work start and end dates are required for temporary workers';
-                    errorDiv.style.display = 'block';
-                    return;
-                }
-
-                if (new Date(data.work_end_date) < new Date(data.work_start_date)) {
-                    errorDiv.textContent = 'Work end date must be after start date';
-                    errorDiv.style.display = 'block';
-                    return;
-                }
-            }
-
-            try {
-                const response = await fetch('/admin/users/create', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(data)
-                });
-
-                const result = await response.json();
-
-                if (result.success) {
-                    successDiv.textContent = 'User created successfully! Redirecting...';
-                    successDiv.style.display = 'block';
-                    setTimeout(() => {
-                        if (role === 'TEMP_WORKER') {
-                            window.location.href = '/admin/temp-workers';
-                        } else {
-                            window.location.href = '/admin/users';
-                        }
-                    }, 1500);
-                } else {
-                    errorDiv.textContent = result.message || 'Failed to create user';
-                    errorDiv.style.display = 'block';
-                }
-            } catch (err) {
-                errorDiv.textContent = 'Network error. Please try again.';
-                errorDiv.style.display = 'block';
-            }
-        };
-    </script>
-</body>
-
 </html>

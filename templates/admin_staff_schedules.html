@@ -47,10 +47,10 @@
                 <div class="card-body">
                     <div class="filter-section">
                         <label style="font-weight:600; color:#64748b; margin-right:10px;">Filter by Staff:</label>
-                        <select id="staffFilter" class="form-control" onchange="loadSchedules()" style="width: auto; display: inline-block;">
+                        <select id="staffFilter" class="form-control" onchange="loadSchedules()" style="width: auto; display: inline-block; min-width: 200px;">
                             <option value="">All Staff</option>
                             {% for staff in staff_users %}
-                            <option value="{{ staff.user_id }}">{{ staff.username }}</option>
+                            <option value="{{ staff.user_id }}">{{ staff.full_name or staff.username }} ({{ staff.role_name }})</option>
                             {% endfor %}
                         </select>
                     </div>
@@ -79,6 +79,55 @@
                 </div>
             </div>
         </main>
+    </div>
+
+    <!-- Schedule Modal -->
+    <div class="modal" id="scheduleModal">
+        <div class="modal-content">
+            <div class="modal-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                <h2 id="modalTitle">Assign New Schedule</h2>
+                <button type="button" onclick="closeModal()" style="background:none; border:none; font-size:24px; cursor:pointer;">&times;</button>
+            </div>
+            <form id="scheduleForm" onsubmit="saveSchedule(event)">
+                <input type="hidden" id="scheduleId">
+
+                <div class="form-group">
+                    <label>Staff Member *</label>
+                    <select id="staffUserId" class="form-control" required>
+                        <option value="">Select Staff Member</option>
+                        {% for staff in staff_users %}
+                        <option value="{{ staff.user_id }}">{{ staff.full_name or staff.username }} ({{ staff.role_name }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Shift Date *</label>
+                    <input type="date" id="shiftDate" class="form-control" required>
+                </div>
+
+                <div class="form-group-inline">
+                    <div class="form-group">
+                        <label>Start Time *</label>
+                        <input type="time" id="shiftStart" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label>End Time *</label>
+                        <input type="time" id="shiftEnd" class="form-control" required>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Task Description</label>
+                    <textarea id="taskDescription" class="form-control" rows="3" placeholder="Describe the tasks for this shift..."></textarea>
+                </div>
+
+                <div style="display:flex; gap:10px; margin-top:20px;">
+                    <button type="submit" class="btn btn-primary" style="flex:1;">Save Schedule</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+                </div>
+            </form>
+        </div>
     </div>
 
     <script>
@@ -129,25 +178,41 @@
             const tbody = document.getElementById('schedulesBody');
 
             if (schedules.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="8" class="empty-state">No schedules found</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:30px; color:#64748b;">No staff members found.</td></tr>';
                 return;
             }
 
-            tbody.innerHTML = schedules.map(schedule => `
-                <tr>
-                    <td>${schedule.username}</td>
-                    <td>${schedule.shift_name || '-'}</td>
-                    <td>${schedule.start_date}</td>
-                    <td>${schedule.end_date}</td>
-                    <td>${schedule.start_time} - ${schedule.end_time}</td>
-                    <td>${schedule.location || '-'}</td>
-                    <td><span class="badge badge-${schedule.status}">${schedule.status}</span></td>
-                    <td>
-                        <button class="btn btn-secondary btn-small" onclick="editSchedule(${schedule.schedule_id})">Edit</button>
-                        <button class="btn btn-danger btn-small" onclick="deleteSchedule(${schedule.schedule_id})">Delete</button>
-                    </td>
-                </tr>
-            `).join('');
+            tbody.innerHTML = schedules.map(schedule => {
+                const hasSchedule = schedule.schedule_id !== null;
+                const displayName = schedule.full_name || schedule.username;
+                const roleInfo = schedule.role_name ? `<br><small style="color:#64748b;">${schedule.role_name}</small>` : '';
+
+                if (hasSchedule) {
+                    return `
+                        <tr>
+                            <td><strong>${displayName}</strong>${roleInfo}</td>
+                            <td>${schedule.task_description || '-'}</td>
+                            <td>${schedule.shift_date || '-'}</td>
+                            <td>${schedule.shift_start || '-'} - ${schedule.shift_end || '-'}</td>
+                            <td><span class="badge badge-success">Active</span></td>
+                            <td>
+                                <button class="btn btn-secondary btn-sm" onclick="editSchedule(${schedule.schedule_id})">Edit</button>
+                                <button class="btn btn-danger btn-sm" onclick="deleteSchedule(${schedule.schedule_id})">Delete</button>
+                            </td>
+                        </tr>
+                    `;
+                } else {
+                    return `
+                        <tr>
+                            <td><strong>${displayName}</strong>${roleInfo}</td>
+                            <td colspan="4" style="text-align:center; color:#94a3b8;">No schedule assigned</td>
+                            <td>
+                                <button class="btn btn-primary btn-sm" onclick="openCreateModalForStaff(${schedule.staff_id}, '${displayName}')">Assign Shift</button>
+                            </td>
+                        </tr>
+                    `;
+                }
+            }).join('');
         }
 
         function openCreateModal() {
@@ -157,22 +222,25 @@
             document.getElementById('scheduleModal').classList.add('active');
         }
 
+        function openCreateModalForStaff(staffId, staffName) {
+            document.getElementById('modalTitle').textContent = 'Assign Schedule for ' + staffName;
+            document.getElementById('scheduleForm').reset();
+            document.getElementById('scheduleId').value = '';
+            document.getElementById('staffUserId').value = staffId;
+            document.getElementById('scheduleModal').classList.add('active');
+        }
+
         function editSchedule(scheduleId) {
             const schedule = currentSchedules.find(s => s.schedule_id === scheduleId);
             if (!schedule) return;
 
             document.getElementById('modalTitle').textContent = 'Edit Schedule';
             document.getElementById('scheduleId').value = schedule.schedule_id;
-            document.getElementById('staffUserId').value = schedule.staff_user_id;
-            document.getElementById('shiftName').value = schedule.shift_name || '';
-            document.getElementById('startDate').value = schedule.start_date;
-            document.getElementById('endDate').value = schedule.end_date;
-            document.getElementById('startTime').value = schedule.start_time;
-            document.getElementById('endTime').value = schedule.end_time;
-            document.getElementById('daysOfWeek').value = schedule.days_of_week || '';
-            document.getElementById('location').value = schedule.location || '';
-            document.getElementById('notes').value = schedule.notes || '';
-            document.getElementById('status').value = schedule.status;
+            document.getElementById('staffUserId').value = schedule.staff_id;
+            document.getElementById('shiftDate').value = schedule.shift_date || '';
+            document.getElementById('shiftStart').value = schedule.shift_start || '';
+            document.getElementById('shiftEnd').value = schedule.shift_end || '';
+            document.getElementById('taskDescription').value = schedule.task_description || '';
 
             document.getElementById('scheduleModal').classList.add('active');
         }
@@ -188,16 +256,11 @@
             const isEdit = !!scheduleId;
 
             const data = {
-                staff_user_id: document.getElementById('staffUserId').value,
-                shift_name: document.getElementById('shiftName').value,
-                start_date: document.getElementById('startDate').value,
-                end_date: document.getElementById('endDate').value,
-                start_time: document.getElementById('startTime').value,
-                end_time: document.getElementById('endTime').value,
-                days_of_week: document.getElementById('daysOfWeek').value,
-                location: document.getElementById('location').value,
-                notes: document.getElementById('notes').value,
-                status: document.getElementById('status').value
+                staff_id: document.getElementById('staffUserId').value,
+                shift_date: document.getElementById('shiftDate').value,
+                shift_start: document.getElementById('shiftStart').value,
+                shift_end: document.getElementById('shiftEnd').value,
+                task_description: document.getElementById('taskDescription').value
             };
 
             try {

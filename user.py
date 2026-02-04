@@ -256,10 +256,12 @@ class User:
         try:
             cursor.execute("""
                 SELECT u.user_id as id, u.username, u.email, u.password_hash,
-                       u.role_id, r.role_name as role, u.created_at,
-                       res.full_name, res.unit_number, res.contact_number as phone,
+                       u.role_id, r.role_name as role, u.created_at, u.status,
+                       u.avatar_path, u.access_level,
+                       COALESCE(res.full_name, u.full_name) as full_name,
+                       res.unit_number, res.contact_number as phone,
                        res.resident_id,
-                       tw.work_start_date, tw.work_end_date, tw.work_schedule, 
+                       tw.work_start_date, tw.work_end_date, tw.work_schedule,
                        tw.work_details, tw.id_document_path
                 FROM users u
                 JOIN roles r ON u.role_id = r.role_id
@@ -280,8 +282,9 @@ class User:
         try:
             cursor.execute("""
                 SELECT u.user_id as id, u.username, u.email, u.password_hash,
-                       u.role_id, r.role_name as role, u.created_at,
-                       res.full_name, res.unit_number, res.contact_number as phone,
+                       u.role_id, r.role_name as role, u.created_at, u.status,
+                       COALESCE(res.full_name, u.full_name) as full_name,
+                       res.unit_number, res.contact_number as phone,
                        res.resident_id
                 FROM users u
                 JOIN roles r ON u.role_id = r.role_id
@@ -300,59 +303,25 @@ class User:
         cursor = conn.cursor(cursor_factory=RealDictCursor)
         try:
             query = """
-                SELECT u.user_id as id, u.username, u.email,
+                SELECT u.user_id as id, u.username, u.email, u.status,
                        u.role_id, r.role_name as role, u.created_at,
-                       res.full_name, res.unit_number, res.contact_number as phone,
+                       COALESCE(res.full_name, u.full_name) as full_name,
+                       res.unit_number, res.contact_number as phone,
                        res.resident_id,
                        tw.work_start_date, tw.work_end_date,
-                       CASE WHEN fe.embedding_id IS NOT NULL THEN 1 ELSE 0 END as has_face
+                       CASE
+                           WHEN fe_resident.embedding_id IS NOT NULL THEN 1
+                           WHEN fe_admin.embedding_id IS NOT NULL THEN 1
+                           WHEN fe_staff.embedding_id IS NOT NULL THEN 1
+                           ELSE 0
+                       END as has_face
                 FROM users u
                 JOIN roles r ON u.role_id = r.role_id
                 LEFT JOIN residents res ON u.user_id = res.user_id
                 LEFT JOIN temp_workers tw ON u.user_id = tw.user_id
-                LEFT JOIN face_embeddings fe ON res.resident_id = fe.reference_id AND fe.user_type = 'resident'
-                WHERE 1=1
-            """
-            params = []
-            
-            if role:
-                query += " AND r.role_name = %s"
-                params.append(role)
-            
-            if status:
-                query += " AND LOWER(u.status) = LOWER(%s)"
-                params.append(status)
-            
-            query += " ORDER BY u.created_at DESC"
-            cursor.execute(query, params)
-            
-            users = []
-            for u in cursor.fetchall():
-                user_dict = dict(u)
-                user_dict['face_encoding_path'] = user_dict.get('has_face', 0) == 1
-                users.append(user_dict)
-            return users
-        finally:
-            cursor.close()
-            conn.close()
-    
-    @staticmethod
-    def get_all(role=None, status=None):
-        conn = get_db_connection()
-        cursor = conn.cursor(cursor_factory=RealDictCursor)
-        try:
-            query = """
-                SELECT u.user_id as id, u.username, u.email, u.status,  -- ✅ ADDED THIS (u.status)
-                       u.role_id, r.role_name as role, u.created_at,
-                       res.full_name, res.unit_number, res.contact_number as phone,
-                       res.resident_id,
-                       tw.work_start_date, tw.work_end_date,
-                       CASE WHEN fe.embedding_id IS NOT NULL THEN 1 ELSE 0 END as has_face
-                FROM users u
-                JOIN roles r ON u.role_id = r.role_id
-                LEFT JOIN residents res ON u.user_id = res.user_id
-                LEFT JOIN temp_workers tw ON u.user_id = tw.user_id
-                LEFT JOIN face_embeddings fe ON res.resident_id = fe.reference_id AND fe.user_type = 'resident'
+                LEFT JOIN face_embeddings fe_resident ON res.resident_id = fe_resident.reference_id AND fe_resident.user_type = 'resident'
+                LEFT JOIN face_embeddings fe_admin ON u.user_id = fe_admin.reference_id AND fe_admin.user_type = 'admin'
+                LEFT JOIN face_embeddings fe_staff ON u.user_id = fe_staff.reference_id AND fe_staff.user_type = 'staff'
                 WHERE 1=1
             """
             params = []
@@ -384,20 +353,28 @@ class User:
         cursor = conn.cursor(cursor_factory=RealDictCursor)
         try:
             query = """
-                SELECT u.user_id as id, u.username, u.email, u.status,  -- ✅ ADDED THIS (u.status)
+                SELECT u.user_id as id, u.username, u.email, u.status,
                        u.role_id, r.role_name as role, u.created_at,
-                       res.full_name, res.unit_number, res.contact_number as phone,
+                       COALESCE(res.full_name, u.full_name) as full_name,
+                       res.unit_number, res.contact_number as phone,
                        res.resident_id,
                        tw.work_start_date, tw.work_end_date,
-                       CASE WHEN fe.embedding_id IS NOT NULL THEN 1 ELSE 0 END as has_face
+                       CASE
+                           WHEN fe_resident.embedding_id IS NOT NULL THEN 1
+                           WHEN fe_admin.embedding_id IS NOT NULL THEN 1
+                           WHEN fe_staff.embedding_id IS NOT NULL THEN 1
+                           ELSE 0
+                       END as has_face
                 FROM users u
                 JOIN roles r ON u.role_id = r.role_id
                 LEFT JOIN residents res ON u.user_id = res.user_id
                 LEFT JOIN temp_workers tw ON u.user_id = tw.user_id
-                LEFT JOIN face_embeddings fe ON res.resident_id = fe.reference_id AND fe.user_type = 'resident'
+                LEFT JOIN face_embeddings fe_resident ON res.resident_id = fe_resident.reference_id AND fe_resident.user_type = 'resident'
+                LEFT JOIN face_embeddings fe_admin ON u.user_id = fe_admin.reference_id AND fe_admin.user_type = 'admin'
+                LEFT JOIN face_embeddings fe_staff ON u.user_id = fe_staff.reference_id AND fe_staff.user_type = 'staff'
                 WHERE (
-                    LOWER(u.username) LIKE LOWER(%s) OR 
-                    LOWER(COALESCE(res.full_name, '')) LIKE LOWER(%s) OR 
+                    LOWER(u.username) LIKE LOWER(%s) OR
+                    LOWER(COALESCE(res.full_name, u.full_name, '')) LIKE LOWER(%s) OR
                     LOWER(u.email) LIKE LOWER(%s) OR
                     LOWER(COALESCE(res.contact_number, '')) LIKE LOWER(%s) OR
                     LOWER(COALESCE(res.unit_number, '')) LIKE LOWER(%s)
@@ -494,7 +471,11 @@ class User:
             if 'access_level' in data:
                 user_fields.append("access_level = %s")
                 user_params.append(data['access_level'])
-            
+
+            if 'full_name' in data:
+                user_fields.append("full_name = %s")
+                user_params.append(data['full_name'])
+
             if user_fields:
                 user_params.append(user_id)
                 cursor.execute(
@@ -591,7 +572,11 @@ class User:
         try:
             # Delete in order due to foreign key constraints
             cursor.execute("DELETE FROM temp_workers WHERE user_id = %s", (user_id,))
+
+            # Delete face embeddings for all user types (resident, admin, staff)
             cursor.execute("DELETE FROM face_embeddings WHERE reference_id IN (SELECT resident_id FROM residents WHERE user_id = %s) AND user_type = 'resident'", (user_id,))
+            cursor.execute("DELETE FROM face_embeddings WHERE reference_id = %s AND user_type IN ('admin', 'staff')", (user_id,))
+
             cursor.execute("DELETE FROM residents WHERE user_id = %s", (user_id,))
             cursor.execute("DELETE FROM users WHERE user_id = %s", (user_id,))
             conn.commit()
@@ -608,17 +593,25 @@ class User:
         cursor = conn.cursor()
         try:
             placeholders = ','.join(['%s'] * len(user_ids))
-            
+
             # Delete in order due to foreign key constraints
             cursor.execute(f"DELETE FROM temp_workers WHERE user_id IN ({placeholders})", user_ids)
+
+            # Delete face embeddings for all user types (resident, admin, staff)
             cursor.execute(f"""
-                DELETE FROM face_embeddings 
-                WHERE reference_id IN (SELECT resident_id FROM residents WHERE user_id IN ({placeholders})) 
+                DELETE FROM face_embeddings
+                WHERE reference_id IN (SELECT resident_id FROM residents WHERE user_id IN ({placeholders}))
                 AND user_type = 'resident'
             """, user_ids)
+            cursor.execute(f"""
+                DELETE FROM face_embeddings
+                WHERE reference_id IN ({placeholders})
+                AND user_type IN ('admin', 'staff')
+            """, user_ids)
+
             cursor.execute(f"DELETE FROM residents WHERE user_id IN ({placeholders})", user_ids)
             cursor.execute(f"DELETE FROM users WHERE user_id IN ({placeholders})", user_ids)
-            
+
             conn.commit()
             return cursor.rowcount
         finally:

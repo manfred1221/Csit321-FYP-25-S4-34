@@ -149,6 +149,168 @@ def check_user_has_face_embedding(user):
         return None
 
 
+def cleanup_user_photos(user_id, user_type=None, resident_id=None):
+    """
+    Remove user photos and face embeddings from the system.
+
+    Args:
+        user_id: The user's ID
+        user_type: Optional - 'admin', 'staff', or 'resident'. If None, cleans all types.
+        resident_id: Optional - The resident_id for resident users
+
+    Returns:
+        dict with 'success', 'files_deleted', 'embeddings_deleted'
+    """
+    from psycopg2.extras import RealDictCursor
+    import glob
+
+    files_deleted = 0
+    embeddings_deleted = 0
+
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
+
+        # Build list of reference IDs and user types to clean
+        cleanup_targets = []
+
+        if user_type:
+            # Clean specific type
+            if user_type == 'resident' and resident_id:
+                cleanup_targets.append((resident_id, 'resident'))
+            else:
+                cleanup_targets.append((user_id, user_type))
+        else:
+            # Clean all types for this user
+            cleanup_targets.append((user_id, 'admin'))
+            cleanup_targets.append((user_id, 'staff'))
+            # Also get resident_id if exists
+            cursor.execute("SELECT resident_id FROM residents WHERE user_id = %s", (user_id,))
+            res = cursor.fetchone()
+            if res:
+                cleanup_targets.append((res['resident_id'], 'resident'))
+
+        # Delete face embeddings from database
+        for ref_id, u_type in cleanup_targets:
+            cursor.execute("""
+                DELETE FROM face_embeddings
+                WHERE reference_id = %s AND user_type = %s
+                RETURNING embedding_id
+            """, (ref_id, u_type))
+            embeddings_deleted += cursor.rowcount
+
+        conn.commit()
+        cursor.close()
+        conn.close()
+
+        # Delete photo files from disk
+        upload_dir = Config.FACE_RECOGNITION['upload_dir']
+
+        # Find and delete photos matching user_id pattern
+        photo_patterns = [
+            os.path.join(upload_dir, f"user_{user_id}_*"),
+            os.path.join(upload_dir, f"resident_{user_id}_*"),
+            os.path.join(upload_dir, f"staff_{user_id}_*"),
+        ]
+
+        for pattern in photo_patterns:
+            for filepath in glob.glob(pattern):
+                try:
+                    os.remove(filepath)
+                    files_deleted += 1
+                    logger.info(f"Deleted photo file: {filepath}")
+                except OSError as e:
+                    logger.error(f"Error deleting file {filepath}: {e}")
+
+        logger.info(f"Cleanup for user {user_id}: {files_deleted} files, {embeddings_deleted} embeddings deleted")
+
+        return {
+            'success': True,
+            'files_deleted': files_deleted,
+            'embeddings_deleted': embeddings_deleted
+        }
+
+    except Exception as e:
+        logger.error(f"Error cleaning up user photos: {e}")
+        return {
+            'success': False,
+            'error': str(e),
+            'files_deleted': files_deleted,
+            'embeddings_deleted': embeddings_deleted
+        }
+
+
+def cleanup_orphaned_photos():
+    """
+    Remove photo files that no longer have corresponding face embeddings in the database.
+    Useful for periodic cleanup of unused files.
+
+    Returns:
+        dict with 'success', 'files_deleted', 'files_checked'
+    """
+    import glob
+    from psycopg2.extras import RealDictCursor
+
+    files_deleted = 0
+    files_checked = 0
+
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
+
+        # Get all valid user IDs that have face embeddings
+        cursor.execute("""
+            SELECT DISTINCT reference_id, user_type FROM face_embeddings
+        """)
+        valid_refs = {(row['reference_id'], row['user_type']) for row in cursor.fetchall()}
+
+        # Get all user_ids from users table
+        cursor.execute("SELECT user_id FROM users")
+        active_user_ids = {row['user_id'] for row in cursor.fetchall()}
+
+        cursor.close()
+        conn.close()
+
+        # Check all files in upload directory
+        upload_dir = Config.FACE_RECOGNITION['upload_dir']
+
+        for filepath in glob.glob(os.path.join(upload_dir, "*.jpg")) + glob.glob(os.path.join(upload_dir, "*.png")):
+            files_checked += 1
+            filename = os.path.basename(filepath)
+
+            # Extract user_id from filename (format: user_123_abc.jpg or resident_123_abc.jpg)
+            try:
+                parts = filename.split('_')
+                if len(parts) >= 2:
+                    file_user_id = int(parts[1])
+
+                    # Check if this user still exists
+                    if file_user_id not in active_user_ids:
+                        os.remove(filepath)
+                        files_deleted += 1
+                        logger.info(f"Deleted orphaned photo (user deleted): {filepath}")
+            except (ValueError, IndexError):
+                # Can't parse filename, skip
+                continue
+
+        logger.info(f"Orphan cleanup: checked {files_checked} files, deleted {files_deleted}")
+
+        return {
+            'success': True,
+            'files_deleted': files_deleted,
+            'files_checked': files_checked
+        }
+
+    except Exception as e:
+        logger.error(f"Error cleaning up orphaned photos: {e}")
+        return {
+            'success': False,
+            'error': str(e),
+            'files_deleted': files_deleted,
+            'files_checked': files_checked
+        }
+
+
 # ============================================
 # AUTHENTICATION ROUTES
 # ============================================
@@ -2014,7 +2176,7 @@ def admin_profile_upload():
 
         # For admin users, store face embedding directly with admin type
         # No need to create a resident record
-        user_type = 'ADMIN'
+        user_type = 'admin'
         reference_id = user['id']
 
         embedding_id, error = register_face_from_photo(photo_path, reference_id, user_type)
@@ -2028,6 +2190,86 @@ def admin_profile_upload():
 
     except Exception as e:
         logger.error(f"Profile photo upload error: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/admin/profile/avatar', methods=['POST'])
+@admin_required
+def admin_profile_avatar_upload():
+    """Upload avatar photo (profile picture only, no face recognition)"""
+    user = User.get_by_id(session['user_id'])
+    if not user:
+        return jsonify({'success': False, 'message': 'User not found'}), 404
+
+    if 'photo' not in request.files:
+        return jsonify({'success': False, 'message': 'No photo provided'}), 400
+
+    photo = request.files['photo']
+    if not photo or not allowed_file(photo.filename):
+        return jsonify({'success': False, 'message': 'Invalid file type. Please use JPG or PNG.'}), 400
+
+    try:
+        # Delete old avatar if exists
+        old_avatar = user.get('avatar_path')
+        if old_avatar:
+            old_path = os.path.join(Config.FACE_RECOGNITION['upload_dir'], os.path.basename(old_avatar))
+            if os.path.exists(old_path):
+                os.remove(old_path)
+
+        # Save new avatar
+        filename = f"avatar_{user['id']}_{uuid.uuid4().hex}.jpg"
+        avatar_path = os.path.join(Config.FACE_RECOGNITION['upload_dir'], filename)
+        photo.save(avatar_path)
+
+        # Update user's avatar_path in database
+        from psycopg2.extras import RealDictCursor
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("UPDATE users SET avatar_path = %s WHERE user_id = %s", (filename, user['id']))
+        conn.commit()
+        cursor.close()
+        conn.close()
+
+        logger.info(f"Avatar uploaded for user {user['id']}: {filename}")
+        return jsonify({'success': True, 'message': 'Avatar uploaded successfully!', 'avatar_path': filename})
+
+    except Exception as e:
+        logger.error(f"Avatar upload error: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/admin/profile/avatar/delete', methods=['POST', 'DELETE'])
+@admin_required
+def admin_profile_avatar_delete():
+    """Delete avatar photo"""
+    user = User.get_by_id(session['user_id'])
+    if not user:
+        return jsonify({'success': False, 'message': 'User not found'}), 404
+
+    try:
+        avatar_path = user.get('avatar_path')
+        if avatar_path:
+            # Delete file
+            full_path = os.path.join(Config.FACE_RECOGNITION['upload_dir'], os.path.basename(avatar_path))
+            if os.path.exists(full_path):
+                os.remove(full_path)
+
+            # Clear from database
+            from psycopg2.extras import RealDictCursor
+            conn = get_db_connection()
+            cursor = conn.cursor()
+            cursor.execute("UPDATE users SET avatar_path = NULL WHERE user_id = %s", (user['id'],))
+            conn.commit()
+            cursor.close()
+            conn.close()
+
+            logger.info(f"Avatar deleted for user {user['id']}")
+            return jsonify({'success': True, 'message': 'Avatar removed successfully!'})
+        else:
+            return jsonify({'success': True, 'message': 'No avatar to remove'})
+
+    except Exception as e:
+        logger.error(f"Avatar delete error: {e}")
         return jsonify({'success': False, 'message': str(e)}), 500
 
 
@@ -2141,21 +2383,87 @@ def admin_users_create():
                 'id_document_path': data.get('id_document_path')
             })
 
-        user_id = User.create(data_dict)        
-        # user_id = User.create(
-        #     username=data['username'],
-        #     password=data['password'],
-        #     role=data['role'],
-        #     full_name=data.get('full_name'),
-        #     phone=data.get('phone'),
-        #     unit_number=data.get('unit_number'),
-        #     start_date=data.get('start_date'),
-        #     end_date=data.get('end_date')
-        # )
+        user_id = User.create(data_dict)
         return jsonify({'success': True, 'user_id': user_id})
     except Exception as e:
         logger.error(f"Create user error: {e}")
         return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/admin/users/create-with-files', methods=['POST'])
+@admin_required
+def admin_users_create_with_files():
+    """Create new user with file uploads - for temp workers with photo and ID document"""
+    try:
+        # Get form data
+        username = request.form.get('username')
+        password = request.form.get('password')
+        role = request.form.get('role')
+
+        if not username or not password or not role:
+            return jsonify({'success': False, 'message': 'Missing required fields'}), 400
+
+        # Prepare user data
+        data_dict = {
+            'username': username,
+            'email': request.form.get('email', ''),
+            'password': password,
+            'role': role,
+            'access_level': request.form.get('access_level', 'standard'),
+            'full_name': request.form.get('full_name', username),
+            'phone': request.form.get('phone', ''),
+            'unit_number': request.form.get('unit_number', 'N/A')
+        }
+
+        # Include temp worker fields if applicable
+        if role == 'TEMP_WORKER':
+            data_dict.update({
+                'work_start_date': request.form.get('work_start_date'),
+                'work_end_date': request.form.get('work_end_date'),
+                'work_schedule': request.form.get('work_schedule', ''),
+                'work_details': request.form.get('work_details', '')
+            })
+
+        # Create user first
+        user_id = User.create(data_dict)
+
+        # Handle file uploads for temp workers
+        if role == 'TEMP_WORKER' and user_id:
+            from model import register_face_from_photo
+
+            # Upload photo if provided
+            if 'photo' in request.files:
+                photo = request.files['photo']
+                if photo and photo.filename and allowed_file(photo.filename):
+                    filename = f"user_{user_id}_{uuid.uuid4().hex}.jpg"
+                    photo_path = os.path.join(Config.FACE_RECOGNITION['upload_dir'], filename)
+                    photo.save(photo_path)
+
+                    # Register face
+                    embedding_id, error = register_face_from_photo(photo_path, user_id, 'staff')
+                    if error:
+                        logger.warning(f"Face registration failed for user {user_id}: {error}")
+                    else:
+                        logger.info(f"Face registered for temp worker {user_id}")
+
+            # Upload ID document if provided
+            if 'id_document' in request.files:
+                doc = request.files['id_document']
+                if doc and doc.filename and allowed_file(doc.filename):
+                    doc_filename = f"doc_{user_id}_{uuid.uuid4().hex}_{doc.filename}"
+                    doc_path = os.path.join(Config.FACE_RECOGNITION['id_doc_dir'], doc_filename)
+                    doc.save(doc_path)
+
+                    # Update user with document path
+                    User.update(user_id, {'id_document_path': doc_path})
+                    logger.info(f"ID document uploaded for temp worker {user_id}")
+
+        return jsonify({'success': True, 'user_id': user_id})
+
+    except Exception as e:
+        logger.error(f"Create user with files error: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
 
 @app.route('/admin/users/<int:user_id>', methods=['PUT'])
 @admin_required
@@ -2174,10 +2482,51 @@ def admin_users_update(user_id):
 def admin_users_delete(user_id):
     """Delete user - User Story: Remove resident/temp worker"""
     try:
+        # Clean up photos and face data first
+        cleanup_result = cleanup_user_photos(user_id)
+        logger.info(f"Photo cleanup for user {user_id}: {cleanup_result}")
+
+        # Then delete user from database
         User.delete(user_id)
-        return jsonify({'success': True})
+        return jsonify({'success': True, 'cleanup': cleanup_result})
     except Exception as e:
         logger.error(f"Delete user error: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/admin/users/<int:user_id>/remove-face', methods=['DELETE'])
+@admin_required
+def admin_remove_user_face(user_id):
+    """Remove face data for a specific user without deleting the user"""
+    try:
+        result = cleanup_user_photos(user_id)
+        if result['success']:
+            return jsonify({
+                'success': True,
+                'message': f"Removed {result['embeddings_deleted']} face embedding(s) and {result['files_deleted']} photo file(s)"
+            })
+        else:
+            return jsonify({'success': False, 'message': result.get('error', 'Unknown error')}), 500
+    except Exception as e:
+        logger.error(f"Remove face error: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/admin/cleanup-orphaned-photos', methods=['POST'])
+@admin_required
+def admin_cleanup_orphaned_photos():
+    """Clean up photo files that no longer have corresponding users"""
+    try:
+        result = cleanup_orphaned_photos()
+        if result['success']:
+            return jsonify({
+                'success': True,
+                'message': f"Checked {result['files_checked']} files, deleted {result['files_deleted']} orphaned files"
+            })
+        else:
+            return jsonify({'success': False, 'message': result.get('error', 'Unknown error')}), 500
+    except Exception as e:
+        logger.error(f"Cleanup orphaned photos error: {e}")
         return jsonify({'success': False, 'message': str(e)}), 500
 
 @app.route('/admin/users/<int:user_id>/deactivate', methods=['POST'])
@@ -2205,7 +2554,7 @@ def admin_users_reactivate(user_id):
 @app.route('/admin/users/<int:user_id>/upload-photo', methods=['POST'])
 @admin_required
 def admin_users_upload_photo(user_id):
-    """Upload face photo for a user - User Story: Register face for facial recognition"""
+    """Upload face photo for temp workers only - Admin can only upload photos for temp workers"""
     if 'photo' not in request.files:
         return jsonify({'success': False, 'message': 'No photo provided'}), 400
 
@@ -2219,72 +2568,57 @@ def admin_users_upload_photo(user_id):
         if not user:
             return jsonify({'success': False, 'message': 'User not found'}), 404
 
+        user_role = user.get('role', '').lower()
+
+        # Admin can ONLY upload photos for temp workers
+        if user_role not in ['internal_staff', 'temp_worker']:
+            return jsonify({
+                'success': False,
+                'message': 'Admin can only upload photos for temp workers. Other users must upload their own photos.'
+            }), 403
+
         filename = f"user_{user_id}_{uuid.uuid4().hex}.jpg"
         photo_path = os.path.join(Config.FACE_RECOGNITION['upload_dir'], filename)
         photo.save(photo_path)
 
         from model import register_face_from_photo
-        from psycopg2.extras import RealDictCursor
 
-        user_role = user.get('role', '').lower()
-
-        # Determine user type and reference ID based on role
-        if user_role == 'admin':
-            user_type = 'admin'
-            reference_id = user_id
-            embedding_id, error = register_face_from_photo(photo_path, reference_id, user_type)
-        elif user_role in ['internal_staff', 'staff', 'temp_worker']:
-            user_type = 'staff'
-            reference_id = user_id
-            embedding_id, error = register_face_from_photo(photo_path, reference_id, user_type)
-        elif user_role == 'resident':
-            # Only for residents, we need to ensure a resident record exists
-            user_id = user.get('user_id')
-
-            if not user_id:
-                conn = get_db_connection()
-                cursor = conn.cursor(cursor_factory=RealDictCursor)
-                try:
-                    cursor.execute("SELECT user_id FROM residents WHERE user_id = %s", (user_id,))
-                    existing = cursor.fetchone()
-
-                    if existing:
-                        user_id = existing['user_id']
-                        logger.info(f"Found existing resident record: user_id={user_id}")
-                    else:
-                        cursor.execute("""
-                            INSERT INTO residents (full_name, unit_number, contact_number, user_id)
-                            VALUES (%s, %s, %s, %s)
-                            RETURNING user_id
-                        """, (
-                            user.get('full_name') or user.get('username') or f'User {user_id}',
-                            user.get('unit_number') or 'N/A',
-                            user.get('phone') or '',
-                            user_id
-                        ))
-                        result = cursor.fetchone()
-                        user_id = result['user_id']
-                        conn.commit()
-                        logger.info(f"Created resident record for user {user_id}: user_id={user_id}")
-                except Exception as e:
-                    conn.rollback()
-                    os.remove(photo_path)
-                    logger.error(f"Database error: {str(e)}")
-                    return jsonify({'success': False, 'message': f'Failed to create resident record: {str(e)}'}), 400
-                finally:
-                    cursor.close()
-                    conn.close()
-
-            embedding_id, error = register_face_from_photo(photo_path, user_id, 'resident')
-        else:
-            os.remove(photo_path)
-            return jsonify({'success': False, 'message': f'Unsupported user role: {user_role}'}), 400
+        # For temp workers, use 'staff' type
+        user_type = 'staff'
+        reference_id = user_id
+        embedding_id, error = register_face_from_photo(photo_path, reference_id, user_type)
 
         if error:
             os.remove(photo_path)
             return jsonify({'success': False, 'message': f'Face registration failed: {error}'}), 400
 
-        logger.info(f"Face photo uploaded for user {user_id} (role: {user_role}), embedding_id: {embedding_id}")
+        # Update user status to indicate photo has been registered
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        try:
+            # Update photo_registered status in temp_workers table
+            cursor.execute("""
+                UPDATE temp_workers
+                SET photo_registered = TRUE, photo_registered_at = NOW()
+                WHERE user_id = %s
+            """, (user_id,))
+
+            # If temp_workers table doesn't have the column, update will just not affect rows
+            # Also update the user's access_level to indicate face is registered
+            cursor.execute("""
+                UPDATE users SET access_level = 'face_registered'
+                WHERE user_id = %s AND access_level = 'standard'
+            """, (user_id,))
+
+            conn.commit()
+        except Exception as e:
+            logger.warning(f"Could not update photo status: {e}")
+            conn.rollback()
+        finally:
+            cursor.close()
+            conn.close()
+
+        logger.info(f"Face photo uploaded for temp worker {user_id}, embedding_id: {embedding_id}")
         return jsonify({'success': True, 'message': 'Photo uploaded successfully!', 'embedding_id': embedding_id})
 
     except Exception as e:
@@ -2485,10 +2819,33 @@ def init_app(app):
     # Bind SQLAlchemy
     db.init_app(app)
 
-    # Test database connection
+    # Test database connection and run migrations
     try:
         with app.app_context():
             conn = get_db_connection()
+            cursor = conn.cursor()
+
+            # Migration: Add avatar_path column to users table if not exists
+            cursor.execute("""
+                SELECT column_name FROM information_schema.columns
+                WHERE table_name='users' AND column_name='avatar_path'
+            """)
+            if not cursor.fetchone():
+                cursor.execute("ALTER TABLE users ADD COLUMN avatar_path VARCHAR(255)")
+                conn.commit()
+                logger.info("Migration: Added avatar_path column to users table")
+
+            # Migration: Add access_level column to users table if not exists
+            cursor.execute("""
+                SELECT column_name FROM information_schema.columns
+                WHERE table_name='users' AND column_name='access_level'
+            """)
+            if not cursor.fetchone():
+                cursor.execute("ALTER TABLE users ADD COLUMN access_level VARCHAR(50) DEFAULT 'standard'")
+                conn.commit()
+                logger.info("Migration: Added access_level column to users table")
+
+            cursor.close()
             conn.close()
             logger.info("Database connection successful")
     except Exception as e:
@@ -2521,12 +2878,12 @@ def admin_staff_schedules():
     cursor = conn.cursor(cursor_factory=RealDictCursor)
 
     cursor.execute("""
-        SELECT u.user_id, u.username, u.email, r.role_name
+        SELECT u.user_id, u.username, u.full_name, u.email, r.role_name
         FROM users u
         JOIN roles r ON u.role_id = r.role_id
-        WHERE r.role_id IN (8, 13)
+        WHERE r.role_id IN (4, 9)
         AND u.status = 'active'
-        ORDER BY u.username
+        ORDER BY u.full_name, u.username
     """)
     staff_users = cursor.fetchall()
 
@@ -2553,11 +2910,17 @@ def get_staff_schedules():
             ORDER BY s.shift_date DESC, s.shift_start
         """, (staff_id,))
     else:
+        # Show all staff members with their schedules (or NULL if no schedule)
+        # role_id 4 = Security, role_id 9 = Internal Staff
         cursor.execute("""
-            SELECT s.*, u.username, u.email
-            FROM staff_schedules s
-            JOIN users u ON s.staff_id = u.user_id
-            ORDER BY s.shift_date DESC, s.shift_start
+            SELECT u.user_id as staff_id, u.username, u.email, u.full_name, r.role_name,
+                   s.schedule_id, s.shift_date, s.shift_start, s.shift_end, s.task_description, s.created_at
+            FROM users u
+            JOIN roles r ON u.role_id = r.role_id
+            LEFT JOIN staff_schedules s ON u.user_id = s.staff_id
+            WHERE r.role_id IN (4, 9)
+            AND u.status = 'active'
+            ORDER BY u.full_name, u.username, s.shift_date DESC
         """)
 
     schedules = cursor.fetchall()
