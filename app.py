@@ -913,7 +913,15 @@ if SECURITY_OFFICER_AVAILABLE:
                 }), 403
 
             # --- Generate embedding ---
-            raw_embedding = image_to_embedding(image_base64)
+            from ml_client import get_embedding
+
+            try:
+                raw_embedding = get_embedding(image_base64)
+            except Exception as e:
+                return jsonify({
+                    "status": "error",
+                    "message": "Face recognition service unavailable"
+                }), 503
 
             if raw_embedding is None:
                 return jsonify({
