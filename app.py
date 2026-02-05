@@ -2285,8 +2285,10 @@ import os
 init_app(app)  # <-- put this BEFORE running
 
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 5001))
-    app.run(host="0.0.0.0", port=port, debug=False)
+    import os
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port)
+
 
     print("\n" + "=" * 60)
     print("FACE RECOGNITION - ADMIN PANEL")
