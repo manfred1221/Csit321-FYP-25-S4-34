@@ -44,6 +44,10 @@ logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 
+@app.get("/healthz")
+def healthz():
+    return {"ok": True}, 200
+
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 # Support both frontend and templates folders
@@ -2278,15 +2282,15 @@ def record_staff_attendance():
 import os
 
 # =========================
+# ============================
 # Render-safe initialization
-# =========================
-# Only init SQLAlchemy if security officer stack is available.
-# If the security officer import fails on Render, init_app() would crash (db undefined),
-# and Render will never detect an open port.
-if SECURITY_OFFICER_AVAILABLE:
+# ============================
+try:
     init_app(app)
-else:
-    logger.warning("SECURITY_OFFICER_AVAILABLE=False; skipping init_app(app) to avoid startup crash on Render.")
+except Exception:
+    logger.exception("init_app failed during startup")
+    raise
+
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
