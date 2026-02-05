@@ -2281,26 +2281,38 @@ def record_staff_attendance():
 
 import os
 
-# =========================
-# ============================
-# Render-safe initialization
-# ============================
-try:
+# ============================================================
+# APP FACTORY (Render / Gunicorn safe)
+# ============================================================
+
+def create_app():
+    app = Flask(__name__)
+
+    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+    # Template loaders
+    app.jinja_loader = ChoiceLoader([
+        FileSystemLoader(os.path.join(BASE_DIR, "templates")),
+        FileSystemLoader(os.path.join(BASE_DIR, "frontend")),
+    ])
+
+    app.config['SECRET_KEY'] = Config.SECRET_KEY
+    app.config['PERMANENT_SESSION_LIFETIME'] = Config.SESSION_LIFETIME
+    app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
+
+    CORS(app)
+
+    # Initialize database, blueprints, folders, etc
     init_app(app)
-except Exception:
-    logger.exception("init_app failed during startup")
-    raise
+
+    return app
 
 
+# ---- THIS IS WHAT GUNICORN IMPORTS ----
+app = create_app()
+
+
+# ---- LOCAL DEV ONLY ----
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
-
-
-
-    print("\n" + "=" * 60)
-    print("FACE RECOGNITION - ADMIN PANEL")
-    print("=" * 60)
-    print(f"\nAdmin Panel: http://localhost:{Config.PORT}/admin/login")
-    print(f"\nDefault admin: admin_user / password: admin123")
-    print("=" * 60 + "\n")
