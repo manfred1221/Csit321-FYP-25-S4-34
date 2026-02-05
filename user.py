@@ -1,10 +1,8 @@
-import bcrypt
 import numpy as np
 from datetime import datetime, date
 from psycopg2.extras import RealDictCursor
 from database import get_db_connection
 from config import Config
-from werkzeug.security import check_password_hash
 
 class User:
     # @staticmethod
