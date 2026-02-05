@@ -1780,21 +1780,15 @@ def api_dashboard_stats():
 # ============================================
 
 def init_app(app):
+    # If security officer modules didn't import, db won't exist.
+    if not SECURITY_OFFICER_AVAILABLE:
+        logger.warning("init_app called but SECURITY_OFFICER_AVAILABLE=False; skipping.")
+        return
+
     # Create necessary folders
     os.makedirs(Config.FACE_RECOGNITION['upload_dir'], exist_ok=True)
     os.makedirs(Config.FACE_RECOGNITION['encoding_dir'], exist_ok=True)
     os.makedirs(Config.FACE_RECOGNITION['id_doc_dir'], exist_ok=True)
-
-    # # Build DB URI from environment
-    # dbname = os.getenv("DB_NAME", "CSIT321: Face Recognition")
-    # user = os.getenv("DB_USER", "postgres")
-    # password = os.getenv("DB_PASSWORD", "joshua1102")
-    # host = os.getenv("DB_HOST", "localhost")
-    # port = os.getenv("DB_PORT", "5432")
-
-    # db_uri = f"postgresql://{user}:{password}@{host}:{port}/{dbname}"
-    # app.config['SQLALCHEMY_DATABASE_URI'] = db_uri
-    # app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
     app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -1822,6 +1816,7 @@ def init_app(app):
         logger.warning(f"Could not check expired temp workers: {e}")
 
     logger.info("Application initialized")
+
 
 
 
@@ -2282,12 +2277,21 @@ def record_staff_attendance():
 
 import os
 
-init_app(app)  # <-- put this BEFORE running
+# =========================
+# Render-safe initialization
+# =========================
+# Only init SQLAlchemy if security officer stack is available.
+# If the security officer import fails on Render, init_app() would crash (db undefined),
+# and Render will never detect an open port.
+if SECURITY_OFFICER_AVAILABLE:
+    init_app(app)
+else:
+    logger.warning("SECURITY_OFFICER_AVAILABLE=False; skipping init_app(app) to avoid startup crash on Render.")
 
 if __name__ == "__main__":
-    import os
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
+
 
 
     print("\n" + "=" * 60)
