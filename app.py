@@ -21,25 +21,38 @@ from access_log import AccessLog
 from psycopg2.extras import RealDictCursor
 from database import DATABASE_URL, get_db_connection
 
-# Security Officer imports
+# Security Officer imports (FIX)
+SECURITY_OFFICER_AVAILABLE = False
+ENABLE_GAN_ATTACK = False
+
+# 1) Import MODEL first (db + ORM models must load)
 try:
-    from routes.security_officer.security_officer_model import SecurityOfficer, db, FaceEmbedding, log_access, Visitor, AccessLog
-    from routes.security_officer.security_officer_controller import (
-        image_to_embedding,
-        monitor_camera,
-        manual_override as so_manual_override,
-        view_profile as so_view_profile,
-        update_profile as so_update_profile,
-        delete_account as so_delete_account,
-        deactivate_account as so_deactivate_account,
-        verify_face as face_verify
+    from routes.security_officer.security_officer_model import (
+        SecurityOfficer, db, FaceEmbedding, log_access, Visitor, AccessLog
     )
-    from routes.security_officer.security_officer_controller import ENABLE_GAN_ATTACK
     SECURITY_OFFICER_AVAILABLE = True
-except ImportError as e:
-    logging.warning(f"Security officer modules not available: {e}")
+except Exception as e:
+    logging.warning(f"Security officer MODEL not available: {e}")
     SECURITY_OFFICER_AVAILABLE = False
-    ENABLE_GAN_ATTACK = False
+
+# 2) Import CONTROLLER separately (optional)
+if SECURITY_OFFICER_AVAILABLE:
+    try:
+        from routes.security_officer.security_officer_controller import (
+            image_to_embedding,   # <-- comment this out first to stop the crash
+            monitor_camera,
+            manual_override as so_manual_override,
+            view_profile as so_view_profile,
+            update_profile as so_update_profile,
+            delete_account as so_delete_account,
+            deactivate_account as so_deactivate_account,
+            verify_face as face_verify
+        )
+        from routes.security_officer.security_officer_controller import ENABLE_GAN_ATTACK
+    except Exception as e:
+        logging.warning(f"Security officer CONTROLLER partially unavailable: {e}")
+        # Keep SECURITY_OFFICER_AVAILABLE = True because model/db is usable
+
 
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -1799,21 +1812,40 @@ def api_dashboard_stats():
 # ============================================
 
 def init_app(app):
-    # If security officer modules didn't import, db won't exist.
-    if not SECURITY_OFFICER_AVAILABLE:
-        logger.warning("init_app called but SECURITY_OFFICER_AVAILABLE=False; skipping.")
-        return
-
-    # Create necessary folders
+    # Create necessary folders (always safe)
     os.makedirs(Config.FACE_RECOGNITION['upload_dir'], exist_ok=True)
     os.makedirs(Config.FACE_RECOGNITION['encoding_dir'], exist_ok=True)
     os.makedirs(Config.FACE_RECOGNITION['id_doc_dir'], exist_ok=True)
 
-    app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL
-    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+    # Only init SQLAlchemy if security model/db is available
+    if SECURITY_OFFICER_AVAILABLE:
+        app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL
+        app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+        db.init_app(app)
+        logger.info("✅ Security SQLAlchemy initialized")
+    else:
+        logger.warning("⚠️ Security module not available; SQLAlchemy not initialized")
 
-    # Bind SQLAlchemy
-    db.init_app(app)
+    # Test database connection (your psycopg2 connection)
+    try:
+        with app.app_context():
+            conn = get_db_connection()
+            conn.close()
+            logger.info("Database connection successful")
+    except Exception as e:
+        logger.error(f"Database connection failed: {e}")
+        raise e
+
+    # Check expired temp workers
+    try:
+        with app.app_context():
+            expired_count = User.check_expired_temp_workers()
+            if expired_count > 0:
+                logger.info(f"Deactivated {expired_count} expired temporary workers on startup")
+    except Exception as e:
+        logger.warning(f"Could not check expired temp workers: {e}")
+
+    logger.info("Application initialized")
 
     # Test database connection
     try:

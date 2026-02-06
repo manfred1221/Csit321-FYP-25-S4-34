@@ -19,6 +19,26 @@ from .security_officer_model import (
     AccessLog,
     FaceEmbedding,
 )
+def image_to_embedding(image_base64: str):
+    """
+    Convert base64 image -> embedding vector.
+    Must always exist so app.py can import it on Render.
+    """
+    # Accept "data:image/jpeg;base64,..." or raw base64
+    if not image_base64:
+        raise ValueError("Missing image data")
+
+    if "," in image_base64:
+        image_base64 = image_base64.split(",", 1)[1]
+
+    # Reuse the same embedding approach you already use in verify_face()
+    from ml_client import get_embedding
+
+    emb = get_embedding(image_base64)
+    if emb is None:
+        raise ValueError("No face detected")
+
+    return emb
 
 # Optional: OpenCV camera streaming (won't crash if not installed)
 try:
