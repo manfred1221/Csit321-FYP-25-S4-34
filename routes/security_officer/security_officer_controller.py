@@ -6,6 +6,11 @@ import numpy as np
 
 from PIL import Image  # keep if you still need it elsewhere
 
+import os
+
+ENABLE_GAN_ATTACK = os.getenv("ENABLE_GAN_ATTACK", "false").lower() == "true"
+
+
 # ✅ Remote ML embedding (Cloud Run)
 from ml_client import get_embedding as get_remote_embedding
 
@@ -20,25 +25,18 @@ from .security_officer_model import (
     FaceEmbedding,
 )
 def image_to_embedding(image_base64: str):
-    """
-    Convert base64 image -> embedding vector.
-    Must always exist so app.py can import it on Render.
-    """
-    # Accept "data:image/jpeg;base64,..." or raw base64
     if not image_base64:
         raise ValueError("Missing image data")
 
     if "," in image_base64:
         image_base64 = image_base64.split(",", 1)[1]
 
-    # Reuse the same embedding approach you already use in verify_face()
-    from ml_client import get_embedding
-
-    emb = get_embedding(image_base64)
+    emb = get_remote_embedding(image_base64)
     if emb is None:
         raise ValueError("No face detected")
 
     return emb
+
 
 # Optional: OpenCV camera streaming (won't crash if not installed)
 try:
