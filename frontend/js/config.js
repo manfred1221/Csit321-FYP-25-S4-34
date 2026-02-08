@@ -1,16 +1,16 @@
-// API Configuration - Uses relative URLs to work on any network
-// This allows the app to work regardless of which network you're connected to
-//const API_BASE = '';  // Empty string means relative URLs
-const API_BASE = 'http://127.0.0.1:5001';  // Correct port!
+// API Configuration - Uses relative URLs to work on any environment
+// Empty string means "same origin" (localhost or Render)
+const API_BASE = '';
+
 const API_CONFIG = {
     BASE_URL: API_BASE,
-    STAFF_BASE_URL: API_BASE, 
+    STAFF_BASE_URL: API_BASE,
     ENDPOINTS: {
-        // Auth endpoints (you'll need to add these to your backend)
+        // Auth endpoints
         LOGIN: '/api/auth/login',
         LOGOUT: '/api/auth/logout',
         REGISTER: '/api/auth/register',
-        
+
         // Resident endpoints
         RESIDENT: {
             REGISTER_FACE: '/api/resident/register-face',
@@ -20,24 +20,29 @@ const API_CONFIG = {
             ACCESS_HISTORY: (residentId) => `/api/resident/${residentId}/access-history`,
             ALERTS: (residentId) => `/api/resident/${residentId}/alerts`,
             DISABLE_FACE_ACCESS: (residentId) => `/api/resident/${residentId}/face-access/disable`,
-            
+
             // Visitor management
             CREATE_VISITOR: (residentId) => `/api/resident/${residentId}/visitors`,
             GET_VISITORS: (residentId) => `/api/resident/${residentId}/visitors`,
-            UPDATE_VISITOR: (residentId, visitorId) => `/api/resident/${residentId}/visitors/${visitorId}`,
-            DELETE_VISITOR: (residentId, visitorId) => `/api/resident/${residentId}/visitors/${visitorId}`,
-            SET_VISITOR_TIME: (residentId, visitorId) => `/api/resident/${residentId}/visitors/${visitorId}/time-window`,
-            UPLOAD_VISITOR_FACE: (residentId, visitorId) => `/api/resident/${residentId}/visitors/${visitorId}/face-image`,
-            VISITOR_ACCESS_HISTORY: (residentId, visitorId) => `/api/resident/${residentId}/visitors/${visitorId}/access-history`,
+            UPDATE_VISITOR: (residentId, visitorId) =>
+                `/api/resident/${residentId}/visitors/${visitorId}`,
+            DELETE_VISITOR: (residentId, visitorId) =>
+                `/api/resident/${residentId}/visitors/${visitorId}`,
+            SET_VISITOR_TIME: (residentId, visitorId) =>
+                `/api/resident/${residentId}/visitors/${visitorId}/time-window`,
+            UPLOAD_VISITOR_FACE: (residentId, visitorId) =>
+                `/api/resident/${residentId}/visitors/${visitorId}/face-image`,
+            VISITOR_ACCESS_HISTORY: (residentId, visitorId) =>
+                `/api/resident/${residentId}/visitors/${visitorId}/access-history`,
         },
-        
-        // Visitor endpoints  
+
+        // Visitor endpoints
         VISITOR: {
             CHECK_IN: '/api/visitor/check-in',
             CHECK_OUT: '/api/visitor/check-out',
             GET_STATUS: (visitorId) => `/api/visitor/${visitorId}/status`,
         },
-        
+
         // Staff endpoints
         STAFF: {
             LOGIN: '/api/staff/login',
@@ -56,19 +61,23 @@ const API_CONFIG = {
     }
 };
 
-// Helper function to make API calls
+// ==============================
+// Generic API helper
+// ==============================
 async function apiCall(endpoint, options = {}, useStaffBackend = false) {
-    // Use staff backend if specified 
-    const baseUrl = useStaffBackend ? API_CONFIG.STAFF_BASE_URL : API_CONFIG.BASE_URL;
+    const baseUrl = useStaffBackend
+        ? API_CONFIG.STAFF_BASE_URL
+        : API_CONFIG.BASE_URL;
+
     const url = `${baseUrl}${endpoint}`;
-    
+
     const defaultOptions = {
-        credentials: 'same-origin',
+        credentials: 'include', // ✅ IMPORTANT for Flask session cookies
         headers: {
             'Content-Type': 'application/json',
         },
     };
-    
+
     const finalOptions = {
         ...defaultOptions,
         ...options,
@@ -77,15 +86,15 @@ async function apiCall(endpoint, options = {}, useStaffBackend = false) {
             ...options.headers,
         },
     };
-    
+
     try {
         const response = await fetch(url, finalOptions);
         const data = await response.json();
-        
+
         if (!response.ok) {
             throw new Error(data.error || 'API call failed');
         }
-        
+
         return { success: true, data };
     } catch (error) {
         console.error('API Error:', error);
@@ -93,63 +102,56 @@ async function apiCall(endpoint, options = {}, useStaffBackend = false) {
     }
 }
 
-
-// Helper function to show messages
+// ==============================
+// Helpers
+// ==============================
 function showMessage(elementId, message, type = 'success') {
-    const messageEl = document.getElementById(elementId);
-    if (messageEl) {
-        messageEl.textContent = message;
-        messageEl.className = `message ${type}`;
-        messageEl.style.display = 'block';
-        
-        // Auto hide after 5 seconds
-        setTimeout(() => {
-            messageEl.style.display = 'none';
-        }, 5000);
-    }
+    const el = document.getElementById(elementId);
+    if (!el) return;
+
+    el.textContent = message;
+    el.className = `message ${type}`;
+    el.style.display = 'block';
+
+    setTimeout(() => {
+        el.style.display = 'none';
+    }, 5000);
 }
 
-// Helper function for staff API calls 
 async function staffApiCall(endpoint, options = {}) {
-    return apiCall(endpoint, options, true); // Use staff backend
+    return apiCall(endpoint, options, true);
 }
 
-// Helper function to format date/time
 function formatDateTime(dateString) {
-    const date = new Date(dateString);
-    return date.toLocaleString();
+    return new Date(dateString).toLocaleString();
 }
 
-// Helper function to format date for input
 function formatDateForInput(dateString) {
-    const date = new Date(dateString);
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    const hours = String(date.getHours()).padStart(2, '0');
-    const minutes = String(date.getMinutes()).padStart(2, '0');
-    return `${year}-${month}-${day}T${hours}:${minutes}`;
+    const d = new Date(dateString);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(
+        d.getDate()
+    ).padStart(2, '0')}T${String(d.getHours()).padStart(2, '0')}:${String(
+        d.getMinutes()
+    ).padStart(2, '0')}`;
 }
 
-// Check if user is logged in
-// ⭐ NEW: Check if user is logged in via Flask session (server-side)
+// ==============================
+// Auth helpers (Flask session based)
+// ==============================
 async function checkAuth() {
     try {
         const response = await fetch('/api/auth/check-session', {
             method: 'GET',
-            credentials: 'same-origin'  // Send session cookie
+            credentials: 'include',
         });
-        
+
         const data = await response.json();
-        
+
         if (!data.authenticated) {
-            // Not logged in - redirect to login
-            console.log('Not authenticated, redirecting to login');
             window.location.href = '/login';
             return null;
         }
-        
-        console.log('Authenticated user:', data.user);
+
         return data.user;
     } catch (error) {
         console.error('Auth check failed:', error);
@@ -158,20 +160,15 @@ async function checkAuth() {
     }
 }
 
-// ⭐ NEW: Logout function - clears server session
 async function logout() {
     try {
-        // Call backend logout endpoint to clear session
         await fetch('/api/auth/logout', {
             method: 'POST',
-            credentials: 'same-origin'
+            credentials: 'include',
         });
-        
-        console.log('Logged out successfully');
     } catch (error) {
         console.error('Logout error:', error);
     }
-    
-    // Redirect to login
+
     window.location.href = '/login';
 }

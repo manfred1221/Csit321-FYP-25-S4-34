@@ -1,6 +1,6 @@
 import os
 
-from routes.security_officer.security_officer_controller import ENABLE_GAN_ATTACK
+
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 from flask import Flask, request, jsonify, session, render_template, redirect, url_for, send_from_directory, Response
@@ -21,28 +21,48 @@ from access_log import AccessLog
 from psycopg2.extras import RealDictCursor
 from database import DATABASE_URL, get_db_connection
 
-# Security Officer imports
+# Security Officer imports (FIX)
+SECURITY_OFFICER_AVAILABLE = False
+ENABLE_GAN_ATTACK = False
+
+# 1) Import MODEL first (db + ORM models must load)
 try:
-    from routes.security_officer.security_officer_model import SecurityOfficer, db, FaceEmbedding, log_access, Visitor, AccessLog
-    from routes.security_officer.security_officer_controller import (
-        image_to_embedding,
-        monitor_camera,
-        manual_override,
-        view_profile,
-        update_profile,
-        delete_account,
-        deactivate_account,
-        verify_face as face_verify
+    from routes.security_officer.security_officer_model import (
+        SecurityOfficer, db, FaceEmbedding, log_access, Visitor, AccessLog
     )
     SECURITY_OFFICER_AVAILABLE = True
-except ImportError as e:
-    logging.warning(f"Security officer modules not available: {e}")
+except Exception as e:
+    logging.warning(f"Security officer MODEL not available: {e}")
     SECURITY_OFFICER_AVAILABLE = False
+
+# 2) Import CONTROLLER separately (optional)
+if SECURITY_OFFICER_AVAILABLE:
+    try:
+        from routes.security_officer.security_officer_controller import (
+            image_to_embedding,   # <-- comment this out first to stop the crash
+            monitor_camera,
+            manual_override as so_manual_override,
+            view_profile as so_view_profile,
+            update_profile as so_update_profile,
+            delete_account as so_delete_account,
+            deactivate_account as so_deactivate_account,
+            verify_face as face_verify
+        )
+        from routes.security_officer.security_officer_controller import ENABLE_GAN_ATTACK
+    except Exception as e:
+        logging.warning(f"Security officer CONTROLLER partially unavailable: {e}")
+        # Keep SECURITY_OFFICER_AVAILABLE = True because model/db is usable
+
+
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
+
+@app.get("/healthz")
+def healthz():
+    return {"ok": True}, 200
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -74,11 +94,11 @@ try:
     from routes.auth_routes import auth_bp
     from routes.resident_routes import resident_bp
     from routes.visitor_routes import visitor_bp
-    
+
     app.register_blueprint(auth_bp, url_prefix='/api/auth')
     app.register_blueprint(resident_bp, url_prefix='/api/resident')
     app.register_blueprint(visitor_bp, url_prefix='/api/visitor')
-    
+
     logger.info("✅ Resident blueprints registered:")
     logger.info("   - /api/auth (authentication)")
     logger.info("   - /api/resident (resident features)")
@@ -334,15 +354,15 @@ def admin_login():
     """
     Unified login - routes based on role_id from database.
     role_id 1 = Admin
-    role_id 2 = Resident  
+    role_id 2 = Resident
     role_id 3 = Visitor/Internal Staff
     role_id 4 = Security Officer
     """
-    
+
     data = request.json or {}
     username = data.get('username', '').strip()
     password = data.get('password', '')
-    
+
     if not username:
         return jsonify({'success': False, 'message': 'Username is required'}), 400
 
@@ -359,9 +379,9 @@ def admin_login():
                 session['officer_name'] = officer.full_name
                 session['role'] = 'security_officer'
                 session.permanent = True
-                
+
                 logger.info(f"✅ Security officer login: officer_id={officer.officer_id}")
-                
+
                 return jsonify({
                     'success': True,
                     'role': 'security_officer',
@@ -392,13 +412,13 @@ def admin_login():
     role_id = user.get('role_id')
     role_name = user.get('role', '')
     user_id = user.get('id')
-    
+
     logger.info(f"✅ User found: {username} | user_id={user_id} | role_id={role_id} | role_name={role_name}")
 
     # ============================================================
     # ROUTE BASED ON role_id (THE KEY!)
     # ============================================================
-    
+
     # 🔴 ADMIN (role_id = 1)
     if role_id == 1:
         session['user_id'] = user_id
@@ -408,8 +428,9 @@ def admin_login():
         session['email'] = user.get('email', '')
         session.permanent = True
 
+
         logger.info(f"✅ Admin logged in: {username}")
-        
+
         return jsonify({
             'success': True,
             'role': 'Admin',
@@ -424,11 +445,11 @@ def admin_login():
     # 🟢 RESIDENT (role_id = 2)
     elif role_id == 2:
         resident_id = user.get('resident_id')
-        
+
         if not resident_id:
             logger.warning(f"⚠️ Resident {username} has no resident_id, using user_id")
             resident_id = user_id
-        
+
         session['user_id'] = user_id
         session['resident_id'] = resident_id
         session['username'] = user['username']
@@ -437,8 +458,9 @@ def admin_login():
         session['email'] = user.get('email', '')
         session.permanent = True
 
+
         logger.info(f"✅ Resident logged in: {username} | resident_id={resident_id}")
-        
+
         return jsonify({
             'success': True,
             'role': 'Resident',
@@ -457,15 +479,15 @@ def admin_login():
         if 'visitor' in role_name.lower():
             # VISITOR
             visitor_id = user_id  # Assuming user_id maps to visitor
-            
+
             session['user_id'] = user_id
             session['visitor_id'] = visitor_id
             session['username'] = user['username']
             session['role'] = 'Visitor'
             session.permanent = True
-            
+
             logger.info(f"✅ Visitor logged in: {username}")
-            
+
             return jsonify({
                 'success': True,
                 'role': 'Visitor',
@@ -479,15 +501,15 @@ def admin_login():
         else:
             # INTERNAL STAFF
             staff_id = user_id
-            
+
             session['user_id'] = user_id
             session['staff_id'] = staff_id
             session['username'] = user['username']
             session['role'] = 'Internal_Staff'
             session.permanent = True
-            
+
             logger.info(f"✅ Internal Staff logged in: {username}")
-            
+
             return jsonify({
                 'success': True,
                 'role': 'Internal_Staff',
@@ -504,25 +526,25 @@ def admin_login():
         session['user_id'] = user_id  # The ID from the 'users' table (e.g., 7)
         session['username'] = user['username']
         session['role'] = 'security_officer'
-        
+
         # ✅ NEW: Fetch the REAL officer_id from the security_officers table
         # We use the user_id to find the linked profile
         officer_profile = SecurityOfficer.query.filter_by(user_id=user_id).first()
-        
+
         if officer_profile:
             # Store the ACTUAL officer_id (e.g., 1)
-            session['officer_id'] = officer_profile.officer_id 
+            session['officer_id'] = officer_profile.officer_id
             session['officer_name'] = officer_profile.full_name
         else:
             # Fallback: If no profile exists yet, use user_id to prevent crashes
             # (You should probably create the profile if it's missing)
             logger.warning(f"⚠️ User {username} has no Security Officer profile!")
-            session['officer_id'] = user_id 
+            session['officer_id'] = user_id
 
         session.permanent = True
-        
+
         logger.info(f"✅ Security Officer logged in: {username}")
-        
+
         return jsonify({
             'success': True,
             'role': 'security_officer',
@@ -537,13 +559,13 @@ def admin_login():
             'message': f'Your account type (role_id: {role_id}) is not configured. Contact administrator.'
         }), 401
 
-    
+
 
 @app.route('/admin/logout')
 def admin_logout():
-    """Admin logout - User Story: Logout so no one can use account"""
     session.clear()
-    return redirect(url_for('admin_login'))
+    return redirect(url_for('unified_login'))
+
 
 
 # ============================================
@@ -551,10 +573,11 @@ def admin_logout():
 # ============================================
 
 # Serve main login page
-@app.route('/login')
+@app.route('/frontend/login')
 def frontend_login():
-    """Serve the main login page for all user types"""
+    """Serve the frontend login page (if you still need it)"""
     return send_from_directory('frontend', 'index.html')
+
 
 # Resident Routes
 @app.route('/resident/dashboard')
@@ -608,7 +631,7 @@ def visitor_dashboard():
         return redirect(url_for('unified_login'))
     return send_from_directory('frontend', 'visitor-dashboard.html')
 
-# Staff Routes 
+# Staff Routes
 @app.route('/frontend/staff-dashboard.html')
 @app.route('/staff/dashboard')
 def staff_dashboard():
@@ -665,18 +688,18 @@ def security_dashboard():
     # The decorator already ensures session['officer_id'] exists
     officer_id = session.get('officer_id')
     officer = SecurityOfficer.query.get(officer_id)
-    
+
     # If for some reason the DB record is gone, clear session and exit
     if not officer:
         session.clear()
         return redirect(url_for('unified_login'))
-    
+
     access_logs = AccessLog.query.order_by(AccessLog.log_id.desc()).limit(50).all()
     granted_count = AccessLog.query.filter_by(access_result='granted').count()
-    
-    return render_template("security-dashboard.html", 
-                         officer=officer, 
-                         logs=access_logs, 
+
+    return render_template("security-dashboard.html",
+                         officer=officer,
+                         logs=access_logs,
                          granted_count=granted_count)
 
 @app.route("/security-deactivate")
@@ -700,7 +723,7 @@ def view_profile():
 
 @app.route("/security-update-profile", methods=["GET", "POST"])
 @officer_required
-def update_profile():   
+def update_profile():
     officer = SecurityOfficer.query.get(session['officer_id'])
     return render_template("security-update-profile.html", officer=officer)
 
@@ -884,8 +907,10 @@ def check_session():
     """Check if user is authenticated via Flask session"""
     uid = session.get('user_id') or session.get('officer_id')
 
+
     if not uid:
         return jsonify({'authenticated': False}), 401
+
 
     user_data = {
         'user_id': session.get('user_id'),
@@ -1038,10 +1063,10 @@ def update_personal_data(user_id):
         "contact_number": "contact_number",
         "unit_number": "unit_number",
     }
-    
+
     # Remove None values
     user_data = {k: v for k, v in user_data.items() if v is not None}
-    
+
     return jsonify({'authenticated': True, 'user': user_data}), 200
 
 
@@ -1602,7 +1627,8 @@ if SECURITY_OFFICER_AVAILABLE:
     def route_manual_override():
         data = request.get_json() or {}
         officer_id = data.get("officer_id")
-        result = manual_override(officer_id)
+        result = so_manual_override(officer_id)
+
         return jsonify(result)
 
     @app.route("/api/security_officer/profile/<int:officer_id>", methods=["GET"])
@@ -1622,11 +1648,13 @@ if SECURITY_OFFICER_AVAILABLE:
 
     @app.route("/api/security_officer/profile/<int:officer_id>", methods=["PUT"])
     def route_update_profile(officer_id):
-        return update_profile(officer_id, request.json)
+        return so_update_profile(officer_id, request.json)
+
 
     @app.route("/api/security_officer/account/<int:officer_id>", methods=["DELETE"])
     def route_delete_account(officer_id):
-        return delete_account(officer_id)
+        return so_delete_account(officer_id)
+
 
     @app.route("/api/security_officer/face_verify", methods=["POST"])
     def verify_face_route():
@@ -1754,7 +1782,19 @@ if SECURITY_OFFICER_AVAILABLE:
                 }), 403
 
             # --- Generate embedding ---
-            raw_embedding = image_to_embedding(image_base64)
+            from ml_client import get_embedding
+            try:
+                from routes.security_officer.security_officer_controller import apply_gan_attack
+                if ENABLE_GAN_ATTACK:
+                    print("⚠️ GAN IMPERSONATION ATTACK ENABLED")
+                    image_base64 = apply_gan_attack(image_base64)
+
+                raw_embedding = get_embedding(image_base64)
+            except Exception as e:
+                return jsonify({
+                    "status": "error",
+                    "message": "Face recognition service unavailable"
+                }), 503
 
             if raw_embedding is None:
                 return jsonify({
@@ -1944,7 +1984,7 @@ if SECURITY_OFFICER_AVAILABLE:
 
         else:
             return jsonify({"success": False, "message": "Invalid user type"}), 400
-        
+
     @app.route("/api/security_officer/change_password", methods=["POST"])
     @officer_required
     def change_password():
@@ -1958,7 +1998,7 @@ if SECURITY_OFFICER_AVAILABLE:
             return jsonify({"error": "Missing fields"}), 400
 
         officer = SecurityOfficer.query.get(session["officer_id"])
-        
+
         # user = User.query.get(officer.user_id)
         # if not user:
         #     return jsonify({"error": "Linked user not found"}), 404
@@ -1966,7 +2006,7 @@ if SECURITY_OFFICER_AVAILABLE:
         # ✅ Plain-text comparison
         if officer.user.password_hash != current_password:
             return jsonify({"error": "Current password is incorrect"}), 401
-        
+
         # Update the user's password
         officer.user.password_hash = new_password
         db.session.commit()
@@ -1980,10 +2020,10 @@ def get_staff_schedule(staff_id):
     try:
         start_date = request.args.get('start_date')
         end_date = request.args.get('end_date')
-        
+
         conn = get_db_connection()
         cur = conn.cursor(cursor_factory=RealDictCursor)
-        
+
         query = """
             SELECT user_id, work_start_date, work_end_date, 
                    work_schedule, work_details
@@ -1991,26 +2031,26 @@ def get_staff_schedule(staff_id):
             WHERE user_id = %s
         """
         params = [staff_id]
-        
+
         if start_date and end_date:
             query += " AND work_start_date <= %s AND work_end_date >= %s"
             params.extend([end_date, start_date])
-        
+
         query += " ORDER BY work_start_date"
-        
+
         cur.execute(query, params)
         schedules = cur.fetchall()
-        
+
         cur.close()
         conn.close()
-        
+
         schedule_list = []
         for schedule in schedules:
             # Parse work_schedule (e.g., "Mon-Fri 0800-1700")
             work_schedule = schedule.get('work_schedule', '')
             shift_start = '08:00'
             shift_end = '17:00'
-            
+
             # Try to extract time from work_schedule
             if work_schedule:
                 # Example: "Mon-Fri 0800-1700" or "1000hrs"
@@ -2028,7 +2068,7 @@ def get_staff_schedule(staff_id):
                         time_str = hrs_match.group(1).zfill(4)
                         shift_start = f"{time_str[:2]}:{time_str[2:]}"
                         shift_end = f"{int(time_str[:2])+8:02d}:{time_str[2:]}"
-            
+
             schedule_list.append({
                 'schedule_id': schedule.get('user_id'),
                 'shift_date': schedule['work_start_date'].strftime('%Y-%m-%d') if schedule.get('work_start_date') else None,
@@ -2037,26 +2077,26 @@ def get_staff_schedule(staff_id):
                 'task_description': schedule.get('work_details', 'Work shift'),
                 'location': 'Main Office'
             })
-        
+
         return jsonify({
             'success': True,
             'data': {'schedules': schedule_list}
         })
-        
+
     except Exception as e:
         logger.error(f"Error fetching schedule: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
-    
+
 @app.route('/api/staff/<int:staff_id>/attendance', methods=['GET'])
 def get_staff_attendance(staff_id):
     """Get staff attendance history"""
     try:
         start_date = request.args.get('start_date')
         end_date = request.args.get('end_date')
-        
+
         conn = get_db_connection()
         cur = conn.cursor()
-        
+
         query = """
             SELECT attendance_id, entry_time, exit_time, duration_hours,
                    location, verification_method
@@ -2064,19 +2104,19 @@ def get_staff_attendance(staff_id):
             WHERE staff_id = %s
         """
         params = [staff_id]
-        
+
         if start_date and end_date:
             query += " AND DATE(entry_time) BETWEEN %s AND %s"
             params.extend([start_date, end_date])
-        
+
         query += " ORDER BY entry_time DESC"
-        
+
         cur.execute(query, params)
         records = cur.fetchall()
-        
+
         cur.close()
         conn.close()
-        
+
         attendance_list = []
         for record in records:
             attendance_list.append({
@@ -2087,12 +2127,12 @@ def get_staff_attendance(staff_id):
                 'location': record[4],
                 'verification_method': record[5]
             })
-        
+
         return jsonify({
             'success': True,
             'data': {'records': attendance_list}
         })
-        
+
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
@@ -2340,7 +2380,7 @@ def admin_users_edit(user_id):
         return "User not found", 404
 
     return jsonify({'success': True, 'message': 'User updated successfully'})
-    
+
 
 
 @app.route('/admin/users/create', methods=['GET'])
@@ -2355,12 +2395,12 @@ def admin_users_create():
     """Create new user - User Story: Register new residents/temp workers"""
     data = request.json
     required = ['username', 'password', 'role']
-    
+
     if not all(k in data for k in required):
         return jsonify({'success': False, 'message': 'Missing required fields'}), 400
-    
+
     try:
-        
+
         # Prepare dictionary for User.create
         data_dict = {
             'username': data['username'],
@@ -2384,6 +2424,17 @@ def admin_users_create():
             })
 
         user_id = User.create(data_dict)
+        user_id = User.create(data_dict)
+        # user_id = User.create(
+        #     username=data['username'],
+        #     password=data['password'],
+        #     role=data['role'],
+        #     full_name=data.get('full_name'),
+        #     phone=data.get('phone'),
+        #     unit_number=data.get('unit_number'),
+        #     start_date=data.get('start_date'),
+        #     end_date=data.get('end_date')
+        # )
         return jsonify({'success': True, 'user_id': user_id})
     except Exception as e:
         logger.error(f"Create user error: {e}")
@@ -2631,22 +2682,22 @@ def admin_upload_id_doc(user_id):
     """Upload ID document - User Story: Register temp workers with ID documents"""
     if 'document' not in request.files:
         return jsonify({'success': False, 'message': 'No document provided'}), 400
-    
+
     doc = request.files['document']
-    
+
     if not doc or not allowed_file(doc.filename):
         return jsonify({'success': False, 'message': 'Invalid file type'}), 400
-    
+
     try:
         ext = doc.filename.rsplit('.', 1)[1].lower()
         filename = f"id_doc_{user_id}_{uuid.uuid4().hex}.{ext}"
         doc_path = os.path.join(Config.FACE_RECOGNITION['id_doc_dir'], filename)
         doc.save(doc_path)
-        
+
         User.update(user_id, {'id_document_path': filename})
-        
+
         return jsonify({'success': True, 'message': 'ID document uploaded successfully!'})
-    
+
     except Exception as e:
         logger.error(f"Upload ID doc error: {e}")
         return jsonify({'success': False, 'message': str(e)}), 500
@@ -2665,17 +2716,17 @@ def admin_logs():
     date_from = request.args.get('date_from', '')
     date_to = request.args.get('date_to', '')
     status_filter = request.args.get('status', '')
-    
+
     logs = AccessLog.filter_logs(
         user_id=int(user_filter) if user_filter else None,
         date_from=date_from if date_from else None,
         date_to=date_to if date_to else None,
         status=status_filter if status_filter else None
     )
-    
+
     users_for_filter = AccessLog.get_all_users_for_filter()
-    
-    return render_template('admin_logs.html', 
+
+    return render_template('admin_logs.html',
                          logs=logs,
                          users_for_filter=users_for_filter,
                          user_filter=user_filter,
@@ -2696,9 +2747,9 @@ def admin_logs():
 #     expiring_soon = User.get_expiring_temp_workers(days=7)
 #     from datetime import date
 #     today = date.today()
-    
-#     return render_template('admin_tempworker.html', 
-#                          users=users, 
+
+#     return render_template('admin_tempworker.html',
+#                          users=users,
 #                          expiring_soon=expiring_soon,
 #                          today=today)
 
@@ -2733,7 +2784,7 @@ def admin_check_expired_temp_workers():
     try:
         count = User.check_expired_temp_workers()
         return jsonify({
-            'success': True, 
+            'success': True,
             'message': f'Deactivated {count} expired temporary workers',
             'count': count
         })
@@ -2776,17 +2827,17 @@ def api_dashboard_stats():
     """Get dashboard statistics"""
     try:
         stats = AccessLog.get_stats(days=30)
-        
+
         all_users = User.get_all()
         active_users = len([u for u in all_users if u.get('status') == 'active'])
         inactive_users = len([u for u in all_users if u.get('status') == 'inactive'])
         temp_workers = len([u for u in all_users if u.get('role') == 'TEMP_WORKER'])
-        
+
         stats['total_users'] = len(all_users)
         stats['active_users'] = active_users
         stats['inactive_users'] = inactive_users
         stats['temp_workers'] = temp_workers
-        
+
         return jsonify({'success': True, 'stats': stats})
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)}), 500
@@ -2797,7 +2848,7 @@ def api_dashboard_stats():
 # ============================================
 
 def init_app(app):
-    # Create necessary folders
+    # Create necessary folders (always safe)
     os.makedirs(Config.FACE_RECOGNITION['upload_dir'], exist_ok=True)
     os.makedirs(Config.FACE_RECOGNITION['encoding_dir'], exist_ok=True)
     os.makedirs(Config.FACE_RECOGNITION['id_doc_dir'], exist_ok=True)
@@ -3109,7 +3160,7 @@ def get_staff_profile(staff_id):
     try:
         conn = get_db_connection()
         cur = conn.cursor(cursor_factory=RealDictCursor)
-        
+
         cur.execute("""
             SELECT u.user_id as staff_id, u.username, u.full_name, u.email, 
                    u.contact_number, r.role_name as position, u.status as is_active, 
@@ -3118,22 +3169,22 @@ def get_staff_profile(staff_id):
             LEFT JOIN roles r ON u.role_id = r.role_id
             WHERE u.user_id = %s AND r.role_id IN (8, 13)
         """, (staff_id,))
-        
+
         staff = cur.fetchone()
         cur.close()
         conn.close()
-        
+
         if not staff:
             return jsonify({'success': False, 'error': 'Staff not found'}), 404
-        
+
         # Convert to dict and format dates
         staff_dict = dict(staff)
         staff_dict['is_active'] = staff_dict['is_active'] == 'active'
         if staff_dict.get('registered_at'):
             staff_dict['registered_at'] = staff_dict['registered_at'].isoformat()
-        
+
         return jsonify({'success': True, 'data': staff_dict})
-        
+
     except Exception as e:
         logger.error(f"Error getting staff profile: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
@@ -3143,22 +3194,22 @@ def update_staff_profile(staff_id):
     """Update staff profile"""
     try:
         data = request.get_json()
-        
+
         conn = get_db_connection()
         cur = conn.cursor()
-        
+
         cur.execute("""
             UPDATE users
             SET full_name = %s, contact_number = %s
             WHERE user_id = %s
         """, (data.get('full_name'), data.get('contact_number'), staff_id))
-        
+
         conn.commit()
         cur.close()
         conn.close()
-        
+
         return jsonify({'success': True, 'message': 'Profile updated successfully'})
-        
+
     except Exception as e:
         logger.error(f"Error updating staff profile: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
@@ -3169,16 +3220,16 @@ def delete_staff_account(staff_id):
     try:
         conn = get_db_connection()
         cur = conn.cursor()
-        
+
         # Update status to inactive instead of deleting
         cur.execute("UPDATE users SET status = 'inactive' WHERE user_id = %s", (staff_id,))
-        
+
         conn.commit()
         cur.close()
         conn.close()
-        
+
         return jsonify({'success': True, 'message': 'Account deactivated successfully'})
-        
+
     except Exception as e:
         logger.error(f"Error deleting staff account: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
@@ -3190,43 +3241,43 @@ def enroll_staff_face():
         data = request.get_json()
         staff_id = data.get('staff_id')
         image_data = data.get('image_data')  # Base64 encoded image
-        
+
         if not staff_id or not image_data:
             return jsonify({'success': False, 'error': 'Missing required fields'}), 400
-        
+
         # Verify staff exists
         conn = get_db_connection()
         cursor = conn.cursor(cursor_factory=RealDictCursor)
-        
+
         cursor.execute("""
             SELECT u.user_id, u.username, u.full_name, r.role_name
             FROM users u
             LEFT JOIN roles r ON u.role_id = r.role_id
             WHERE u.user_id = %s AND r.role_id IN (8, 13)
         """, (staff_id,))
-        
+
         staff = cursor.fetchone()
-        
+
         if not staff:
             cursor.close()
             conn.close()
             return jsonify({'success': False, 'error': 'Staff member not found'}), 404
-        
+
         # Process the image data (remove data URL prefix if present)
         if ',' in image_data:
             image_data = image_data.split(',')[1]
-        
+
         # Generate unique filename
         filename = f"staff_{staff_id}_{uuid.uuid4().hex[:8]}.jpg"
-        
+
         # Check if face embedding already exists
         cursor.execute("""
             SELECT embedding_id FROM face_embeddings
             WHERE reference_id = %s AND user_type = 'staff'
         """, (staff_id,))
-        
+
         existing = cursor.fetchone()
-        
+
         if existing:
             # Update existing record
             cursor.execute("""
@@ -3244,11 +3295,11 @@ def enroll_staff_face():
                 VALUES (%s, 'staff', %s)
             """, (staff_id, filename))
             logger.info(f"Created face enrollment for staff_id={staff_id}")
-        
+
         conn.commit()
         cursor.close()
         conn.close()
-        
+
         return jsonify({
             'success': True,
             'message': 'Face enrolled successfully',
@@ -3257,7 +3308,7 @@ def enroll_staff_face():
                 'filename': filename
             }
         })
-        
+
     except Exception as e:
         logger.error(f"Error enrolling staff face: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
@@ -3271,13 +3322,13 @@ def record_staff_attendance():
         action = data.get('action')  # 'entry' or 'exit'
         location = data.get('location', 'Main Gate')
         verification_method = data.get('verification_method', 'Manual')
-        
+
         if not staff_id or not action:
             return jsonify({'success': False, 'error': 'Missing required fields'}), 400
-        
+
         conn = get_db_connection()
         cursor = conn.cursor(cursor_factory=RealDictCursor)
-        
+
         if action == 'entry':
             # Create new attendance record
             cursor.execute("""
@@ -3285,12 +3336,12 @@ def record_staff_attendance():
                 VALUES (%s, NOW(), %s, %s)
                 RETURNING attendance_id
             """, (staff_id, location, verification_method))
-            
+
             result = cursor.fetchone()
             conn.commit()
-            
+
             message = 'Clocked in successfully'
-            
+
         elif action == 'exit':
             # Update existing record with exit time
             cursor.execute("""
@@ -3302,36 +3353,43 @@ def record_staff_attendance():
                 AND DATE(entry_time) = CURRENT_DATE
                 RETURNING attendance_id
             """, (staff_id,))
-            
+
             result = cursor.fetchone()
-            
+
             if not result:
                 cursor.close()
                 conn.close()
                 return jsonify({'success': False, 'error': 'No active clock-in found for today'}), 400
-            
+
             conn.commit()
             message = 'Clocked out successfully'
         else:
             cursor.close()
             conn.close()
             return jsonify({'success': False, 'error': 'Invalid action'}), 400
-        
+
         cursor.close()
         conn.close()
-        
+
         return jsonify({'success': True, 'message': message, 'data': {'attendance_id': result['attendance_id']}})
-        
+
     except Exception as e:
         logger.error(f"Error recording attendance: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
-if __name__ == '__main__':
+
+
+# ============================================================
+# INITIALIZE (Gunicorn safe)
+# ============================================================
+
+# Initialize once when Gunicorn imports app
+try:
     init_app(app)
-    print("\n" + "=" * 60)
-    print("FACE RECOGNITION - ADMIN PANEL")
-    print("=" * 60)
-    print(f"\nAdmin Panel: http://localhost:{Config.PORT}/admin/login")
-    print(f"\nDefault admin: admin_user / password: admin123")
-    print("=" * 60 + "\n")
-    app.run(host=Config.HOST, port=Config.PORT, debug=False)
+except Exception as e:
+    logger.error(f"init_app failed: {e}")
+
+# ---- LOCAL DEV ONLY ----
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port)

@@ -3,29 +3,12 @@ from datetime import datetime
 from psycopg2.extras import RealDictCursor
 from database import get_db_connection
 
-# --- NEW imports for face embedding ---
-import base64
-import re
 import numpy as np
-import cv2
-import torch
-from facenet_pytorch import MTCNN, InceptionResnetV1
+
+# ✅ Remote ML embedding (Cloud Run)
+from ml_client import get_embedding as get_remote_embedding
 
 resident_bp = Blueprint("resident_bp", __name__, url_prefix="/api/resident")
-
-# ----------------------------------------------------------------------
-# Face models (loaded once)
-# ----------------------------------------------------------------------
-_device = torch.device("cpu")
-
-_mtcnn = MTCNN(
-    image_size=160,
-    margin=20,
-    keep_all=False,
-    device=_device
-)
-
-_facenet = InceptionResnetV1(pretrained="vggface2").eval().to(_device)
 
 
 # ----------------------------------------------------------------------
@@ -61,60 +44,20 @@ def _json_error(msg, status=400, details=None):
     return jsonify(payload), status
 
 
-def _decode_base64_image(data_url: str):
+def _normalize_embedding(emb_list):
     """
-    Accepts:
-      - 'data:image/jpeg;base64,...'
-      - raw base64 string
-    Returns OpenCV BGR image (numpy array) or None.
+    Normalize embedding to unit length for stable cosine similarity.
+    Store as list[float] for pgvector.
     """
-    if not data_url:
-        return None
-
-    m = re.match(r"^data:image\/[a-zA-Z]+;base64,(.*)$", data_url)
-    b64 = m.group(1) if m else data_url
-
-    try:
-        img_bytes = base64.b64decode(b64)
-        arr = np.frombuffer(img_bytes, dtype=np.uint8)
-        img_bgr = cv2.imdecode(arr, cv2.IMREAD_COLOR)
-        return img_bgr
-    except Exception:
-        return None
-
-
-def _get_embedding_from_bgr(img_bgr: np.ndarray):
-    """
-    Returns a normalized 512-d embedding as a Python list of floats, or None if no face detected.
-    """
-    if img_bgr is None:
-        return None
-
-    # Convert to RGB for facenet-pytorch
-    img_rgb = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB)
-
-    # Detect + align face, returns torch tensor [3,160,160]
-    face = _mtcnn(img_rgb)
-    if face is None:
-        return None
-
-    # Add batch dimension [1,3,160,160]
-    face = face.unsqueeze(0).to(_device)
-
-    with torch.no_grad():
-        emb = _facenet(face)  # [1,512]
-
-    emb = emb.squeeze(0).cpu().numpy().astype(np.float32)
-
-    # Normalize for stable cosine similarity
-    norm = np.linalg.norm(emb) + 1e-12
-    emb = emb / norm
-
-    return emb.tolist()
+    v = np.array(emb_list, dtype=np.float32)
+    norm = float(np.linalg.norm(v))
+    if norm == 0.0:
+        return v.tolist()
+    return (v / norm).tolist()
 
 
 # ----------------------------------------------------------------------
-# UC-R1: Register Face Data (NOW generates real embeddings)
+# UC-R1: Register Face Data (REMOTE embedding)
 # ----------------------------------------------------------------------
 @resident_bp.route("/register-face", methods=["POST"])
 def register_face():
@@ -125,15 +68,12 @@ def register_face():
     if not resident_id or not image_data:
         return _json_error("Missing fields", 400, {"required": ["resident_id", "image_data"]})
 
-    # Decode image
-    img_bgr = _decode_base64_image(image_data)
-    if img_bgr is None:
-        return _json_error("Invalid image_data (base64 decode failed)", 400)
-
-    # Generate embedding
-    embedding = _get_embedding_from_bgr(img_bgr)
-    if embedding is None:
+    # ✅ Generate embedding from Cloud Run ML (expects base64 or dataURL)
+    emb = get_remote_embedding(image_data)
+    if emb is None:
         return _json_error("No face detected. Please center your face and try again.", 400)
+
+    embedding = _normalize_embedding(emb)
 
     try:
         conn = get_db_connection()
