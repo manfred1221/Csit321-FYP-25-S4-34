@@ -10,6 +10,18 @@ import os
 
 ENABLE_GAN_ATTACK = os.getenv("ENABLE_GAN_ATTACK", "false").lower() == "true"
 
+def apply_gan_attack(image_base64: str) -> str:
+    """
+    Simulated GAN-based impersonation attack.
+    In a real system, this would pass the image
+    through a GAN generator before FaceNet.
+    """
+    # 🔥 EXAM NOTE:
+    # This is where a GAN would alter identity-related features
+    # while preserving visual realism.
+
+    return image_base64  # placeholder for GAN output
+
 
 # ✅ Remote ML embedding (Cloud Run)
 from ml_client import get_embedding as get_remote_embedding
@@ -149,6 +161,11 @@ def verify_face():
         return jsonify({"status": "error", "message": "No image provided"}), 400
 
     # ✅ Call Cloud Run ML
+    if ENABLE_GAN_ATTACK:
+        print("⚠️ GAN ATTACK ENABLED")
+        image_base64 = apply_gan_attack(image_base64)
+
+    # ✅ Call Cloud Run ML AFTER GAN
     embedding_list = get_remote_embedding(image_base64)
     if embedding_list is None:
         return jsonify({"status": "error", "message": "No face detected. Please try again."}), 400

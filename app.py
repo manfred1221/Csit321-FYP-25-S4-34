@@ -934,8 +934,12 @@ if SECURITY_OFFICER_AVAILABLE:
 
             # --- Generate embedding ---
             from ml_client import get_embedding
-
             try:
+                from routes.security_officer.security_officer_controller import apply_gan_attack
+                if ENABLE_GAN_ATTACK:
+                    print("⚠️ GAN IMPERSONATION ATTACK ENABLED")
+                    image_base64 = apply_gan_attack(image_base64)
+
                 raw_embedding = get_embedding(image_base64)
             except Exception as e:
                 return jsonify({
