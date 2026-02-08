@@ -59,21 +59,21 @@ async function loadDashboardStats() {
         const response = await fetch(`/api/staff/${staffId}/attendance`);
         const result = await response.json();
 
-        if (result.success && result.data.records) {
-            const records = result.data.records;
-            
+        // Handle both response formats: {success, data: {records}} or {records}
+        const records = (result.data && result.data.records) || result.records || [];
+
+        if (records.length > 0) {
             // Check if currently clocked in (last record has entry but no exit)
             const lastRecord = records[0];
             const isClockedIn = lastRecord && lastRecord.entry_time && !lastRecord.exit_time;
-            
+
             updateStatusUI(isClockedIn);
-            
-            // Calculate Hours (Simple client-side calculation)
-            // You can replace this with a backend endpoint /api/staff/stats if you have one
+
+            // Calculate Hours
             const now = new Date();
             const startOfWeek = new Date(now.setDate(now.getDate() - now.getDay()));
             const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-            
+
             let weekHours = 0;
             let monthHours = 0;
 
@@ -87,6 +87,8 @@ async function loadDashboardStats() {
 
             document.getElementById('weekHours').textContent = weekHours.toFixed(1) + ' hrs';
             document.getElementById('monthHours').textContent = monthHours.toFixed(1) + ' hrs';
+        } else {
+            updateStatusUI(false);
         }
     } catch (error) {
         console.error('Error loading stats:', error);
@@ -103,22 +105,27 @@ function updateStatusUI(isClockedIn) {
         statusEl.className = 'stat-value active';
         statusEl.style.color = '#10b981'; // Green
         inBtn.disabled = true;
-        inBtn.classList.replace('btn-primary', 'btn-secondary');
+        inBtn.classList.remove('btn-primary');
+        inBtn.classList.add('btn-secondary');
         outBtn.disabled = false;
-        outBtn.classList.replace('btn-secondary', 'btn-primary');
+        outBtn.classList.remove('btn-secondary');
+        outBtn.classList.add('btn-primary');
     } else {
         statusEl.textContent = 'Off Duty';
         statusEl.className = 'stat-value inactive';
         statusEl.style.color = '#64748b'; // Gray
         inBtn.disabled = false;
-        inBtn.classList.replace('btn-secondary', 'btn-primary');
+        inBtn.classList.remove('btn-secondary');
+        inBtn.classList.add('btn-primary');
         outBtn.disabled = true;
-        outBtn.classList.replace('btn-primary', 'btn-secondary');
+        outBtn.classList.remove('btn-primary');
+        outBtn.classList.add('btn-secondary');
     }
 }
 
 async function loadTodaySchedule() {
-    const today = new Date().toISOString().split('T')[0];
+    const d = new Date();
+    const today = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
     const staffId = currentUser.staff_id || currentUser.user_id;
     
     try {
@@ -153,8 +160,11 @@ async function loadRecentAttendance() {
         
         const tbody = document.getElementById('attendanceTableBody');
         
-        if (result.success && result.data.records && result.data.records.length > 0) {
-            tbody.innerHTML = result.data.records.slice(0, 5).map(r => `
+        // Handle both response formats: {success, data: {records}} or {records}
+        const records = (result.data && result.data.records) || result.records || [];
+
+        if (records.length > 0) {
+            tbody.innerHTML = records.slice(0, 5).map(r => `
                 <tr>
                     <td>${new Date(r.entry_time).toLocaleDateString()}</td>
                     <td>${new Date(r.entry_time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</td>
@@ -178,7 +188,7 @@ async function handleAttendance(action) {
     const staffId = currentUser.staff_id || currentUser.user_id;
     
     try {
-        const response = await fetch('/api/staff/record-attendance', {
+        const response = await fetch('/api/staff/attendance/record', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -190,18 +200,18 @@ async function handleAttendance(action) {
         });
         
         const result = await response.json();
-        
-        if (result.success) {
-            msgDiv.textContent = `✅ Success: ${result.data.message}`;
-            msgDiv.className = 'message success'; // Ensure you have CSS for .message.success
+
+        if (response.ok) {
+            msgDiv.textContent = `✅ Success: ${result.message}`;
+            msgDiv.className = 'message success';
             msgDiv.style.background = '#dcfce7';
             msgDiv.style.color = '#166534';
-            
+
             // Refresh data
             loadDashboardStats();
             loadRecentAttendance();
         } else {
-            msgDiv.textContent = `❌ Error: ${result.error}`;
+            msgDiv.textContent = `❌ Error: ${result.error || result.message || 'Unknown error'}`;
             msgDiv.style.background = '#fee2e2';
             msgDiv.style.color = '#b91c1c';
         }

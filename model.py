@@ -98,6 +98,38 @@ def get_face_embedding_from_array(img_array):
     logger.warning("No face detected from camera")
     return None
 
+def get_augmented_embedding(img_bgr):
+    """
+    Extract a robust face embedding by averaging over augmented versions of the image.
+    Takes a BGR numpy array, returns a normalized 512-d embedding or None.
+    """
+    if img_bgr is None:
+        return None
+
+    augmented = [img_bgr]
+
+    # Brightness variations
+    for alpha in [0.85, 1.15]:
+        augmented.append(cv2.convertScaleAbs(img_bgr, alpha=alpha, beta=0))
+
+    # Horizontal flip
+    augmented.append(cv2.flip(img_bgr, 1))
+
+    embeddings = []
+    for aug_img in augmented:
+        emb = get_face_embedding_from_array(aug_img)
+        if emb is not None:
+            embeddings.append(emb)
+
+    if not embeddings:
+        logger.warning("No face detected in any augmented image")
+        return None
+
+    avg = np.mean(embeddings, axis=0)
+    avg = avg / np.linalg.norm(avg)
+    logger.info(f"Augmented embedding from {len(embeddings)}/{len(augmented)} images")
+    return avg
+
 def compare_faces(embedding1, embedding2, threshold=None):
     """Compare two face embeddings"""
     if threshold is None:
@@ -181,46 +213,99 @@ def save_embedding_to_db(embedding, reference_id, user_type='resident'):
     try:
         conn = get_db_connection()
         cursor = conn.cursor(cursor_factory=RealDictCursor)
-
+        
         # Convert embedding to list for PostgreSQL vector type
         embedding_list = embedding.tolist() if isinstance(embedding, np.ndarray) else list(embedding)
-
+        
         logger.info(f"Embedding dimensions: {len(embedding_list)}")
         logger.info(f"Saving for reference_id={reference_id}, user_type={user_type}")
-
+        
         # Format as PostgreSQL vector string
         embedding_str = '[' + ','.join(map(str, embedding_list)) + ']'
 
-        # Verify the reference_id exists in the appropriate table based on user_type
-        if user_type == 'resident':
-            cursor.execute("SELECT resident_id FROM residents WHERE resident_id = %s", (reference_id,))
-            check_result = cursor.fetchone()
-            if not check_result:
-                raise ValueError(f"reference_id {reference_id} does not exist in residents table")
-        elif user_type == 'visitor':
-            cursor.execute("SELECT visitor_id FROM visitors WHERE visitor_id = %s", (reference_id,))
-            check_result = cursor.fetchone()
-            if not check_result:
-                raise ValueError(f"reference_id {reference_id} does not exist in visitors table")
-        elif user_type in ['ADMIN', 'internal_staff', 'temp_staff', 'security_officer']:
+        # Normalize user_type to match database constraint
+        user_type_normalized = user_type.lower().strip()
+        
+        # First, try to determine what values are actually allowed by checking existing data
+        cursor.execute("SELECT DISTINCT user_type FROM face_embeddings LIMIT 10")
+        existing_types = [row['user_type'] for row in cursor.fetchall()]
+        logger.info(f"Existing user_types in database: {existing_types}")
+        
+        # Map various user type names to database CHECK constraint values
+        # Valid: 'resident', 'visitor', 'security_officer', 'internal_staff', 'temp_staff', 'ADMIN'
+        user_type_mapping = {
+            'ADMIN': 'ADMIN',
+            'admin': 'ADMIN',
+            'internal_staff': 'internal_staff',
+            'staff': 'temp_staff',
+            'temp_staff': 'temp_staff',
+            'temp_worker': 'temp_staff',
+            'resident': 'resident',
+            'visitor': 'visitor',
+            'security': 'security_officer',
+            'security_officer': 'security_officer'
+        }
+
+        db_user_type = user_type_mapping.get(user_type_normalized, user_type_normalized)
+        logger.info(f"Mapped user_type '{user_type_normalized}' -> '{db_user_type}'")
+
+        # Verify the reference_id exists based on original user type
+        if user_type_normalized in ['ADMIN', 'admin', 'internal_staff', 'staff', 'temp_staff', 'temp_worker']:
             cursor.execute("SELECT user_id FROM users WHERE user_id = %s", (reference_id,))
             check_result = cursor.fetchone()
             if not check_result:
-                raise ValueError(f"reference_id {reference_id} does not exist in users table")
-        # For other user types, skip validation (or add more checks as needed)
+                raise ValueError(f"User {reference_id} does not exist in users table")
+        elif user_type_normalized == 'resident':
+            cursor.execute("SELECT resident_id FROM residents WHERE resident_id = %s", (reference_id,))
+            check_result = cursor.fetchone()
+            if not check_result:
+                raise ValueError(f"Resident {reference_id} does not exist")
+        elif user_type_normalized == 'visitor':
+            cursor.execute("SELECT visitor_id FROM visitors WHERE visitor_id = %s", (reference_id,))
+            check_result = cursor.fetchone()
+            if not check_result:
+                raise ValueError(f"Visitor {reference_id} does not exist")
+        elif user_type_normalized in ['security', 'security_officer']:
+            cursor.execute("SELECT officer_id FROM security_officers WHERE officer_id = %s", (reference_id,))
+            check_result = cursor.fetchone()
+            if not check_result:
+                raise ValueError(f"Security officer {reference_id} does not exist")
 
+        # Check if embedding already exists for this user
+        # Try to find with any user_type for this reference_id
         cursor.execute("""
-            INSERT INTO face_embeddings (user_type, reference_id, embedding)
-            VALUES (%s, %s, %s::vector)
-            RETURNING embedding_id
-        """, (user_type, reference_id, embedding_str))
-
+            SELECT embedding_id, user_type FROM face_embeddings 
+            WHERE reference_id = %s
+            ORDER BY created_at DESC
+            LIMIT 1
+        """, (reference_id,))
+        existing = cursor.fetchone()
+        
+        if existing:
+            # Update existing embedding, keeping the same user_type that was already accepted
+            existing_user_type = existing['user_type']
+            logger.info(f"Updating existing record with user_type='{existing_user_type}'")
+            cursor.execute("""
+                UPDATE face_embeddings 
+                SET embedding = %s::vector, created_at = CURRENT_TIMESTAMP
+                WHERE embedding_id = %s
+                RETURNING embedding_id
+            """, (embedding_str, existing['embedding_id']))
+            logger.info(f"Updated existing embedding_id={existing['embedding_id']}")
+        else:
+            # Insert new embedding - try the db_user_type we determined
+            cursor.execute("""
+                INSERT INTO face_embeddings (user_type, reference_id, embedding)
+                VALUES (%s, %s, %s::vector)
+                RETURNING embedding_id
+            """, (db_user_type, reference_id, embedding_str))
+        
         result = cursor.fetchone()
         if not result:
-            raise ValueError("INSERT did not return embedding_id")
-
+            raise ValueError("INSERT/UPDATE did not return embedding_id")
+        
         embedding_id = result['embedding_id']
-
+        
         conn.commit()
         logger.info(f"✓ Saved embedding to database: embedding_id={embedding_id}")
         return embedding_id
@@ -262,26 +347,20 @@ def get_all_embeddings():
     try:
         cursor.execute("""
             SELECT fe.embedding_id, fe.user_type, fe.reference_id, fe.embedding,
-                   CASE
-                       WHEN fe.user_type = 'resident' THEN r.full_name
-                       WHEN fe.user_type IN ('ADMIN', 'internal_staff', 'temp_staff', 'security_officer') THEN u.username
-                       WHEN fe.user_type = 'visitor' THEN v.full_name
-                       ELSE 'Unknown'
-                   END as full_name,
-                   CASE
-                       WHEN fe.user_type = 'resident' THEN r.unit_number
-                       ELSE NULL
-                   END as unit_number
+                   r.full_name as resident_name, r.unit_number,
+                   u.username, u.email, u.full_name as user_name,
+                   v.full_name as visitor_name
             FROM face_embeddings fe
             LEFT JOIN residents r ON fe.reference_id = r.resident_id AND fe.user_type = 'resident'
-            LEFT JOIN users u ON fe.reference_id = u.user_id AND fe.user_type IN ('ADMIN', 'internal_staff', 'temp_staff', 'security_officer')
+            LEFT JOIN users u ON fe.reference_id = u.user_id
+    AND fe.user_type IN ('ADMIN', 'admin', 'staff', 'internal_staff', 'temp_staff')
             LEFT JOIN visitors v ON fe.reference_id = v.visitor_id AND fe.user_type = 'visitor'
         """)
         results = []
         for row in cursor.fetchall():
             record = dict(row)
             # Use resident_name or user_name, whichever is available
-            record['full_name'] = record.get('resident_name') or record.get('user_name') or 'Unknown'
+            record['full_name'] = record.get('resident_name') or record.get('visitor_name') or record.get('user_name') or record.get('username') or 'Unknown'
             
             # Parse embedding - comprehensive handling
             embedding = record.get('embedding')
@@ -319,15 +398,15 @@ def get_all_embeddings():
 def recognize_face(embedding, threshold=None):
     """
     Recognize face by comparing with database embeddings
-    
+
     Returns:
-        tuple: (reference_id, username, full_name, distance) or (None, None, None, distance)
+        tuple: (reference_id, username, full_name, distance, user_type) or (None, None, None, distance, None)
     """
     if threshold is None:
         threshold = FACE_RECOGNITION_THRESHOLD
-    
+
     if embedding is None:
-        return None, None, None, float('inf')
+        return None, None, None, float('inf'), None
     
     # Get all embeddings from database
     all_embeddings = get_all_embeddings()
@@ -357,16 +436,18 @@ def recognize_face(embedding, threshold=None):
     
     if best_match and best_distance < threshold:
         name = best_match.get('full_name') or best_match.get('username') or 'Unknown'
-        logger.info(f"✓ MATCHED: {name} (distance: {best_distance:.4f})")
+        user_type = best_match.get('user_type', 'unknown')
+        logger.info(f"✓ MATCHED: {name} (distance: {best_distance:.4f}, type: {user_type})")
         return (
             best_match['reference_id'],
             best_match.get('username', name),
             name,
-            best_distance
+            best_distance,
+            user_type
         )
-    
+
     logger.info(f"✗ NO MATCH: best distance {best_distance:.4f} >= threshold {threshold}")
-    return None, None, None, best_distance
+    return None, None, None, best_distance, None
 
 def register_face_from_photo(photo_path, reference_id, user_type='resident'):
     """

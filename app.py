@@ -1,5 +1,6 @@
 import os
-
+from dotenv import load_dotenv
+load_dotenv()
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
@@ -137,10 +138,13 @@ def check_user_has_face_embedding(user):
 
         # Determine user type and reference ID based on role
         if user_role == 'admin':
-            user_type = 'admin'
+            user_type = 'ADMIN'
             reference_id = user_id
-        elif user_role in ['internal_staff', 'staff', 'temp_worker']:
-            user_type = 'staff'
+        elif user_role in ['internal_staff', 'staff']:
+            user_type = 'internal_staff'
+            reference_id = user_id
+        elif user_role == 'temp_worker':
+            user_type = 'temp_staff'
             reference_id = user_id
         elif user_role == 'resident':
             user_type = 'resident'
@@ -456,6 +460,7 @@ def admin_login():
         session['role'] = 'Resident'
         session['full_name'] = user.get('full_name', user['username'])
         session['email'] = user.get('email', '')
+        session['unit_number'] = user.get('unit_number', '')
         session.permanent = True
 
 
@@ -474,7 +479,7 @@ def admin_login():
         }), 200
 
     # 🟡 VISITOR or INTERNAL STAFF (role_id = 3)
-    elif role_id == 3 or role_id == 9:
+    elif role_id in (3, 8, 9):
         # Check if it's a visitor or internal staff based on role_name
         if 'visitor' in role_name.lower():
             # VISITOR
@@ -866,7 +871,8 @@ def auth_login():
 @app.route("/api/auth/logout", methods=["POST"])
 def auth_logout():
     """UC-R7 Logout"""
-    return jsonify({"message": "Logout successful (mock)"}), 200
+    session.clear()
+    return jsonify({"success": True, "message": "Logged out"}), 200
 
 @app.route("/api/staff/login", methods=["POST"])
 def staff_login():
@@ -884,8 +890,8 @@ def staff_login():
     if not user:
         return jsonify({"error": "Invalid username or password"}), 401
 
-    # Check if user is internal staff
-    if user["role"] not in ["Internal_Staff", "INTERNAL_STAFF", "Staff"]:
+    # Check if user is internal staff or temp staff
+    if user["role"] not in ["Internal_Staff", "INTERNAL_STAFF", "Staff", "internal_staff", "temp_staff"]:
         return jsonify({"error": "Invalid username or password"}), 401
 
     # Generate token
@@ -919,703 +925,13 @@ def check_session():
         'full_name': session.get('full_name'),
         'email': session.get('email'),
         'resident_id': session.get('resident_id'),
+        'unit_number': session.get('unit_number'),
         'visitor_id': session.get('visitor_id'),
         'officer_id': session.get('officer_id'),
         'staff_id': session.get('staff_id')
     }
 
     return jsonify({'authenticated': True, 'user': user_data}), 200
-
-# ============================================
-# VISITOR ROUTES (from visitor_routes.py)
-# ============================================
-
-@app.route("/api/visitor/visitors", methods=["POST"])
-def create_visitor_entry():
-    """UC-R8 Create Visitor Entry (stub)"""
-    payload = request.get_json() or {}
-    return jsonify({"message": "Visitor entry created (stub)", "payload": payload}), 201
-
-@app.route("/api/visitor/visitors", methods=["GET"])
-def view_registered_visitors():
-    """UC-R10 View Registered Visitors (stub)"""
-    demo_visitors = [
-        {
-            "visitor_id": 1,
-            "full_name": "Mary Lee",
-            "visiting_unit": "B-12-05",
-            "check_in": "2025-11-12T11:06:13",
-        }
-    ]
-    return jsonify(demo_visitors), 200
-
-
-# ============================================
-# RESIDENT ROUTES (from resident_routes.py)
-# ============================================
-
-def parse_iso(dt_str):
-    """Parse ISO datetime string safely; return None if invalid."""
-    if not dt_str:
-        return None
-    try:
-        return datetime.fromisoformat(dt_str)
-    except ValueError:
-        return None
-
-
-@app.route("/api/resident/register-face", methods=["POST"])
-def register_face():
-    """UC-R1: Register Face Data"""
-    data = request.get_json() or {}
-    user_id = data.get("user_id")
-    image_data = data.get("image_data")
-
-    if not user_id or not image_data:
-        return jsonify({
-            "error": "Missing fields",
-            "required": ["user_id", "image_data"]
-        }), 400
-
-    try:
-        conn = get_db_connection()
-        cur = conn.cursor()
-
-        cur.execute(
-            "SELECT user_id FROM residents WHERE user_id = %s;",
-            (user_id,)
-        )
-        row = cur.fetchone()
-        if not row:
-            cur.close()
-            conn.close()
-            return jsonify({"error": "Resident not found"}), 404
-
-        cur.execute(
-            """
-            INSERT INTO face_embeddings (user_type, reference_id, embedding)
-            VALUES ('resident', %s, NULL)
-            RETURNING embedding_id;
-            """,
-            (user_id,)
-        )
-        embedding_id = cur.fetchone()[0]
-        conn.commit()
-        cur.close()
-        conn.close()
-
-        return jsonify({
-            "message": "Face data registered (placeholder, no embedding yet)",
-            "user_id": user_id,
-            "embedding_id": embedding_id
-        }), 201
-
-    except Exception as e:
-        return jsonify({"error": "DB error while saving face data", "details": str(e)}), 500
-
-@app.route("/api/resident/<int:user_id>", methods=["GET"])
-def view_personal_data(user_id):
-    """UC-R2: View Personal Data"""
-    try:
-        conn = get_db_connection()
-        cur = conn.cursor()
-        cur.execute(
-            """
-            SELECT r.user_id,
-                   r.full_name,
-                   r.unit_number,
-                   r.contact_number,
-                   r.registered_at,
-                   u.email
-            FROM residents r
-            LEFT JOIN users u ON r.user_id = u.user_id
-            WHERE r.user_id = %s;
-            """,
-            (user_id,)
-        )
-        row = cur.fetchone()
-        cur.close()
-        conn.close()
-
-        if not row:
-            return jsonify({"error": "Resident not found"}), 404
-
-        resident = {
-            "user_id": row[0],
-            "full_name": row[1],
-            "unit_number": row[2],
-            "contact_number": row[3],
-            "registered_at": row[4].isoformat() if row[4] else None,
-            "email": row[5],
-        }
-        return jsonify(resident), 200
-
-    except Exception as e:
-        return jsonify({"error": "DB error while reading resident", "details": str(e)}), 500
-
-@app.route("/api/resident/<int:user_id>", methods=["PUT"])
-def update_personal_data(user_id):
-    """UC-R3: Update Personal Data"""
-    data = request.get_json() or {}
-
-    allowed_fields = {
-        "full_name": "full_name",
-        "contact_number": "contact_number",
-        "unit_number": "unit_number",
-    }
-
-    # Remove None values
-    user_data = {k: v for k, v in user_data.items() if v is not None}
-
-    return jsonify({'authenticated': True, 'user': user_data}), 200
-
-
-@app.route('/api/auth/logout', methods=['POST'])
-def api_logout():
-    """Logout endpoint - clears Flask session"""
-    session.clear()
-    return jsonify({'success': True, 'message': 'Logged out'}), 200
-# params.append(user_id)
-
-#     try:
-#         conn = get_db_connection()
-#         cur = conn.cursor()
-#         cur.execute(
-#             f"""
-#             UPDATE residents
-#             SET {", ".join(sets)}
-#             WHERE user_id = %s
-#             RETURNING user_id;
-#             """,
-#             tuple(params)
-#         )
-#         row = cur.fetchone()
-#         conn.commit()
-#         cur.close()
-#         conn.close()
-
-    params.append(user_id)
-
-    try:
-        conn = get_db_connection()
-        cur = conn.cursor()
-        cur.execute(
-            f"""
-            UPDATE residents
-            SET {", ".join(sets)}
-            WHERE user_id = %s
-            RETURNING user_id;
-            """,
-            tuple(params)
-        )
-        row = cur.fetchone()
-        conn.commit()
-        cur.close()
-        conn.close()
-
-
-        return jsonify({
-            "message": "Personal data updated",
-            "user_id": user_id,
-            "updated_fields": {k: v for k, v in data.items() if k in allowed_fields}
-        }), 200
-
-    except Exception as e:
-        return jsonify({"error": "DB error while updating resident", "details": str(e)}), 500
-
-@app.route("/api/resident/<int:user_id>", methods=["DELETE"])
-def delete_personal_data(user_id):
-    """UC-R4: Delete Personal Data"""
-    try:
-        conn = get_db_connection()
-        cur = conn.cursor()
-        cur.execute(
-            "DELETE FROM residents WHERE user_id = %s RETURNING user_id;",
-            (user_id,)
-        )
-        row = cur.fetchone()
-        conn.commit()
-        cur.close()
-        conn.close()
-
-        if not row:
-            return jsonify({"error": "Resident not found"}), 404
-
-        return jsonify({
-            "message": "Resident account deleted",
-            "user_id": user_id
-        }), 200
-
-    except Exception as e:
-        return jsonify({"error": "DB error while deleting resident", "details": str(e)}), 500
-
-@app.route("/api/resident/<int:user_id>/access-history", methods=["GET"])
-def view_personal_access_history(user_id):
-    """UC-R22: View Personal Access History"""
-    try:
-        conn = get_db_connection()
-        cur = conn.cursor()
-
-        cur.execute(
-            "SELECT full_name FROM residents WHERE user_id = %s;",
-            (user_id,)
-        )
-        row = cur.fetchone()
-        if not row:
-            cur.close()
-            conn.close()
-            return jsonify({"error": "Resident not found"}), 404
-        full_name = row[0]
-
-        cur.execute(
-            """
-            SELECT access_time,
-                   person_type,
-                   confidence,
-                   access_result
-            FROM access_logs
-            WHERE person_type = 'resident' AND recognized_person = %s
-            ORDER BY access_time DESC;
-            """,
-            (full_name,)
-        )
-        logs = cur.fetchall()
-        cur.close()
-        conn.close()
-
-        records = [
-            {
-                "timestamp": r[0].isoformat() if r[0] else None,
-                "person_type": r[1],
-                "confidence": r[2],
-                "result": r[3],
-            }
-            for r in logs
-        ]
-
-        return jsonify({
-            "user_id": user_id,
-            "resident_name": full_name,
-            "records": records
-        }), 200
-
-    except Exception as e:
-        return jsonify({"error": "DB error while reading access history", "details": str(e)}), 500
-
-@app.route("/api/resident/<int:user_id>/visitors", methods=["POST"])
-def create_visitor(user_id):
-    """UC-R8: Create Visitor Entry"""
-    data = request.get_json() or {}
-    required = ["full_name", "contact_number", "visiting_unit"]
-    missing = [f for f in required if f not in data]
-    if missing:
-        return jsonify({"error": "Missing fields", "missing": missing}), 400
-
-    check_in_str = data.get("check_in")
-    check_out_str = data.get("check_out")
-
-    check_in = parse_iso(check_in_str) if check_in_str else None
-    check_out = parse_iso(check_out_str) if check_out_str else None
-
-    try:
-        conn = get_db_connection()
-        cur = conn.cursor()
-
-        cur.execute(
-            "SELECT user_id FROM residents WHERE user_id = %s;",
-            (user_id,)
-        )
-        if not cur.fetchone():
-            cur.close()
-            conn.close()
-            return jsonify({"error": "Resident not found"}), 404
-
-        cur.execute(
-            """
-            INSERT INTO visitors (full_name, contact_number, visiting_unit, check_in, check_out, approved_by)
-            VALUES (%s, %s, %s, %s, %s, %s)
-            RETURNING visitor_id;
-            """,
-            (
-                data["full_name"],
-                data["contact_number"],
-                data["visiting_unit"],
-                check_in,
-                check_out,
-                user_id
-            )
-        )
-        visitor_id = cur.fetchone()[0]
-        conn.commit()
-        cur.close()
-        conn.close()
-
-        return jsonify({
-            "message": "Visitor entry created",
-            "user_id": user_id,
-            "visitor_id": visitor_id,
-            "full_name": data["full_name"]
-        }), 201
-
-    except Exception as e:
-        return jsonify({"error": "DB error while creating visitor", "details": str(e)}), 500
-
-@app.route("/api/resident/<int:user_id>/visitors", methods=["GET"])
-def view_registered_visitors_for_resident(user_id):
-    """UC-R10: View Registered Visitors"""
-    try:
-        conn = get_db_connection()
-        cur = conn.cursor()
-
-        cur.execute(
-            "SELECT user_id FROM residents WHERE user_id = %s;",
-            (user_id,)
-        )
-        if not cur.fetchone():
-            cur.close()
-            conn.close()
-            return jsonify({"error": "Resident not found"}), 404
-
-        cur.execute(
-            """
-            SELECT visitor_id,
-                   full_name,
-                   contact_number,
-                   visiting_unit,
-                   check_in,
-                   check_out
-            FROM visitors
-            WHERE approved_by = %s
-            ORDER BY check_in DESC;
-            """,
-            (user_id,)
-        )
-        rows = cur.fetchall()
-        cur.close()
-        conn.close()
-
-        visitors = [
-            {
-                "visitor_id": r[0],
-                "full_name": r[1],
-                "contact_number": r[2],
-                "visiting_unit": r[3],
-                "check_in": r[4].isoformat() if r[4] else None,
-                "check_out": r[5].isoformat() if r[5] else None,
-            }
-            for r in rows
-        ]
-
-        return jsonify({
-            "user_id": user_id,
-            "visitors": visitors
-        }), 200
-
-    except Exception as e:
-        return jsonify({"error": "DB error while reading visitors", "details": str(e)}), 500
-
-@app.route("/api/resident/<int:user_id>/visitors/<int:visitor_id>", methods=["PUT"])
-def update_visitor_info(user_id, visitor_id):
-    """UC-R12: Update Visitor Information"""
-    data = request.get_json() or {}
-
-    allowed_fields = {
-        "full_name": "full_name",
-        "contact_number": "contact_number",
-        "visiting_unit": "visiting_unit",
-    }
-
-    sets = []
-    params = []
-    for json_key, col in allowed_fields.items():
-        if json_key in data:
-            sets.append(f"{col} = %s")
-            params.append(data[json_key])
-
-    if not sets:
-        return jsonify({"error": "No updatable fields provided"}), 400
-
-    params.extend([user_id, visitor_id])
-
-    try:
-        conn = get_db_connection()
-        cur = conn.cursor()
-        cur.execute(
-            f"""
-            UPDATE visitors
-            SET {", ".join(sets)}
-            WHERE approved_by = %s AND visitor_id = %s
-            RETURNING visitor_id;
-            """,
-            tuple(params)
-        )
-        row = cur.fetchone()
-        conn.commit()
-        cur.close()
-        conn.close()
-
-        if not row:
-            return jsonify({"error": "Visitor not found for this resident"}), 404
-
-        return jsonify({
-            "message": "Visitor information updated",
-            "user_id": user_id,
-            "visitor_id": visitor_id,
-            "updated_fields": {k: v for k, v in data.items() if k in allowed_fields}
-        }), 200
-
-    except Exception as e:
-        return jsonify({"error": "DB error while updating visitor", "details": str(e)}), 500
-
-@app.route("/api/resident/<int:user_id>/visitors/<int:visitor_id>", methods=["DELETE"])
-def cancel_visitor_access(user_id, visitor_id):
-    """UC-R13: Cancel Visitor Access"""
-    try:
-        conn = get_db_connection()
-        cur = conn.cursor()
-        cur.execute(
-            """
-            DELETE FROM visitors
-            WHERE approved_by = %s AND visitor_id = %s
-            RETURNING visitor_id;
-            """,
-            (user_id, visitor_id)
-        )
-        row = cur.fetchone()
-        conn.commit()
-        cur.close()
-        conn.close()
-
-        if not row:
-            return jsonify({"error": "Visitor not found for this resident"}), 404
-
-        return jsonify({
-            "message": "Visitor access cancelled",
-            "user_id": user_id,
-            "visitor_id": visitor_id
-        }), 200
-
-    except Exception as e:
-        return jsonify({"error": "DB error while deleting visitor", "details": str(e)}), 500
-
-@app.route("/api/resident/<int:user_id>/visitors/<int:visitor_id>/time-window", methods=["PUT"])
-def set_visitor_time_period(user_id, visitor_id):
-    """UC-R9: Set Visitor Time Period"""
-    data = request.get_json() or {}
-    required = ["start_time", "end_time"]
-    missing = [f for f in required if f not in data]
-    if missing:
-        return jsonify({"error": "Missing fields", "missing": missing}), 400
-
-    start_ts = parse_iso(data["start_time"])
-    end_ts = parse_iso(data["end_time"])
-    if not start_ts or not end_ts:
-        return jsonify({"error": "Invalid datetime format (use ISO 8601)"}), 400
-
-    try:
-        conn = get_db_connection()
-        cur = conn.cursor()
-        cur.execute(
-            """
-            UPDATE visitors
-            SET check_in = %s,
-                check_out = %s
-            WHERE approved_by = %s AND visitor_id = %s
-            RETURNING visitor_id;
-            """,
-            (start_ts, end_ts, user_id, visitor_id)
-        )
-        row = cur.fetchone()
-        conn.commit()
-        cur.close()
-        conn.close()
-
-        if not row:
-            return jsonify({"error": "Visitor not found for this resident"}), 404
-
-        return jsonify({
-            "message": "Visitor time window updated",
-            "user_id": user_id,
-            "visitor_id": visitor_id,
-            "start_time": data["start_time"],
-            "end_time": data["end_time"]
-        }), 200
-
-    except Exception as e:
-        return jsonify({"error": "DB error while updating time window", "details": str(e)}), 500
-
-@app.route("/api/resident/<int:user_id>/visitors/<int:visitor_id>/face-image", methods=["POST"])
-def upload_visitor_facial_image(user_id, visitor_id):
-    """UC-R14: Upload Visitor Facial Image"""
-    data = request.get_json() or {}
-    image_data = data.get("image_data")
-
-    if not image_data:
-        return jsonify({
-            "error": "Missing field",
-            "required": ["image_data"]
-        }), 400
-
-    try:
-        conn = get_db_connection()
-        cur = conn.cursor()
-
-        cur.execute(
-            """
-            SELECT visitor_id, full_name
-            FROM visitors
-            WHERE approved_by = %s AND visitor_id = %s;
-            """,
-            (user_id, visitor_id)
-        )
-        row = cur.fetchone()
-        if not row:
-            cur.close()
-            conn.close()
-            return jsonify({"error": "Visitor not found for this resident"}), 404
-
-        cur.execute(
-            """
-            INSERT INTO face_embeddings (user_type, reference_id, embedding)
-            VALUES ('visitor', %s, NULL)
-            RETURNING embedding_id;
-            """,
-            (visitor_id,)
-        )
-        embedding_id = cur.fetchone()[0]
-        conn.commit()
-        cur.close()
-        conn.close()
-
-        return jsonify({
-            "message": "Visitor facial image stored (placeholder, no embedding yet)",
-            "user_id": user_id,
-            "visitor_id": visitor_id,
-            "embedding_id": embedding_id
-        }), 201
-
-    except Exception as e:
-        return jsonify({"error": "DB error while saving visitor face", "details": str(e)}), 500
-
-@app.route("/api/resident/<int:user_id>/visitors/<int:visitor_id>/access-history", methods=["GET"])
-def view_visitor_access_history(user_id, visitor_id):
-    """UC-R23: View Visitor Access History"""
-    try:
-        conn = get_db_connection()
-        cur = conn.cursor()
-
-        cur.execute(
-            """
-            SELECT full_name
-            FROM visitors
-            WHERE approved_by = %s AND visitor_id = %s;
-            """,
-            (user_id, visitor_id)
-        )
-        row = cur.fetchone()
-        if not row:
-            cur.close()
-            conn.close()
-            return jsonify({"error": "Visitor not found for this resident"}), 404
-        full_name = row[0]
-
-        cur.execute(
-            """
-            SELECT access_time,
-                   person_type,
-                   confidence,
-                   access_result
-            FROM access_logs
-            WHERE person_type = 'visitor' AND recognized_person = %s
-            ORDER BY access_time DESC;
-            """,
-            (full_name,)
-        )
-        logs = cur.fetchall()
-        cur.close()
-        conn.close()
-
-        records = [
-            {
-                "timestamp": r[0].isoformat() if r[0] else None,
-                "person_type": r[1],
-                "confidence": r[2],
-                "result": r[3],
-            }
-            for r in logs
-        ]
-
-        return jsonify({
-            "user_id": user_id,
-            "visitor_id": visitor_id,
-            "visitor_name": full_name,
-            "records": records
-        }), 200
-
-    except Exception as e:
-        return jsonify({"error": "DB error while reading visitor history", "details": str(e)}), 500
-
-@app.route("/api/resident/<int:user_id>/face-access/disable", methods=["POST"])
-def temporarily_disable_face_access(user_id):
-    """UC-R19: Temporarily Disable Face Access (mock)"""
-    return jsonify({
-        "message": "Face access disabled temporarily (mock)",
-        "user_id": user_id,
-        "status": "DISABLED"
-    }), 200
-
-@app.route("/api/resident/<int:user_id>/alerts", methods=["GET"])
-def receive_unauthorized_access_alert(user_id):
-    """UC-R20: Receive Unauthorized Access Alert (mock)"""
-    recent_time = (datetime.now()).isoformat(timespec="seconds")
-    alerts = [
-        {
-            "alert_id": 1,
-            "timestamp": recent_time,
-            "description": "Multiple failed face attempts at lobby door",
-            "status": "UNREAD"
-        }
-    ]
-    return jsonify({
-        "user_id": user_id,
-        "alerts": alerts
-    }), 200
-
-@app.route("/api/resident/offline/recognize", methods=["POST"])
-def offline_recognition_mode():
-    """UC-R21: Offline Recognition Mode (mock)"""
-    data = request.get_json() or {}
-    device_id = data.get("device_id")
-    image_data = data.get("image_data")
-
-    if not device_id or not image_data:
-        return jsonify({
-            "error": "Missing fields",
-            "required": ["device_id", "image_data"]
-        }), 400
-
-    return jsonify({
-        "message": "Offline recognition successful (mock)",
-        "device_id": device_id,
-        "matched_user_id": 1,
-        "confidence": 0.95,
-        "name": "John Tan"
-    }), 200
-
-@app.route("/api/resident/test-db", methods=["GET"])
-def test_db():
-    """Test database connection"""
-    conn = get_db_connection()
-    cur = conn.cursor()
-    cur.execute("SELECT NOW();")
-    result = cur.fetchone()
-    cur.close()
-    conn.close()
-
-    return jsonify({
-        "db_connection": "OK",
-        "server_time": str(result[0])
-    }), 200
 
 
 # ============================================
@@ -2216,7 +1532,7 @@ def admin_profile_upload():
 
         # For admin users, store face embedding directly with admin type
         # No need to create a resident record
-        user_type = 'admin'
+        user_type = 'ADMIN'
         reference_id = user['id']
 
         embedding_id, error = register_face_from_photo(photo_path, reference_id, user_type)
@@ -2313,6 +1629,34 @@ def admin_profile_avatar_delete():
         return jsonify({'success': False, 'message': str(e)}), 500
 
 
+@app.route('/admin/profile/change-password', methods=['POST'])
+@admin_required
+def admin_profile_change_password():
+    """Change admin password"""
+    user = User.get_by_id(session['user_id'])
+    if not user:
+        return jsonify({'success': False, 'message': 'User not found'}), 404
+
+    data = request.json
+    current_password = data.get('current_password')
+    new_password = data.get('new_password')
+
+    if not current_password or not new_password:
+        return jsonify({'success': False, 'message': 'Missing required fields'}), 400
+
+    # Verify current password (plain text comparison)
+    if user.get('password_hash') != current_password:
+        return jsonify({'success': False, 'message': 'Current password is incorrect'}), 401
+
+    try:
+        User.update(session['user_id'], {'password': new_password})
+        logger.info(f"Password changed for user {user['id']}")
+        return jsonify({'success': True, 'message': 'Password updated successfully!'})
+    except Exception as e:
+        logger.error(f"Password change error: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
 # ============================================
 # USER MANAGEMENT ROUTES
 # ============================================
@@ -2358,14 +1702,18 @@ def admin_users_edit(user_id):
     }
 
     # Include temp worker fields if applicable
-    if data['role'] == 'TEMP_WORKER':
-        data_dict.update({
-            'role': "temp_staff",
-            'work_start_date': data.get('work_start_date'),
-            'work_end_date': data.get('work_end_date'),
-            'work_schedule': data.get('work_schedule', ''),
-            'work_details': data.get('work_details', ''),
-        })
+    if data['role'] in ('TEMP_WORKER', 'TempWorker'):
+        data_dict['role'] = "TempWorker"
+
+    # Include work schedule fields if provided (for any staff role)
+    if data.get('work_start_date'):
+        data_dict['work_start_date'] = data['work_start_date']
+    if data.get('work_end_date'):
+        data_dict['work_end_date'] = data['work_end_date']
+    if data.get('work_schedule'):
+        data_dict['work_schedule'] = data['work_schedule']
+    if data.get('work_details'):
+        data_dict['work_details'] = data['work_details']
 
     # Filter out None, empty strings, and other falsy values
     data_dict = {k: v for k, v in data_dict.items() if v not in (None, '', 'N/A')}
@@ -2491,7 +1839,7 @@ def admin_users_create_with_files():
                     photo.save(photo_path)
 
                     # Register face
-                    embedding_id, error = register_face_from_photo(photo_path, user_id, 'staff')
+                    embedding_id, error = register_face_from_photo(photo_path, user_id, 'temp_staff')
                     if error:
                         logger.warning(f"Face registration failed for user {user_id}: {error}")
                     else:
@@ -2580,6 +1928,106 @@ def admin_cleanup_orphaned_photos():
         logger.error(f"Cleanup orphaned photos error: {e}")
         return jsonify({'success': False, 'message': str(e)}), 500
 
+
+# ============================================
+# PHOTO MANAGEMENT ROUTES
+# ============================================
+
+@app.route('/admin/photos')
+@admin_required
+def admin_photos():
+    """View all face embeddings with associated user info"""
+    user_type_filter = request.args.get('user_type', '')
+
+    conn = get_db_connection()
+    cursor = conn.cursor(cursor_factory=RealDictCursor)
+
+    try:
+        query = """
+            SELECT fe.embedding_id, fe.user_type, fe.reference_id, fe.created_at, fe.image_filename,
+                   CASE
+                       WHEN fe.user_type = 'resident' THEN r.full_name
+                       WHEN fe.user_type IN ('ADMIN','internal_staff','temp_staff','staff','security_officer') THEN COALESCE(u.full_name, u.username)
+                       WHEN fe.user_type = 'visitor' THEN v.full_name
+                       ELSE 'Unknown'
+                   END as owner_name
+            FROM face_embeddings fe
+            LEFT JOIN residents r ON fe.reference_id = r.resident_id AND fe.user_type = 'resident'
+            LEFT JOIN users u ON fe.reference_id = u.user_id AND fe.user_type IN ('ADMIN','internal_staff','temp_staff','staff','security_officer')
+            LEFT JOIN visitors v ON fe.reference_id = v.visitor_id AND fe.user_type = 'visitor'
+            WHERE 1=1
+        """
+        params = []
+
+        if user_type_filter:
+            query += " AND fe.user_type = %s"
+            params.append(user_type_filter)
+
+        query += " ORDER BY fe.created_at DESC"
+
+        cursor.execute(query, params)
+        embeddings = cursor.fetchall()
+
+        upload_dir = Config.FACE_RECOGNITION['upload_dir']
+        for emb in embeddings:
+            if emb.get('image_filename'):
+                emb['photo_exists'] = os.path.isfile(os.path.join(upload_dir, emb['image_filename']))
+            else:
+                emb['photo_exists'] = False
+
+    finally:
+        cursor.close()
+        conn.close()
+
+    user_types = ['resident', 'visitor', 'security_officer', 'internal_staff', 'temp_staff', 'staff', 'ADMIN']
+
+    return render_template('admin_photos.html',
+                           embeddings=embeddings,
+                           user_types=user_types,
+                           user_type_filter=user_type_filter)
+
+
+@app.route('/admin/photos/<int:embedding_id>', methods=['DELETE'])
+@admin_required
+def admin_delete_embedding(embedding_id):
+    """Delete a single face embedding and its associated photo file"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
+
+        cursor.execute("SELECT image_filename FROM face_embeddings WHERE embedding_id = %s", (embedding_id,))
+        row = cursor.fetchone()
+
+        if not row:
+            cursor.close()
+            conn.close()
+            return jsonify({'success': False, 'message': 'Embedding not found'}), 404
+
+        cursor.execute("DELETE FROM face_embeddings WHERE embedding_id = %s", (embedding_id,))
+        conn.commit()
+        cursor.close()
+        conn.close()
+
+        files_deleted = 0
+        if row.get('image_filename'):
+            filepath = os.path.join(Config.FACE_RECOGNITION['upload_dir'], row['image_filename'])
+            if os.path.isfile(filepath):
+                try:
+                    os.remove(filepath)
+                    files_deleted = 1
+                except OSError as e:
+                    logger.error(f"Error deleting photo file {filepath}: {e}")
+
+        return jsonify({
+            'success': True,
+            'message': f'Embedding deleted. {files_deleted} file(s) removed.'
+        })
+
+    except Exception as e:
+        logger.error(f"Delete embedding error: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
 @app.route('/admin/users/<int:user_id>/deactivate', methods=['POST'])
 @admin_required
 def admin_users_deactivate(user_id):
@@ -2634,8 +2082,8 @@ def admin_users_upload_photo(user_id):
 
         from model import register_face_from_photo
 
-        # For temp workers, use 'staff' type
-        user_type = 'staff'
+        # For temp workers, use 'temp_staff' type
+        user_type = 'temp_staff'
         reference_id = user_id
         embedding_id, error = register_face_from_photo(photo_path, reference_id, user_type)
 
@@ -2759,15 +2207,18 @@ def admin_temp_workers():
     """View temporary workers with their schedules"""
     from datetime import date
 
-    users = User.get_all(role='TEMP_WORKER')
+    users = User.get_all(role='temp_staff')
     expiring_soon = User.get_expiring_temp_workers(days=7)
     today = date.today()
 
     for user in users:
-        if user.work_end_date:
-            user.days_left = (user.work_end_date.date() - today).days
+        end_date = user.get('work_end_date')
+        if end_date:
+            if hasattr(end_date, 'date'):
+                end_date = end_date.date()
+            user['days_left'] = (end_date - today).days
         else:
-            user.days_left = 0
+            user['days_left'] = 0
 
     return render_template(
         'admin_tempworker.html',
@@ -2896,6 +2347,76 @@ def init_app(app):
                 conn.commit()
                 logger.info("Migration: Added access_level column to users table")
 
+            # ============================================
+            # Migration: Fix staff_schedules table
+            # ============================================
+            # Step 1: Drop bad FK constraints that reference staff(staff_id) instead of users(user_id)
+            for tbl, fk_name in [
+                ('staff_schedules', 'staff_schedules_staff_id_fkey'),
+                ('staff_attendance', 'staff_attendance_staff_id_fkey'),
+            ]:
+                try:
+                    cursor.execute("""
+                        SELECT 1 FROM information_schema.table_constraints
+                        WHERE table_name = %s AND constraint_name = %s
+                    """, (tbl, fk_name))
+                    if cursor.fetchone():
+                        cursor.execute(f"ALTER TABLE {tbl} DROP CONSTRAINT {fk_name}")
+                        conn.commit()
+                        logger.info(f"Migration: Dropped old FK {fk_name}")
+                except Exception as e:
+                    conn.rollback()
+                    logger.warning(f"Migration: Could not drop {fk_name}: {e}")
+
+            # Step 2: Create tables if they don't exist (no FK - we validate in app code)
+            try:
+                cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS staff_schedules (
+                        schedule_id SERIAL PRIMARY KEY,
+                        staff_id INTEGER NOT NULL,
+                        shift_date DATE NOT NULL,
+                        shift_start TIME NOT NULL,
+                        shift_end TIME NOT NULL,
+                        task_description TEXT,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    )
+                """)
+                conn.commit()
+                logger.info("Migration: Ensured staff_schedules table exists")
+            except Exception as e:
+                conn.rollback()
+                logger.warning(f"staff_schedules creation: {e}")
+
+            try:
+                cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS staff_attendance (
+                        attendance_id SERIAL PRIMARY KEY,
+                        staff_id INTEGER NOT NULL,
+                        entry_time TIMESTAMP NOT NULL,
+                        exit_time TIMESTAMP,
+                        duration_hours NUMERIC(5,2),
+                        verification_method VARCHAR(50) DEFAULT 'face_recognition',
+                        entry_confidence NUMERIC(3,2),
+                        exit_confidence NUMERIC(3,2),
+                        location VARCHAR(100),
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    )
+                """)
+                conn.commit()
+                logger.info("Migration: Ensured staff_attendance table exists")
+            except Exception as e:
+                conn.rollback()
+                logger.warning(f"staff_attendance creation: {e}")
+
+            # Step 3: Create indexes
+            try:
+                cursor.execute("CREATE INDEX IF NOT EXISTS idx_staff_schedules_date ON staff_schedules (staff_id, shift_date)")
+                cursor.execute("CREATE INDEX IF NOT EXISTS idx_staff_attendance_time ON staff_attendance (staff_id, entry_time)")
+                conn.commit()
+            except Exception:
+                conn.rollback()
+
             cursor.close()
             conn.close()
             logger.info("Database connection successful")
@@ -2932,8 +2453,8 @@ def admin_staff_schedules():
         SELECT u.user_id, u.username, u.full_name, u.email, r.role_name
         FROM users u
         JOIN roles r ON u.role_id = r.role_id
-        WHERE r.role_id IN (4, 9)
-        AND u.status = 'active'
+        WHERE r.role_id IN (4, 7, 8, 9)
+        AND LOWER(u.status) = 'active'
         ORDER BY u.full_name, u.username
     """)
     staff_users = cursor.fetchall()
@@ -2948,52 +2469,99 @@ def admin_staff_schedules():
 def get_staff_schedules():
     """Get all staff schedules or schedules for a specific staff member"""
     staff_id = request.args.get('staff_id')
+    filter_date = request.args.get('date')  # Optional: filter to a specific date (YYYY-MM-DD)
 
     conn = get_db_connection()
     cursor = conn.cursor(cursor_factory=RealDictCursor)
 
-    if staff_id:
-        cursor.execute("""
-            SELECT s.*, u.username, u.email
-            FROM staff_schedules s
-            JOIN users u ON s.staff_id = u.user_id
-            WHERE s.staff_id = %s
-            ORDER BY s.shift_date DESC, s.shift_start
-        """, (staff_id,))
-    else:
-        # Show all staff members with their schedules (or NULL if no schedule)
-        # role_id 4 = Security, role_id 9 = Internal Staff
-        cursor.execute("""
-            SELECT u.user_id as staff_id, u.username, u.email, u.full_name, r.role_name,
-                   s.schedule_id, s.shift_date, s.shift_start, s.shift_end, s.task_description, s.created_at
-            FROM users u
-            JOIN roles r ON u.role_id = r.role_id
-            LEFT JOIN staff_schedules s ON u.user_id = s.staff_id
-            WHERE r.role_id IN (4, 9)
-            AND u.status = 'active'
-            ORDER BY u.full_name, u.username, s.shift_date DESC
-        """)
+    try:
+        # Build date filter for LEFT JOIN condition
+        date_join = "ON u.user_id = s.staff_id"
+        params = []
+        if filter_date:
+            date_join += " AND s.shift_date = %s"
+            params.append(filter_date)
 
-    schedules = cursor.fetchall()
-    cursor.close()
-    conn.close()
+        if staff_id:
+            cursor.execute(f"""
+                SELECT u.user_id as staff_id, u.username, u.email, u.full_name, r.role_name,
+                       s.schedule_id, s.shift_date, s.shift_start, s.shift_end, s.task_description, s.created_at
+                FROM users u
+                JOIN roles r ON u.role_id = r.role_id
+                LEFT JOIN staff_schedules s {date_join}
+                WHERE u.user_id = %s
+                ORDER BY s.shift_date DESC, s.shift_start
+            """, params + [staff_id])
+        else:
+            cursor.execute(f"""
+                SELECT u.user_id as staff_id, u.username, u.email, u.full_name, r.role_name,
+                       s.schedule_id, s.shift_date, s.shift_start, s.shift_end, s.task_description, s.created_at
+                FROM users u
+                JOIN roles r ON u.role_id = r.role_id
+                LEFT JOIN staff_schedules s {date_join}
+                WHERE r.role_id IN (4, 7, 8, 9)
+                AND LOWER(u.status) = 'active'
+                ORDER BY u.full_name, u.username, s.shift_date DESC
+            """, params)
 
-    # Convert to list of dicts and format dates
-    schedules_list = []
-    for schedule in schedules:
-        schedule_dict = dict(schedule)
-        # Convert date and time objects to strings
-        if schedule_dict.get('shift_date'):
-            schedule_dict['shift_date'] = schedule_dict['shift_date'].strftime('%Y-%m-%d')
-        if schedule_dict.get('shift_start'):
-            schedule_dict['shift_start'] = str(schedule_dict['shift_start'])
-        if schedule_dict.get('shift_end'):
-            schedule_dict['shift_end'] = str(schedule_dict['shift_end'])
-        if schedule_dict.get('created_at'):
-            schedule_dict['created_at'] = schedule_dict['created_at'].strftime('%Y-%m-%d %H:%M:%S')
-        schedules_list.append(schedule_dict)
+        schedules = cursor.fetchall()
 
-    return jsonify({'success': True, 'schedules': schedules_list})
+        # For staff without staff_schedules, check temp_workers for schedule data
+        staff_without_schedules = [s['staff_id'] for s in schedules if s.get('schedule_id') is None]
+        tw_data = {}
+        if staff_without_schedules:
+            try:
+                cursor.execute("SAVEPOINT tw_check")
+                cursor.execute("""
+                    SELECT user_id, work_start_date, work_end_date, work_schedule, work_details
+                    FROM temp_workers
+                    WHERE user_id = ANY(%s)
+                """, (staff_without_schedules,))
+                for row in cursor.fetchall():
+                    tw_data[row['user_id']] = row
+                cursor.execute("RELEASE SAVEPOINT tw_check")
+            except Exception as tw_err:
+                cursor.execute("ROLLBACK TO SAVEPOINT tw_check")
+                logger.warning(f"temp_workers lookup skipped: {tw_err}")
+
+        cursor.close()
+        conn.close()
+
+        # Convert to list of dicts and format dates
+        schedules_list = []
+        for schedule in schedules:
+            schedule_dict = dict(schedule)
+
+            # Fill in temp_workers data if no staff_schedule exists
+            if schedule_dict.get('schedule_id') is None and schedule_dict['staff_id'] in tw_data:
+                tw = tw_data[schedule_dict['staff_id']]
+                schedule_dict['schedule_id'] = schedule_dict['staff_id']
+                schedule_dict['shift_date'] = tw['work_start_date'].strftime('%Y-%m-%d') if tw.get('work_start_date') else None
+                schedule_dict['task_description'] = ' - '.join(filter(None, [tw.get('work_schedule'), tw.get('work_details')]))
+                schedule_dict['source'] = 'temp_worker'
+            elif schedule_dict.get('schedule_id') is not None:
+                schedule_dict['source'] = 'staff_schedule'
+            else:
+                schedule_dict['source'] = None
+
+            # Convert date and time objects to strings
+            if schedule_dict.get('shift_date') and not isinstance(schedule_dict['shift_date'], str):
+                schedule_dict['shift_date'] = schedule_dict['shift_date'].strftime('%Y-%m-%d')
+            if schedule_dict.get('shift_start'):
+                schedule_dict['shift_start'] = str(schedule_dict['shift_start'])
+            if schedule_dict.get('shift_end'):
+                schedule_dict['shift_end'] = str(schedule_dict['shift_end'])
+            if schedule_dict.get('created_at'):
+                schedule_dict['created_at'] = schedule_dict['created_at'].strftime('%Y-%m-%d %H:%M:%S')
+            schedules_list.append(schedule_dict)
+
+        return jsonify({'success': True, 'schedules': schedules_list})
+
+    except Exception as e:
+        logger.error(f"Error fetching staff schedules: {e}")
+        cursor.close()
+        conn.close()
+        return jsonify({'success': False, 'message': str(e)}), 500
 
 @app.route('/api/admin/staff-schedules', methods=['POST'])
 @admin_required
@@ -3104,6 +2672,80 @@ def delete_staff_schedule(schedule_id):
     finally:
         cursor.close()
         conn.close()
+
+
+@app.route('/api/admin/staff-schedules/bulk', methods=['POST'])
+@admin_required
+def bulk_create_staff_schedules():
+    """Bulk create schedules for multiple staff members over a date range"""
+    data = request.get_json()
+
+    staff_ids = data.get('staff_ids', [])
+    start_date_str = data.get('start_date')
+    end_date_str = data.get('end_date')
+    shift_start = data.get('shift_start')
+    shift_end = data.get('shift_end')
+    task_description = data.get('task_description', '')
+    skip_weekends = data.get('skip_weekends', False)
+
+    if not staff_ids or not start_date_str or not end_date_str or not shift_start or not shift_end:
+        return jsonify({'success': False, 'message': 'Missing required fields: staff_ids, start_date, end_date, shift_start, shift_end'}), 400
+
+    try:
+        start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
+        end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
+    except ValueError:
+        return jsonify({'success': False, 'message': 'Invalid date format. Use YYYY-MM-DD'}), 400
+
+    if end_date < start_date:
+        return jsonify({'success': False, 'message': 'End date must be on or after start date'}), 400
+
+    # Generate list of dates
+    dates = []
+    current = start_date
+    while current <= end_date:
+        if skip_weekends and current.weekday() >= 5:  # 5=Saturday, 6=Sunday
+            current += timedelta(days=1)
+            continue
+        dates.append(current)
+        current += timedelta(days=1)
+
+    if not dates:
+        return jsonify({'success': False, 'message': 'No valid dates in the selected range'}), 400
+
+    conn = get_db_connection()
+    cursor = conn.cursor(cursor_factory=RealDictCursor)
+
+    try:
+        # Build batch insert values
+        values = []
+        for sid in staff_ids:
+            for d in dates:
+                values.append((int(sid), d, shift_start, shift_end, task_description))
+
+        from psycopg2.extras import execute_values
+        execute_values(cursor, """
+            INSERT INTO staff_schedules (staff_id, shift_date, shift_start, shift_end, task_description)
+            VALUES %s
+        """, values)
+
+        conn.commit()
+        created_count = len(values)
+
+        return jsonify({
+            'success': True,
+            'message': f'Created {created_count} schedules for {len(staff_ids)} staff across {len(dates)} days',
+            'created_count': created_count
+        })
+
+    except Exception as e:
+        conn.rollback()
+        logger.error(f"Bulk schedule creation error: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+    finally:
+        cursor.close()
+        conn.close()
+
 
 # Staff view their own schedules
 @app.route('/api/staff/schedules', methods=['GET'])
@@ -3391,5 +3033,5 @@ except Exception as e:
 
 # ---- LOCAL DEV ONLY ----
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 5000))
+    port = int(os.environ.get("PORT", 5001))
     app.run(host="0.0.0.0", port=port)

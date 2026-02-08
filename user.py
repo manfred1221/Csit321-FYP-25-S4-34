@@ -32,8 +32,8 @@ class User:
         'RESIDENT': 2, 'Resident': 2, 'USER': 2,
         # 'VISITOR': 3, 'Visitor': 3,
         'SECURITY': 4, 'Security': 4,
-        'INTERNAL_STAFF': 9, 'Internal Staff': 9,
-        # 'TEMP_WORKER': 6, 'TempWorker': 6
+        'INTERNAL_STAFF': 8, 'Internal Staff': 8, 'internal_staff': 8, 'Internal_Staff': 8,
+        'TEMP_WORKER': 9, 'TempWorker': 9, 'temp_staff': 9,
     }
 
     @staticmethod
@@ -108,7 +108,7 @@ class User:
                 if role_id == 9:
                     cursor.execute("""
                         INSERT INTO temp_workers (
-                            user_id, work_start_date, work_end_date, 
+                            user_id, work_start_date, work_end_date,
                             work_schedule, work_details, id_document_path
                         )
                         VALUES (%s, %s, %s, %s, %s, %s)
@@ -120,7 +120,20 @@ class User:
                         data.get('work_details', ''),
                         data.get('id_document_path')
                     ))
-            
+
+            # Create security officer record for Security role
+            if role_id == 4:
+                cursor.execute("""
+                    INSERT INTO security_officers (full_name, contact_number, shift, active, user_id)
+                    VALUES (%s, %s, %s, %s, %s)
+                """, (
+                    data.get('full_name', data.get('username', '')),
+                    data.get('phone', ''),
+                    data.get('shift', ''),
+                    True,
+                    user_id
+                ))
+
             conn.commit()
             return user_id
             
@@ -205,16 +218,18 @@ class User:
                 conn.close()
                 return None
             
-            # Check if user is a resident and get resident_id
+            # Check if user is a resident and get resident_id + unit_number
             resident_id = None
+            unit_number = None
             if user.get('role_id') == 2:  # Resident role
                 cursor.execute("""
-                    SELECT resident_id FROM residents WHERE user_id = %s
+                    SELECT resident_id, unit_number FROM residents WHERE user_id = %s
                 """, (user['user_id'],))
                 resident_row = cursor.fetchone()
                 if resident_row:
                     resident_id = resident_row['resident_id']
-                    logger.info(f"[DEBUG] Found resident_id: {resident_id}")
+                    unit_number = resident_row.get('unit_number')
+                    logger.info(f"[DEBUG] Found resident_id: {resident_id}, unit_number: {unit_number}")
             
             # Build result dictionary
             result = {
@@ -227,6 +242,7 @@ class User:
                 'role': user.get('role_name'),       # Role name string
                 'role_id': user.get('role_id'),      # ⭐ Role ID number
                 'resident_id': resident_id,
+                'unit_number': unit_number,
                 'access_level': user.get('access_level')
             }
             
@@ -318,12 +334,12 @@ class User:
                 LEFT JOIN residents res ON u.user_id = res.user_id
                 LEFT JOIN temp_workers tw ON u.user_id = tw.user_id
                 LEFT JOIN face_embeddings fe_resident ON res.resident_id = fe_resident.reference_id AND fe_resident.user_type = 'resident'
-                LEFT JOIN face_embeddings fe_admin ON u.user_id = fe_admin.reference_id AND fe_admin.user_type = 'admin'
-                LEFT JOIN face_embeddings fe_staff ON u.user_id = fe_staff.reference_id AND fe_staff.user_type = 'staff'
+                LEFT JOIN face_embeddings fe_admin ON u.user_id = fe_admin.reference_id AND fe_admin.user_type = 'ADMIN'
+                LEFT JOIN face_embeddings fe_staff ON u.user_id = fe_staff.reference_id AND fe_staff.user_type IN ('internal_staff', 'temp_staff')
                 WHERE 1=1
             """
             params = []
-            
+
             if role:
                 query += " AND r.role_name = %s"
                 params.append(role)
@@ -368,8 +384,8 @@ class User:
                 LEFT JOIN residents res ON u.user_id = res.user_id
                 LEFT JOIN temp_workers tw ON u.user_id = tw.user_id
                 LEFT JOIN face_embeddings fe_resident ON res.resident_id = fe_resident.reference_id AND fe_resident.user_type = 'resident'
-                LEFT JOIN face_embeddings fe_admin ON u.user_id = fe_admin.reference_id AND fe_admin.user_type = 'admin'
-                LEFT JOIN face_embeddings fe_staff ON u.user_id = fe_staff.reference_id AND fe_staff.user_type = 'staff'
+                LEFT JOIN face_embeddings fe_admin ON u.user_id = fe_admin.reference_id AND fe_admin.user_type = 'ADMIN'
+                LEFT JOIN face_embeddings fe_staff ON u.user_id = fe_staff.reference_id AND fe_staff.user_type IN ('internal_staff', 'temp_staff')
                 WHERE (
                     LOWER(u.username) LIKE LOWER(%s) OR
                     LOWER(COALESCE(res.full_name, u.full_name, '')) LIKE LOWER(%s) OR
@@ -417,6 +433,17 @@ class User:
                 LEFT JOIN users u ON r.user_id = u.user_id
                 LEFT JOIN roles ro ON u.role_id = ro.role_id
                 WHERE LOWER(u.status) = 'active'
+
+                UNION ALL
+
+                SELECT u2.user_id as id, u2.username, u2.username as full_name,
+                       fe2.embedding_id, fe2.embedding,
+                       u2.role_id, ro2.role_name as role
+                FROM users u2
+                JOIN face_embeddings fe2 ON u2.user_id = fe2.reference_id
+                    AND fe2.user_type IN ('ADMIN', 'internal_staff', 'temp_staff', 'security_officer', 'staff')
+                LEFT JOIN roles ro2 ON u2.role_id = ro2.role_id
+                WHERE LOWER(u2.status) = 'active'
             """)
             users = []
             for row in cursor.fetchall():
@@ -426,13 +453,13 @@ class User:
                 if embedding is not None:
                     if isinstance(embedding, str):
                         # If it's a string, parse it
-                        embedding = np.array(eval(embedding))
+                        embedding = np.array(eval(embedding), dtype=np.float32)
                     elif isinstance(embedding, list):
                         # If it's already a list, convert to numpy array
-                        embedding = np.array(embedding)
+                        embedding = np.array(embedding, dtype=np.float32)
                     elif not isinstance(embedding, np.ndarray):
                         # If it's some other type, try to convert
-                        embedding = np.array(embedding)
+                        embedding = np.array(embedding, dtype=np.float32)
                     user_dict['embedding'] = embedding
                 users.append(user_dict)
             return users
@@ -573,7 +600,7 @@ class User:
 
             # Delete face embeddings for all user types (resident, admin, staff)
             cursor.execute("DELETE FROM face_embeddings WHERE reference_id IN (SELECT resident_id FROM residents WHERE user_id = %s) AND user_type = 'resident'", (user_id,))
-            cursor.execute("DELETE FROM face_embeddings WHERE reference_id = %s AND user_type IN ('admin', 'staff')", (user_id,))
+            cursor.execute("DELETE FROM face_embeddings WHERE reference_id = %s AND user_type IN ('ADMIN', 'internal_staff', 'temp_staff')", (user_id,))
 
             cursor.execute("DELETE FROM residents WHERE user_id = %s", (user_id,))
             cursor.execute("DELETE FROM users WHERE user_id = %s", (user_id,))
@@ -604,7 +631,7 @@ class User:
             cursor.execute(f"""
                 DELETE FROM face_embeddings
                 WHERE reference_id IN ({placeholders})
-                AND user_type IN ('admin', 'staff')
+                AND user_type IN ('ADMIN', 'internal_staff', 'temp_staff')
             """, user_ids)
 
             cursor.execute(f"DELETE FROM residents WHERE user_id IN ({placeholders})", user_ids)

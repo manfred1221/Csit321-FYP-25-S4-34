@@ -47,12 +47,17 @@ class ScheduleController:
         # Format schedule data
         schedule_list = []
         for schedule in schedules:
+            task_desc = schedule.get('task_description') or 'Work shift'
+            shift_date = schedule['shift_date']
+            if hasattr(shift_date, 'strftime'):
+                shift_date = shift_date.strftime('%Y-%m-%d')
             schedule_list.append({
                 "schedule_id": schedule['schedule_id'],
-                "shift_date": schedule['shift_date'].strftime('%Y-%m-%d'),
+                "shift_name": task_desc,
+                "shift_date": shift_date,
                 "shift_start": str(schedule['shift_start']),
                 "shift_end": str(schedule['shift_end']),
-                "task_description": schedule['task_description']
+                "task_description": task_desc
             })
         
         return {

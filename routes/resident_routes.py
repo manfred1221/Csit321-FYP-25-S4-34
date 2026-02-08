@@ -155,7 +155,9 @@ def view_personal_data(resident_id):
         if row.get("registered_at"):
             row["registered_at"] = row["registered_at"].isoformat()
 
-        return jsonify({"success": True, "data": row}), 200
+        # Return fields at top level (apiCall already wraps in {success, data})
+        row["success"] = True
+        return jsonify(row), 200
 
     except Exception as e:
         return _json_error("DB error while reading resident", 500, e)
@@ -275,22 +277,50 @@ def view_personal_access_history(resident_id):
 
         full_name = r["full_name"]
 
+        # Get visitor names registered by this resident
         cur.execute(
-            """
-            SELECT access_time, person_type, confidence, access_result
-            FROM access_logs
-            WHERE person_type = 'resident' AND recognized_person = %s
-            ORDER BY access_time DESC;
-            """,
-            (full_name,)
+            "SELECT full_name FROM visitors WHERE approved_by = %s;",
+            (resident_id,)
         )
+        visitor_names = [row["full_name"] for row in cur.fetchall()]
+
+        # Show resident's own access + their visitors' access
+        if visitor_names:
+            cur.execute(
+                """
+                SELECT access_time AS timestamp,
+                       recognized_person,
+                       person_type,
+                       confidence,
+                       UPPER(access_result) AS result
+                FROM access_logs
+                WHERE (person_type = 'resident' AND recognized_person = %s)
+                   OR (person_type = 'visitor' AND recognized_person = ANY(%s))
+                ORDER BY access_time DESC;
+                """,
+                (full_name, visitor_names)
+            )
+        else:
+            cur.execute(
+                """
+                SELECT access_time AS timestamp,
+                       recognized_person,
+                       person_type,
+                       confidence,
+                       UPPER(access_result) AS result
+                FROM access_logs
+                WHERE person_type = 'resident' AND recognized_person = %s
+                ORDER BY access_time DESC;
+                """,
+                (full_name,)
+            )
         logs = cur.fetchall()
         cur.close()
         conn.close()
 
         for item in logs:
-            if item.get("access_time"):
-                item["access_time"] = item["access_time"].isoformat()
+            if item.get("timestamp"):
+                item["timestamp"] = item["timestamp"].isoformat()
 
         return jsonify({
             "success": True,
@@ -383,7 +413,12 @@ def view_registered_visitors(resident_id):
 
         cur.execute(
             """
-            SELECT visitor_id, full_name, contact_number, visiting_unit, check_in, check_out
+            SELECT visitor_id,
+                   full_name AS visitor_name,
+                   contact_number,
+                   visiting_unit,
+                   check_in,
+                   check_out
             FROM visitors
             WHERE approved_by = %s
             ORDER BY check_in DESC NULLS LAST, visitor_id DESC;
@@ -394,9 +429,22 @@ def view_registered_visitors(resident_id):
         cur.close()
         conn.close()
 
+        from datetime import datetime as dt
+        now = dt.now()
         for r in rows:
-            r["check_in"] = r["check_in"].isoformat() if r.get("check_in") else None
-            r["check_out"] = r["check_out"].isoformat() if r.get("check_out") else None
+            ci = r.get("check_in")
+            co = r.get("check_out")
+            r["start_time"] = ci.isoformat() if ci else None
+            r["end_time"] = co.isoformat() if co else None
+            # Compute status from check_in/check_out times
+            if co and co < now:
+                r["status"] = "EXPIRED"
+            elif ci and ci <= now and (not co or co >= now):
+                r["status"] = "APPROVED"
+            elif ci and ci > now:
+                r["status"] = "PENDING"
+            else:
+                r["status"] = "PENDING"
 
         return jsonify({"success": True, "resident_id": resident_id, "visitors": rows}), 200
 
@@ -471,6 +519,145 @@ def update_visitor_information(resident_id, visitor_id):
 
     except Exception as e:
         return _json_error("DB error while updating visitor", 500, e)
+
+
+# ----------------------------------------------------------------------
+# UC-R: Upload Visitor Face Image (create embedding for gate recognition)
+# ----------------------------------------------------------------------
+@resident_bp.route("/<int:resident_id>/visitors/<int:visitor_id>/face-image", methods=["POST"])
+def upload_visitor_face(resident_id, visitor_id):
+    import logging
+    logger = logging.getLogger(__name__)
+
+    data = request.get_json(silent=True) or {}
+    image_data = data.get("image_data")
+
+    if not image_data:
+        return _json_error("Missing image_data", 400)
+
+    conn = None
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+
+        # Verify visitor belongs to this resident
+        cur.execute(
+            "SELECT visitor_id, full_name FROM visitors WHERE visitor_id = %s AND approved_by = %s;",
+            (visitor_id, resident_id)
+        )
+        visitor = cur.fetchone()
+        if not visitor:
+            cur.close()
+            conn.close()
+            return _json_error("Visitor not found for this resident", 404)
+
+        logger.info(f"Visitor found: {visitor['full_name']}, generating embedding...")
+
+        # Generate embedding from Cloud Run ML service
+        try:
+            emb = get_remote_embedding(image_data)
+        except Exception as ml_err:
+            logger.error(f"ML service error: {ml_err}")
+            cur.close()
+            conn.close()
+            return _json_error(f"ML service error: {ml_err}", 502)
+
+        if emb is None:
+            cur.close()
+            conn.close()
+            return _json_error("No face detected. Please center the face and try again.", 400)
+
+        logger.info(f"Embedding generated, length={len(emb)}")
+        embedding = _normalize_embedding(emb)
+
+        # Keep only ONE embedding per visitor
+        cur.execute(
+            "DELETE FROM face_embeddings WHERE user_type = 'visitor' AND reference_id = %s;",
+            (visitor_id,)
+        )
+
+        # Insert new embedding
+        cur.execute(
+            """
+            INSERT INTO face_embeddings (user_type, reference_id, embedding, created_at)
+            VALUES ('visitor', %s, %s, NOW())
+            RETURNING embedding_id;
+            """,
+            (visitor_id, embedding)
+        )
+        embedding_id = cur.fetchone()["embedding_id"]
+        conn.commit()
+        cur.close()
+        conn.close()
+
+        logger.info(f"Visitor face saved: visitor_id={visitor_id}, embedding_id={embedding_id}")
+        return jsonify({
+            "success": True,
+            "message": "Visitor face registered successfully",
+            "visitor_id": visitor_id,
+            "embedding_id": embedding_id
+        }), 201
+
+    except Exception as e:
+        logger.error(f"Error in upload_visitor_face: {type(e).__name__}: {e}")
+        if conn:
+            conn.rollback()
+            conn.close()
+        return _json_error(f"Error saving visitor face: {type(e).__name__}: {e}", 500)
+
+
+# ----------------------------------------------------------------------
+# UC-R: View Visitor Access History
+# ----------------------------------------------------------------------
+@resident_bp.route("/<int:resident_id>/visitors/<int:visitor_id>/access-history", methods=["GET"])
+def view_visitor_access_history(resident_id, visitor_id):
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+
+        # Verify visitor belongs to this resident
+        cur.execute(
+            "SELECT visitor_id, full_name FROM visitors WHERE visitor_id = %s AND approved_by = %s;",
+            (visitor_id, resident_id)
+        )
+        visitor = cur.fetchone()
+        if not visitor:
+            cur.close()
+            conn.close()
+            return _json_error("Visitor not found for this resident", 404)
+
+        visitor_name = visitor["full_name"]
+
+        # Query access logs for this visitor
+        cur.execute(
+            """
+            SELECT access_time AS timestamp,
+                   'Main Gate' AS door,
+                   confidence,
+                   UPPER(access_result) AS result
+            FROM access_logs
+            WHERE person_type = 'visitor' AND recognized_person = %s
+            ORDER BY access_time DESC;
+            """,
+            (visitor_name,)
+        )
+        logs = cur.fetchall()
+        cur.close()
+        conn.close()
+
+        for item in logs:
+            if item.get("timestamp"):
+                item["timestamp"] = item["timestamp"].isoformat()
+
+        return jsonify({
+            "success": True,
+            "visitor_id": visitor_id,
+            "visitor_name": visitor_name,
+            "records": logs
+        }), 200
+
+    except Exception as e:
+        return _json_error("DB error while reading visitor access history", 500, e)
 
 
 @resident_bp.route("/<int:resident_id>/visitors/<int:visitor_id>", methods=["DELETE"])

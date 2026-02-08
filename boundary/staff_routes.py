@@ -63,15 +63,21 @@ def get_schedule(staff_id):
     try:
         start_date = request.args.get('start_date')
         end_date = request.args.get('end_date')
-        
+
+        print(f"[Blueprint] GET /api/staff/{staff_id}/schedule start_date={start_date} end_date={end_date}")
+
         # Delegate to controller
         result = ScheduleController.get_staff_schedule(staff_id, start_date, end_date)
+        print(f"[Blueprint] Returning {len(result.get('schedules', []))} schedules for staff_id={staff_id}")
         return jsonify(result), 200
-        
+
     except ValueError as e:
+        print(f"[Blueprint] Schedule ValueError: {e}")
         return jsonify({"error": str(e)}), 404
     except Exception as e:
         print(f"Get schedule error: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({"error": "Failed to retrieve schedule", "details": str(e)}), 500
 
 
@@ -263,12 +269,11 @@ def enroll_face():
         conn = get_db_connection()
         cur = conn.cursor()
 
-        # ✅ FIX: Verify staff exists in temp_workers table (not staff table)
+        # Verify staff exists in users table
         cur.execute("""
-            SELECT tw.user_id, u.username, u.full_name
-            FROM temp_workers tw
-            JOIN users u ON tw.user_id = u.user_id
-            WHERE tw.user_id = %s
+            SELECT u.user_id, u.username, u.full_name
+            FROM users u
+            WHERE u.user_id = %s AND u.role_id IN (4, 7, 8, 9)
         """, (staff_id,))
         
         staff_row = cur.fetchone()
@@ -288,7 +293,7 @@ def enroll_face():
 
         # ✅ PROCESS IMAGE WITH FACENET using existing model.py function
         print(f"Processing face enrollment for staff_id={staff_id} ({staff_name})")
-        embedding, error = extract_embedding_from_base64(image_data)
+        embedding, error = extract_embedding_from_base64(image_data, augment=True)
         
         if error:
             cur.close()

@@ -253,6 +253,10 @@ document.getElementById('uploadPhotoBtn').onclick = async () => {
     }
 };
 
+function closeAccessHistoryModal() {
+    document.getElementById('accessHistoryModal').classList.remove('active');
+}
+
 async function viewVisitorHistory(visitorId, visitorName) {
     document.getElementById('historyVisitorName').textContent = `History for ${visitorName}`;
     document.getElementById('accessHistoryModal').classList.add('active');

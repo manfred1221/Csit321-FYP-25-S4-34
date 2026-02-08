@@ -42,31 +42,41 @@ def api_recognize():
                 'message': error
             })
         
-        # Get users with face embeddings
-        users = User.get_with_face()
-        
-        if not users:
-            # Try direct recognition from database
-            threshold = Config.FACE_RECOGNITION['threshold']
-            user_id, username, full_name, distance = recognize_face(embedding, threshold)
-        else:
-            threshold = Config.FACE_RECOGNITION['threshold']
-            user_id, username, full_name, distance = recognize_face_with_users(embedding, users, threshold)
-        
+        # Use the recognize_face function which queries database directly
+        threshold = Config.FACE_RECOGNITION['threshold']
+        user_id, username, full_name, distance, user_type = recognize_face(embedding, threshold)
+
         if user_id:
             # Calculate confidence percentage
             confidence = max(0, min(100, int((1 - distance / 2) * 100)))
-            
-            # Create access log
+            person_type = user_type or 'resident'
+
+            # Decline if confidence < 60%
+            if confidence < 55:
+                AccessLog.create(
+                    recognized_person=full_name,
+                    access_result='denied',
+                    confidence=confidence / 100,
+                    person_type=person_type
+                )
+                logger.warning(f"✗ Access declined: {full_name} (confidence: {confidence}% < 60%)")
+                return jsonify({
+                    'success': True,
+                    'recognized': False,
+                    'confidence': confidence,
+                    'message': f'Access declined. Low confidence ({confidence}%).'
+                })
+
+            # Create access log with correct person_type
             AccessLog.create(
                 recognized_person=full_name,
                 access_result='granted',
                 confidence=confidence / 100,
-                person_type='resident'
+                person_type=person_type
             )
-            
+
             logger.info(f"✓ Access granted: {full_name} (confidence: {confidence}%)")
-            
+
             return jsonify({
                 'success': True,
                 'recognized': True,
@@ -77,9 +87,9 @@ def api_recognize():
                 'message': f'Welcome, {full_name}!'
             })
         else:
-            logger.warning(f"✗ Access denied: Face not recognized (distance: {distance:.4f})")
+            logger.warning(f"✗ Access declined: Face not recognized (distance: {distance:.4f})")
             AccessLog.create(
-                recognized_person=None,
+                recognized_person='Declined',
                 access_result='denied',
                 confidence=None,
                 person_type='unknown'
@@ -87,7 +97,7 @@ def api_recognize():
             return jsonify({
                 'success': True,
                 'recognized': False,
-                'message': 'Face not recognized. Access denied.'
+                'message': 'Face not recognized. Access declined.'
             })
     
     except Exception as e:

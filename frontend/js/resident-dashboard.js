@@ -86,7 +86,7 @@ async function loadAccessHistory() {
     const result = await apiCall(endpoint);
     
     if (result.success) {
-        const history = result.data.access_logs || [];
+        const history = result.data.records || [];
         
         // Update today's access count
         const today = new Date().toDateString();
@@ -116,7 +116,7 @@ function displayRecentAccessHistory(history) {
     tbody.innerHTML = history.map(record => `
         <tr>
             <td>${formatDateTime(record.timestamp)}</td>
-            <td>${record.location || 'Main Gate'}</td>
+            <td>${record.recognized_person || 'Unknown'} (${record.person_type || 'N/A'})</td>
             <td><span class="badge badge-${record.result === 'GRANTED' ? 'success' : 'danger'}">${record.result}</span></td>
         </tr>
     `).join('');

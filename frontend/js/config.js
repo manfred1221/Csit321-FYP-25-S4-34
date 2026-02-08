@@ -115,7 +115,7 @@ function showMessage(elementId, message, type = 'success') {
 
     setTimeout(() => {
         el.style.display = 'none';
-    }, 5000);
+    }, 5001);
 }
 
 async function staffApiCall(endpoint, options = {}) {

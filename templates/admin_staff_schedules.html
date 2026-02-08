@@ -10,6 +10,11 @@
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; }
         .modal.active { display: flex; }
         .modal-content { background: white; padding: 30px; border-radius: 8px; max-width: 600px; width: 90%; max-height: 90vh; overflow-y: auto; }
+        .staff-search-input { width: 100%; padding: 8px 12px; border: 1px solid #D7CCC8; border-radius: 6px; font-size: 14px; margin-bottom: 8px; outline: none; }
+        .staff-search-input:focus { border-color: #8B7355; box-shadow: 0 0 0 2px rgba(139,115,85,0.15); }
+        .bulk-staff-item { display: flex; align-items: center; gap: 8px; padding: 6px 8px; cursor: pointer; font-size: 14px; border-radius: 4px; }
+        .bulk-staff-item:hover { background: #F5EFE7; }
+        .bulk-staff-item input[type="checkbox"] { accent-color: #8B7355; width: 16px; height: 16px; flex-shrink: 0; }
     </style>
 </head>
 <body>
@@ -29,6 +34,7 @@
                     <li class="nav-item"><a href="/admin/staff-schedules" class="nav-link active"><svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="#e3e3e3"><path d="M200-120q-33 0-56.5-23.5T120-200v-560q0-33 23.5-56.5T200-840h560q33 0 56.5 23.5T840-760v560q0 33-23.5 56.5T760-120H200Zm240-240H200v160h240v-160Zm80 0v160h240v-160H520Zm-80-80v-160H200v160h240Zm80 0h240v-160H520v160ZM200-680h560v-80H200v80Z"/></svg> Staff Schedules</a></li>
                     <li class="nav-item"><a href="/admin/temp-workers" class="nav-link">🔧 Temp Workers</a></li>
                     <li class="nav-item"><a href="/admin/logs" class="nav-link"><svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="#e3e3e3"><path d="M480-120q-138 0-240.5-91.5T122-440h82q14 104 92.5 172T480-200q117 0 198.5-81.5T760-480q0-117-81.5-198.5T480-760q-69 0-129 32t-101 88h110v80H120v-240h80v94q51-64 124.5-99T480-840q75 0 140.5 28.5t114 77q48.5 48.5 77 114T840-480q0 75-28.5 140.5t-77 114q-48.5 48.5-114 77T480-120Zm112-192L440-464v-216h80v184l128 128-56 56Z"/></svg> Access Logs</a></li>
+                    <li class="nav-item"><a href="/admin/photos" class="nav-link"><svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="#e3e3e3"><path d="M200-120q-33 0-56.5-23.5T120-200v-560q0-33 23.5-56.5T200-840h560q33 0 56.5 23.5T840-760v560q0 33-23.5 56.5T760-120H200Zm0-80h560v-560H200v560Zm40-80h480L570-480 450-320l-90-120-120 160Zm-40 80v-560 560Z"/></svg> Photo Management</a></li>
                     <li class="nav-item"><a href="#" onclick="logout(); return false;" class="nav-link"><svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="#e3e3e3"><path d="M200-120q-33 0-56.5-23.5T120-200v-560q0-33 23.5-56.5T200-840h280v80H200v560h280v80H200Zm440-160-55-58 102-102H360v-80h327L585-622l55-58 200 200-200 200Z"/></svg> Logout</a></li>
                 </ul>
             </nav>
@@ -40,19 +46,29 @@
                     <h1>Staff Schedules</h1>
                     <p>Assign and monitor internal staff shifts.</p>
                 </div>
-                <button class="btn btn-primary" onclick="openCreateModal()">+ Assign New Shift</button>
+                <div style="display:flex; gap:10px;">
+                    <button class="btn btn-primary" onclick="openCreateModal()">+ Assign New Shift</button>
+                    <button class="btn btn-primary" onclick="openBulkModal()">Bulk Assign</button>
+                </div>
             </div>
 
             <div class="card" style="margin-bottom: 20px;">
                 <div class="card-body">
-                    <div class="filter-section">
-                        <label style="font-weight:600; color:#64748b; margin-right:10px;">Filter by Staff:</label>
-                        <select id="staffFilter" class="form-control" onchange="loadSchedules()" style="width: auto; display: inline-block; min-width: 200px;">
-                            <option value="">All Staff</option>
-                            {% for staff in staff_users %}
-                            <option value="{{ staff.user_id }}">{{ staff.full_name or staff.username }} ({{ staff.role_name }})</option>
-                            {% endfor %}
-                        </select>
+                    <div class="filter-section" style="display:flex; gap:20px; align-items:center; flex-wrap:wrap;">
+                        <div>
+                            <label style="font-weight:600; color:#64748b; margin-right:8px;">Date:</label>
+                            <input type="date" id="dateFilter" class="form-control" onchange="loadSchedules()" style="width:auto; display:inline-block;">
+                        </div>
+                        <div>
+                            <label style="font-weight:600; color:#64748b; margin-right:8px;">Staff:</label>
+                            <select id="staffFilter" class="form-control" onchange="loadSchedules()" style="width: auto; display: inline-block; min-width: 200px;">
+                                <option value="">All Staff</option>
+                                {% for staff in staff_users %}
+                                <option value="{{ staff.user_id }}">{{ staff.full_name or staff.username }} ({{ staff.role_name }})</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <button class="btn btn-secondary btn-sm" onclick="showAllSchedules()">Show All Dates</button>
                     </div>
                 </div>
             </div>
@@ -66,8 +82,8 @@
                             <thead>
                                 <tr>
                                     <th>Staff Member</th>
+                                    <th>Date</th>
                                     <th>Shift Name</th>
-                                    <th>Dates</th>
                                     <th>Time</th>
                                     <th>Status</th>
                                     <th>Actions</th>
@@ -93,6 +109,7 @@
 
                 <div class="form-group">
                     <label>Staff Member *</label>
+                    <input type="text" id="staffSearchInput" class="staff-search-input" placeholder="Search staff name..." oninput="filterStaffSelect(this.value)">
                     <select id="staffUserId" class="form-control" required>
                         <option value="">Select Staff Member</option>
                         {% for staff in staff_users %}
@@ -130,6 +147,73 @@
         </div>
     </div>
 
+    <!-- Bulk Schedule Modal -->
+    <div class="modal" id="bulkModal">
+        <div class="modal-content" style="max-width:650px;">
+            <div class="modal-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                <h2>Bulk Assign Schedules</h2>
+                <button type="button" onclick="closeBulkModal()" style="background:none; border:none; font-size:24px; cursor:pointer;">&times;</button>
+            </div>
+            <form id="bulkForm" onsubmit="saveBulkSchedule(event)">
+                <div class="form-group">
+                    <label style="font-weight:600;">Staff Members *</label>
+                    <input type="text" id="bulkStaffSearch" class="staff-search-input" placeholder="Search staff name..." oninput="filterBulkStaff(this.value)">
+                    <div style="margin-bottom:4px; padding:0 8px;">
+                        <label class="bulk-staff-item" style="color:#8B7355; font-weight:600; padding:4px 0;">
+                            <input type="checkbox" id="selectAllStaff" onchange="toggleSelectAll(this)"> Select All
+                        </label>
+                    </div>
+                    <div id="bulkStaffList" style="max-height:180px; overflow-y:auto; border:1px solid #D7CCC8; border-radius:6px; padding:4px;">
+                        {% for staff in staff_users %}
+                        <label class="bulk-staff-item" data-name="{{ (staff.full_name or staff.username)|lower }}">
+                            <input type="checkbox" class="bulk-staff-cb" value="{{ staff.user_id }}">
+                            <span>{{ staff.full_name or staff.username }} <span style="color:#8D6E63;">({{ staff.role_name }})</span></span>
+                        </label>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <div class="form-group-inline" style="display:flex; gap:15px;">
+                    <div class="form-group" style="flex:1;">
+                        <label>Start Date *</label>
+                        <input type="date" id="bulkStartDate" class="form-control" required>
+                    </div>
+                    <div class="form-group" style="flex:1;">
+                        <label>End Date *</label>
+                        <input type="date" id="bulkEndDate" class="form-control" required>
+                    </div>
+                </div>
+
+                <div class="form-group-inline" style="display:flex; gap:15px;">
+                    <div class="form-group" style="flex:1;">
+                        <label>Shift Start *</label>
+                        <input type="time" id="bulkShiftStart" class="form-control" required>
+                    </div>
+                    <div class="form-group" style="flex:1;">
+                        <label>Shift End *</label>
+                        <input type="time" id="bulkShiftEnd" class="form-control" required>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="bulk-staff-item" style="padding:0;">
+                        <input type="checkbox" id="bulkSkipWeekends"> <span>Skip weekends (Sat & Sun)</span>
+                    </label>
+                </div>
+
+                <div class="form-group">
+                    <label>Task Description</label>
+                    <textarea id="bulkTaskDesc" class="form-control" rows="2" placeholder="Describe the tasks for these shifts..."></textarea>
+                </div>
+
+                <div style="display:flex; gap:10px; margin-top:20px;">
+                    <button type="submit" class="btn btn-primary" style="flex:1;">Bulk Assign Schedules</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeBulkModal()">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <script>
         let currentUser = null;
         let currentSchedules = [];
@@ -152,12 +236,24 @@
             document.getElementById('adminEmailSidebar').textContent = currentUser.email || 'admin@condo.com';
 
             console.log("Admin session verified.");
+            // Set date picker to today (local timezone)
+            document.getElementById('dateFilter').value = getLocalDate();
             loadSchedules();
         });
 
+        function getLocalDate() {
+            const d = new Date();
+            return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+        }
+
         async function loadSchedules() {
             const staffId = document.getElementById('staffFilter').value;
-            const url = staffId ? `/api/admin/staff-schedules?staff_id=${staffId}` : '/api/admin/staff-schedules';
+            const dateFilter = document.getElementById('dateFilter').value;
+            let url = '/api/admin/staff-schedules?';
+            const params = [];
+            if (staffId) params.push('staff_id=' + staffId);
+            if (dateFilter) params.push('date=' + dateFilter);
+            url += params.join('&');
 
             try {
                 const response = await fetch(url);
@@ -174,11 +270,17 @@
             }
         }
 
+        function showAllSchedules() {
+            document.getElementById('dateFilter').value = '';
+            loadSchedules();
+        }
+
         function renderSchedules(schedules) {
             const tbody = document.getElementById('schedulesBody');
+            const dateFilter = document.getElementById('dateFilter').value;
 
             if (schedules.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:30px; color:#64748b;">No staff members found.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:30px; color:#64748b;">No schedules found.</td></tr>';
                 return;
             }
 
@@ -188,24 +290,26 @@
                 const roleInfo = schedule.role_name ? `<br><small style="color:#64748b;">${schedule.role_name}</small>` : '';
 
                 if (hasSchedule) {
+                    const isStaffSchedule = schedule.source === 'staff_schedule';
+                    const actionsHtml = isStaffSchedule
+                        ? `<button class="btn btn-secondary btn-sm" onclick="editSchedule(${schedule.schedule_id})">Edit</button>
+                           <button class="btn btn-danger btn-sm" onclick="deleteSchedule(${schedule.schedule_id})">Delete</button>`
+                        : `<span class="badge" style="background:#e2e8f0; color:#475569;">Temp Worker</span>`;
                     return `
                         <tr>
                             <td><strong>${displayName}</strong>${roleInfo}</td>
-                            <td>${schedule.task_description || '-'}</td>
                             <td>${schedule.shift_date || '-'}</td>
-                            <td>${schedule.shift_start || '-'} - ${schedule.shift_end || '-'}</td>
+                            <td>${schedule.task_description || '-'}</td>
+                            <td>${schedule.shift_start && schedule.shift_end ? schedule.shift_start + ' - ' + schedule.shift_end : '-'}</td>
                             <td><span class="badge badge-success">Active</span></td>
-                            <td>
-                                <button class="btn btn-secondary btn-sm" onclick="editSchedule(${schedule.schedule_id})">Edit</button>
-                                <button class="btn btn-danger btn-sm" onclick="deleteSchedule(${schedule.schedule_id})">Delete</button>
-                            </td>
+                            <td>${actionsHtml}</td>
                         </tr>
                     `;
                 } else {
                     return `
                         <tr>
                             <td><strong>${displayName}</strong>${roleInfo}</td>
-                            <td colspan="4" style="text-align:center; color:#94a3b8;">No schedule assigned</td>
+                            <td colspan="4" style="text-align:center; color:#94a3b8;">No schedule${dateFilter ? ' for ' + dateFilter : ''}</td>
                             <td>
                                 <button class="btn btn-primary btn-sm" onclick="openCreateModalForStaff(${schedule.staff_id}, '${displayName}')">Assign Shift</button>
                             </td>
@@ -215,10 +319,31 @@
             }).join('');
         }
 
+        // ---- Staff name search for single-assign modal ----
+        function filterStaffSelect(query) {
+            const select = document.getElementById('staffUserId');
+            const q = query.toLowerCase();
+            Array.from(select.options).forEach(opt => {
+                if (!opt.value) return;
+                opt.style.display = opt.textContent.toLowerCase().includes(q) ? '' : 'none';
+            });
+        }
+
+        // ---- Staff name search for bulk modal ----
+        function filterBulkStaff(query) {
+            const q = query.toLowerCase();
+            document.querySelectorAll('#bulkStaffList .bulk-staff-item').forEach(label => {
+                const name = label.getAttribute('data-name') || '';
+                label.style.display = name.includes(q) ? '' : 'none';
+            });
+        }
+
         function openCreateModal() {
             document.getElementById('modalTitle').textContent = 'Assign New Schedule';
             document.getElementById('scheduleForm').reset();
             document.getElementById('scheduleId').value = '';
+            document.getElementById('staffSearchInput').value = '';
+            filterStaffSelect('');
             document.getElementById('scheduleModal').classList.add('active');
         }
 
@@ -227,6 +352,8 @@
             document.getElementById('scheduleForm').reset();
             document.getElementById('scheduleId').value = '';
             document.getElementById('staffUserId').value = staffId;
+            document.getElementById('staffSearchInput').value = '';
+            filterStaffSelect('');
             document.getElementById('scheduleModal').classList.add('active');
         }
 
@@ -320,9 +447,69 @@
 
             setTimeout(() => {
                 messageDiv.style.display = 'none';
-            }, 5000);
+            }, 5001);
         }
-        // Original API logic for schedules remains as in your uploaded file
+        // ---- Bulk Assign Functions ----
+        function openBulkModal() {
+            document.getElementById('bulkForm').reset();
+            document.getElementById('selectAllStaff').checked = false;
+            document.getElementById('bulkStaffSearch').value = '';
+            document.querySelectorAll('.bulk-staff-cb').forEach(cb => cb.checked = false);
+            filterBulkStaff('');
+            document.getElementById('bulkModal').classList.add('active');
+        }
+
+        function closeBulkModal() {
+            document.getElementById('bulkModal').classList.remove('active');
+        }
+
+        function toggleSelectAll(masterCb) {
+            document.querySelectorAll('#bulkStaffList .bulk-staff-item').forEach(label => {
+                if (label.style.display !== 'none') {
+                    label.querySelector('.bulk-staff-cb').checked = masterCb.checked;
+                }
+            });
+        }
+
+        async function saveBulkSchedule(event) {
+            event.preventDefault();
+
+            const selectedStaff = Array.from(document.querySelectorAll('.bulk-staff-cb:checked')).map(cb => cb.value);
+            if (selectedStaff.length === 0) {
+                showMessage('Please select at least one staff member', 'error');
+                return;
+            }
+
+            const data = {
+                staff_ids: selectedStaff,
+                start_date: document.getElementById('bulkStartDate').value,
+                end_date: document.getElementById('bulkEndDate').value,
+                shift_start: document.getElementById('bulkShiftStart').value,
+                shift_end: document.getElementById('bulkShiftEnd').value,
+                skip_weekends: document.getElementById('bulkSkipWeekends').checked,
+                task_description: document.getElementById('bulkTaskDesc').value
+            };
+
+            try {
+                const response = await fetch('/api/admin/staff-schedules/bulk', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showMessage(result.message, 'success');
+                    closeBulkModal();
+                    loadSchedules();
+                } else {
+                    showMessage(result.message || 'Bulk assign failed', 'error');
+                }
+            } catch (error) {
+                showMessage('Error: ' + error.message, 'error');
+            }
+        }
     </script>
 </body>
 </html>
