@@ -195,6 +195,7 @@ def verify_face():
                     confidence=float(sim),
                     result="granted",
                     embedding_id=fe.embedding_id,
+                    attack_type="gan_impersonation" if ENABLE_GAN_ATTACK else "none"
                 )
                 break
 
