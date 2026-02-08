@@ -293,7 +293,7 @@ def enroll_face():
 
         # ✅ PROCESS IMAGE WITH FACENET using existing model.py function
         print(f"Processing face enrollment for staff_id={staff_id} ({staff_name})")
-        embedding, error = extract_embedding_from_base64(image_data, augment=True)
+        embedding, error = extract_embedding_from_base64(image_data)
         
         if error:
             cur.close()

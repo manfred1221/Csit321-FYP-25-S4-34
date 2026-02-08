@@ -21,15 +21,20 @@ class AccessLog:
             # Handle edge cases - map similar types
             type_mapping = {
                 'RESIDENT': 'resident',
+                'Resident': 'resident',
                 'VISITOR': 'visitor',
+                'Visitor': 'visitor',
                 'SECURITY_OFFICER': 'security_officer',
+                'Security': 'security_officer',
                 'INTERNAL_STAFF': 'internal_staff',
                 'Internal_Staff': 'internal_staff',
+                'STAFF': 'internal_staff',
                 'TEMP_STAFF': 'temp_staff',
                 'Temp_Staff': 'temp_staff',
                 'TEMP_WORKER': 'temp_staff',
                 'temp_worker': 'temp_staff',
-                'admin': 'ADMIN'
+                'admin': 'ADMIN',
+                'Admin': 'ADMIN'
             }
             person_type = type_mapping.get(person_type, 'unknown')
 

@@ -1121,7 +1121,7 @@ if SECURITY_OFFICER_AVAILABLE:
             query_embedding = normalize(raw_embedding)
 
             embeddings = FaceEmbedding.query.filter(
-                FaceEmbedding.user_type.in_(["resident", "visitor"])
+                FaceEmbedding.user_type.in_(["resident", "visitor", "security_officer", "internal_staff", "temp_staff", "ADMIN"])
             ).all()
 
             threshold = 0.65
@@ -1152,8 +1152,14 @@ if SECURITY_OFFICER_AVAILABLE:
                 if best_match.user_type == "resident":
                     from routes.security_officer.security_officer_model import Resident
                     person = Resident.query.get(best_match.reference_id)
-                else:
+                elif best_match.user_type == "visitor":
                     person = Visitor.query.get(best_match.reference_id)
+                elif best_match.user_type == "security_officer":
+                    person = SecurityOfficer.query.get(best_match.reference_id)
+                else:
+                    # internal_staff, temp_staff, ADMIN — look up in users table
+                    from routes.security_officer.security_officer_model import User as SOUser
+                    person = SOUser.query.get(best_match.reference_id)
 
                 # 🔒 CRITICAL SAFETY CHECK
                 if person is None:
@@ -1174,8 +1180,9 @@ if SECURITY_OFFICER_AVAILABLE:
                     }), 401
 
                 # ✅ VALID MATCH
+                display_name = getattr(person, 'full_name', None) or getattr(person, 'username', None) or 'Unknown'
                 log_access(
-                    recognized_person=person.full_name,
+                    recognized_person=display_name,
                     person_type=best_match.user_type,
                     confidence=best_score,
                     result="granted",
@@ -1188,7 +1195,7 @@ if SECURITY_OFFICER_AVAILABLE:
                     "result": "granted",
                     "type": best_match.user_type.capitalize(),
                     "person_type": best_match.user_type,
-                    "name": person.full_name,
+                    "name": display_name,
                     "message": "Face recognized",
                     "confidence": float(round(best_score * 100, 2))
                 })

@@ -349,11 +349,13 @@ def get_all_embeddings():
             SELECT fe.embedding_id, fe.user_type, fe.reference_id, fe.embedding,
                    r.full_name as resident_name, r.unit_number,
                    u.username, u.email, u.full_name as user_name,
-                   v.full_name as visitor_name
+                   v.full_name as visitor_name,
+                   ro.role_name
             FROM face_embeddings fe
             LEFT JOIN residents r ON fe.reference_id = r.resident_id AND fe.user_type = 'resident'
             LEFT JOIN users u ON fe.reference_id = u.user_id
-    AND fe.user_type IN ('ADMIN', 'admin', 'staff', 'internal_staff', 'temp_staff')
+    AND fe.user_type IN ('ADMIN', 'admin', 'staff', 'internal_staff', 'temp_staff', 'security_officer')
+            LEFT JOIN roles ro ON u.role_id = ro.role_id
             LEFT JOIN visitors v ON fe.reference_id = v.visitor_id AND fe.user_type = 'visitor'
         """)
         results = []
@@ -436,7 +438,7 @@ def recognize_face(embedding, threshold=None):
     
     if best_match and best_distance < threshold:
         name = best_match.get('full_name') or best_match.get('username') or 'Unknown'
-        user_type = best_match.get('user_type', 'unknown')
+        user_type = best_match.get('role_name') or best_match.get('user_type', 'unknown')
         logger.info(f"✓ MATCHED: {name} (distance: {best_distance:.4f}, type: {user_type})")
         return (
             best_match['reference_id'],

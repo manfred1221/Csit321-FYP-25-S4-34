@@ -94,15 +94,20 @@ def log_access(recognized_person, person_type, confidence, result, embedding_id,
         # Handle edge cases - map similar types
         type_mapping = {
             'RESIDENT': 'resident',
+            'Resident': 'resident',
             'VISITOR': 'visitor',
+            'Visitor': 'visitor',
             'SECURITY_OFFICER': 'security_officer',
+            'Security': 'security_officer',
             'INTERNAL_STAFF': 'internal_staff',
             'Internal_Staff': 'internal_staff',
+            'STAFF': 'internal_staff',
             'TEMP_STAFF': 'temp_staff',
             'Temp_Staff': 'temp_staff',
             'TEMP_WORKER': 'temp_staff',
             'temp_worker': 'temp_staff',
-            'admin': 'ADMIN'
+            'admin': 'ADMIN',
+            'Admin': 'ADMIN'
         }
         person_type = type_mapping.get(person_type, 'unknown')
 
@@ -143,6 +148,7 @@ class User(db.Model):
     __tablename__ = 'users'
     user_id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(100), unique=True, nullable=False)
+    full_name = db.Column(db.String(100), nullable=True)
     email = db.Column(db.String(100), unique=True, nullable=False)
     password_hash = db.Column(db.Text, nullable=False)
     role_id = db.Column(db.Integer, db.ForeignKey('roles.role_id'), nullable=False)
