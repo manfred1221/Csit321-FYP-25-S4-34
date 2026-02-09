@@ -39,5 +39,6 @@ keras==2.15.0
 keras-facenet==0.3.2
 mtcnn==0.1.1
 opencv-python-headless==4.10.0.84
+python-dotenv==1.1.0
 
 
