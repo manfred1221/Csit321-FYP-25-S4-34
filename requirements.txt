@@ -33,12 +33,11 @@ SQLAlchemy==2.0.44
 sympy==1.14.0
 threadpoolctl==3.6.0
 
-tqdm==4.67.1
-typing_extensions==4.15.0
-urllib3==2.5.0
-Werkzeug==3.1.4
-bcrypt==4.1.3
-python-dotenv==1.1.0
-opencv-python-headless==4.10.0.84
+# --- ML / FaceNet stack (Render compatible) ---
 tensorflow-cpu==2.15.1
-keras-facenet==0.5
+keras==2.15.0
+keras-facenet==0.3.2
+mtcnn==0.1.1
+opencv-python-headless==4.10.0.84
+
+
