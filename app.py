@@ -2912,9 +2912,17 @@ def enroll_staff_face():
             conn.close()
             return jsonify({'success': False, 'error': 'Staff member not found'}), 404
 
-        # Process the image data (remove data URL prefix if present)
-        if ',' in image_data:
-            image_data = image_data.split(',')[1]
+        # Generate face embedding via ML service
+        from ml_client import get_embedding as get_remote_embedding
+        emb = get_remote_embedding(image_data)
+        if emb is None:
+            cursor.close()
+            conn.close()
+            return jsonify({'success': False, 'error': 'No face detected in the image'}), 400
+
+        import numpy as np
+        embedding_list = emb if isinstance(emb, list) else emb.tolist()
+        embedding_vector = '[' + ','.join(map(str, embedding_list)) + ']'
 
         # Generate unique filename
         filename = f"staff_{staff_id}_{uuid.uuid4().hex[:8]}.jpg"
@@ -2922,7 +2930,7 @@ def enroll_staff_face():
         # Check if face embedding already exists
         cursor.execute("""
             SELECT embedding_id FROM face_embeddings
-            WHERE reference_id = %s AND user_type = 'staff'
+            WHERE reference_id = %s AND user_type = 'internal_staff'
         """, (staff_id,))
 
         existing = cursor.fetchone()
@@ -2932,17 +2940,16 @@ def enroll_staff_face():
             cursor.execute("""
                 UPDATE face_embeddings
                 SET image_filename = %s,
-                    embedding = NULL,
-                    updated_at = NOW()
-                WHERE reference_id = %s AND user_type = 'staff'
-            """, (filename, staff_id))
+                    embedding = %s
+                WHERE reference_id = %s AND user_type = 'internal_staff'
+            """, (filename, embedding_vector, staff_id))
             logger.info(f"Updated face enrollment for staff_id={staff_id}")
         else:
             # Insert new record
             cursor.execute("""
-                INSERT INTO face_embeddings (reference_id, user_type, image_filename)
-                VALUES (%s, 'staff', %s)
-            """, (staff_id, filename))
+                INSERT INTO face_embeddings (reference_id, user_type, image_filename, embedding)
+                VALUES (%s, 'internal_staff', %s, %s)
+            """, (staff_id, filename, embedding_vector))
             logger.info(f"Created face enrollment for staff_id={staff_id}")
 
         conn.commit()
@@ -2959,6 +2966,8 @@ def enroll_staff_face():
         })
 
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         logger.error(f"Error enrolling staff face: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 

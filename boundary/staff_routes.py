@@ -245,16 +245,8 @@ def enroll_face():
         from datetime import datetime
         import uuid
         import numpy as np
-        
-        # Import FaceNet functions from existing model.py
-        try:
-            from model import extract_embedding_from_base64
-        except ImportError as e:
-            return jsonify({
-                "success": False,
-                "error": f"FaceNet module not available: {str(e)}"
-            }), 500
-        
+        from ml_client import get_embedding as get_remote_embedding
+
         data = request.get_json(silent=True) or {}
         staff_id = data.get("staff_id")
         image_data = data.get("image_data")
@@ -275,7 +267,7 @@ def enroll_face():
             FROM users u
             WHERE u.user_id = %s AND u.role_id IN (4, 7, 8, 9)
         """, (staff_id,))
-        
+
         staff_row = cur.fetchone()
         if not staff_row:
             cur.close()
@@ -291,24 +283,16 @@ def enroll_face():
         timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
         image_filename = f"staff_{staff_id}_{timestamp}.jpg"
 
-        # ✅ PROCESS IMAGE WITH FACENET using existing model.py function
+        # Process image with ML service
         print(f"Processing face enrollment for staff_id={staff_id} ({staff_name})")
-        embedding, error = extract_embedding_from_base64(image_data)
-        
-        if error:
-            cur.close()
-            conn.close()
-            return jsonify({
-                "success": False,
-                "error": error
-            }), 400
-        
+        embedding = get_remote_embedding(image_data)
+
         if embedding is None:
             cur.close()
             conn.close()
             return jsonify({
                 "success": False,
-                "error": "Failed to extract face embedding"
+                "error": "No face detected in the image"
             }), 400
         
         # Convert embedding to PostgreSQL vector format
