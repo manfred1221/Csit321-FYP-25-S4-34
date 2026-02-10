@@ -56,6 +56,25 @@
                         <button class="btn btn-secondary" onclick="stopCamera()">⏹️ Stop Camera</button>
                         <button class="btn btn-success" onclick="verifyFace()">🔍 Verify Face</button>
                     </div>
+
+                   <div class="card">
+                        <div class="card-header"><h2>📝 Register Visitor</h2></div>
+                        <div class="card-body">
+                            <form id="registerVisitorForm">
+                                <div style="display:flex;gap:10px;flex-wrap:wrap;">
+                                    <input type="text" id="visitorFullName" placeholder="Full Name" required>
+                                    <input type="text" id="visitorContactNumber" placeholder="Contact Number">
+                                    <input type="text" id="visitingUnit" placeholder="Visiting Unit" required>
+                                    <input type="file" id="visitorUploadImage" accept="image/*">
+                                </div>
+                                <div style="margin-top:10px;display:flex;gap:10px;">
+                                    <button type="button" class="btn btn-primary" onclick="captureAndRegisterVisitor()">📸 Capture & Register</button>
+                                    <button type="button" class="btn btn-secondary" onclick="uploadAndRegisterVisitor()">⬆️ Upload & Register</button>
+                                </div>
+                            </form>
+                            <div id="registerVisitorMessage" style="margin-top:10px;"></div>
+                        </div>
+                    </div>
                     
                     <div id="verificationResult" style="display:none;padding:20px;border-radius:8px;margin-top:20px;"></div>
                     <div id="message" class="message"></div>
@@ -307,6 +326,88 @@
                 stream.getTracks().forEach(track => track.stop());
             }
         });
+        async function captureAndRegisterVisitor() {
+            if (!stream) {
+                showVisitorMessage('Please start the camera first', 'error');
+                return;
+            }
+
+            const canvas = document.getElementById('canvas');
+            const context = canvas.getContext('2d');
+            canvas.width = videoElement.videoWidth;
+            canvas.height = videoElement.videoHeight;
+            context.drawImage(videoElement, 0, 0);
+
+            const imageBase64 = canvas.toDataURL("image/jpeg");
+            await sendVisitorRegisterRequest(imageBase64);
+        }
+
+        async function uploadAndRegisterVisitor() {
+            const fileInput = document.getElementById('visitorUploadImage');
+            if (!fileInput.files || !fileInput.files[0]) {
+                showVisitorMessage('Please select an image to upload', 'error');
+                return;
+            }
+
+            const file = fileInput.files[0];
+            const reader = new FileReader();
+            reader.onloadend = async () => {
+                const imageBase64 = reader.result;
+                await sendVisitorRegisterRequest(imageBase64);
+            };
+            reader.readAsDataURL(file);
+        }
+
+        async function sendVisitorRegisterRequest(imageBase64) {
+            const fullName = document.getElementById('visitorFullName').value;
+            const contactNumber = document.getElementById('visitorContactNumber').value;
+            const visitingUnit = document.getElementById('visitingUnit').value;
+
+            if (!fullName || !visitingUnit) {
+                showVisitorMessage('Full Name and Visiting Unit are required', 'error');
+                return;
+            }
+
+            // Assuming current officer is approving
+            const approved_by = currentUser?.officer_id || null;
+
+            if (!approved_by) {
+                showVisitorMessage('Security officer not identified. Cannot register visitor.', 'error');
+                return;
+            }
+
+            try {
+                const res = await fetch("/api/register_visitor", {
+                    method: "POST",
+                    headers: {"Content-Type": "application/json"},
+                    body: JSON.stringify({
+                        full_name: fullName,
+                        contact_number: contactNumber,
+                        visiting_unit: visitingUnit,
+                        approved_by: approved_by,
+                        image: imageBase64
+                    })
+                });
+
+                const data = await res.json();
+                if (data.status === "success") {
+                    showVisitorMessage(data.message, "success");
+                    document.getElementById('registerVisitorForm').reset();
+                } else {
+                    showVisitorMessage(data.message, "error");
+                }
+            } catch (err) {
+                showVisitorMessage("Error registering visitor: " + err.message, "error");
+            }
+        }
+
+        function showVisitorMessage(msg, type) {
+            const msgDiv = document.getElementById('registerVisitorMessage');
+            msgDiv.textContent = msg;
+            msgDiv.style.color = type === "success" ? "#10b981" : "#ef4444";
+        }
+
+
     </script>
 </body>
 </html>

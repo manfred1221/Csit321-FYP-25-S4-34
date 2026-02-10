@@ -1010,50 +1010,81 @@ if SECURITY_OFFICER_AVAILABLE:
     def security_officer_test_route():
         return jsonify({"status": "ok"})
 
-    @app.route("/api/security_officer/register_officer", methods=["POST"])
-    def register_officer():
-        """Completes registration for new officer"""
-        data = request.get_json()
-        officer_id = data.get("officer_id")
-        full_name = data.get("full_name")
-        contact_number = data.get("contact_number")
-        shift = data.get("shift")
-        image_base64 = data.get("image")
+    @app.route("/api/register_visitor", methods=["POST"])
+    def register_visitor():
+        """
+        Registers a visitor and stores their face embedding.
+        JSON expected:
+        {
+            "full_name": "John Doe",
+            "contact_number": "12345678",
+            "visiting_unit": "Unit 12A",
+            "approved_by": 4,          # security officer id approving
+            "image": "<base64>"
+        }
+        """
 
-        if not all([officer_id, full_name, image_base64]):
-            return jsonify({"status": "error", "message": "Missing required fields"}), 400
+        try:
+            data = request.get_json()
+            full_name = data.get("full_name")
+            contact_number = data.get("contact_number")
+            visiting_unit = data.get("visiting_unit")
+            approved_by = data.get("approved_by")
+            image_base64 = data.get("image")
 
-        officer = SecurityOfficer.query.get(officer_id)
-        if not officer:
-            return jsonify({"status": "error", "message": "Officer not found"}), 404
+            if not full_name or not visiting_unit or not approved_by or not image_base64:
+                return jsonify({"status": "error", "message": "Missing required fields"}), 400
 
-        officer.full_name = full_name
-        officer.contact_number = contact_number
-        officer.shift = shift
-        db.session.commit()
+            # ----------------------------
+            # 1) Create visitor in Visitor table
+            # ----------------------------
+            new_visitor = Visitor(
+                full_name=full_name,
+                contact_number=contact_number,
+                visiting_unit=visiting_unit,
+                check_in_time=datetime.now(),
+                approved_by=approved_by
+            )
+            db.session.add(new_visitor)
+            db.session.commit()
+            visitor_id = new_visitor.visitor_id
 
-        embedding_vector = image_to_embedding(image_base64)
-        new_embedding = FaceEmbedding(
-            user_type="security_officer",
-            reference_id=officer_id,
-            embedding=embedding_vector
-        )
-        db.session.add(new_embedding)
-        db.session.commit()
+            # ----------------------------
+            # 2) Generate embedding from base64
+            # ----------------------------
+            embedding_vector = image_to_embedding(image_base64)
 
-        log_access(
-            recognized_person=full_name,
-            person_type="security_officer",
-            confidence=1.0,
-            result="granted",
-            embedding_id=new_embedding.embedding_id
-        )
+            # ----------------------------
+            # 3) Store embedding
+            # ----------------------------
+            new_embedding = FaceEmbedding(
+                user_type="visitor",
+                reference_id=visitor_id,
+                embedding=embedding_vector.tolist(),
+            )
+            db.session.add(new_embedding)
+            db.session.commit()
 
-        return jsonify({
-            "status": "success",
-            "message": f"Officer {full_name} registered",
-            "officer_id": officer_id
-        }), 200
+            log_access(
+                recognized_person=full_name,
+                person_type="visitor",
+                confidence=1.0,
+                result="registered",
+                embedding_id=new_embedding.embedding_id
+            )
+
+            return jsonify({
+                "status": "success",
+                "message": f"Visitor '{full_name}' registered successfully",
+                "visitor_id": visitor_id,
+                "embedding_id": new_embedding.embedding_id
+            }), 200
+
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({"status": "error", "message": str(e)}), 500
+
+
 
     RATE_LIMIT = {}
     MAX_ATTEMPTS = 10
