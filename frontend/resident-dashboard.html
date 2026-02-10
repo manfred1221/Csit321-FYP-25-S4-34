@@ -52,88 +52,104 @@
 
         <!-- Main Content -->
         <main class="main-content">
-  <div class="page-header">
-    <h1>Face Registration</h1>
-    <p>Register your face for facial recognition. You can upload a photo or use your camera.</p>
-  </div>
-
-  <div class="card">
-    <div class="card-body" style="background: var(--info-light); border: 1px solid rgba(59,130,246,0.25); border-radius: var(--radius-lg);">
-      <strong>How to use:</strong>
-      <ol style="margin-top: 8px; padding-left: 18px; color: var(--text-secondary); line-height: 1.6;">
-        <li>Choose <b>Upload Photo</b> or <b>Use Camera</b></li>
-        <li>Make sure your face is clear and centered</li>
-        <li>Confirm the preview looks correct</li>
-        <li>Click <b>Upload & Register</b></li>
-      </ol>
-    </div>
-  </div>
-
-  <div class="face-reg-grid">
-    <!-- LEFT: Options -->
-    <div class="card">
-      <div class="card-header"><h2>Option 1: Upload Photo</h2></div>
-      <div class="card-body">
-        <input id="fileInput" type="file" accept="image/*" hidden />
-
-        <div id="dropZone" class="upload-drop">
-          <div class="upload-drop-inner">
-            <div style="display:flex; gap:12px; align-items:center;">
-              <div style="font-size:22px;">⬆️</div>
-              <div>
-                <div style="font-weight:600; color: var(--text-primary);">Click to browse or drag & drop</div>
-                <small style="color: var(--text-tertiary);">JPG or PNG (Max 5MB)</small>
-              </div>
+            <div class="page-header">
+                <h1>Dashboard</h1>
+                <p>Welcome back! Here's an overview of your access system.</p>
             </div>
 
-            <button class="btn btn-primary" id="btnSelectFile" type="button">Select File manually</button>
-          </div>
-        </div>
-      </div>
+            <!-- Stats Cards -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <h3>Active Visitors</h3>
+                    <div class="stat-value" id="activeVisitors">0</div>
+                </div>
+                <div class="stat-card">
+                    <h3>Total Visitors</h3>
+                    <div class="stat-value" id="totalVisitors">0</div>
+                </div>
+                <div class="stat-card">
+                    <h3>Today's Access</h3>
+                    <div class="stat-value" id="todayAccess">0</div>
+                </div>
+                <div class="stat-card">
+                    <h3>Unread Alerts</h3>
+                    <div class="stat-value" id="unreadAlerts">0</div>
+                </div>
+            </div>
 
-      <div class="card-header" style="border-top:1px solid var(--border-color);"><h2>Option 2: Use Camera</h2></div>
-      <div class="card-body">
-        <div class="camera-box-v2">
-          <video id="webcam" autoplay playsinline muted></video>
-          <canvas id="canvas" style="display:none;"></canvas>
-          <div id="cameraHint" class="camera-hint">Camera Feed</div>
-        </div>
+            <!-- Recent Visitors -->
+            <div class="card">
+                <div class="card-header">
+                    <h2>Recent Visitors</h2>
+                    <a href="/resident/visitors" class="btn btn-sm btn-primary">View All</a>
+                </div>
+                <div class="card-body">
+                    <div class="table-container">
+                        <table id="recentVisitorsTable">
+                            <thead>
+                                <tr>
+                                    <th>Visitor Name</th>
+                                    <th>Status</th>
+                                    <th>Visit Time</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td colspan="4" class="text-center">Loading...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
 
-        <div class="camera-actions-v2">
-          <button id="startBtn" class="btn btn-secondary" type="button">Start Camera</button>
-          <button id="stopBtn" class="btn btn-secondary" type="button" disabled>Stop Camera</button>
-          <button id="captureBtn" class="btn btn-success" type="button" disabled>Capture</button>
-        </div>
+            <!-- Recent Access History -->
+            <div class="card">
+                <div class="card-header">
+                    <h2>Recent Access History</h2>
+                    <a href="/resident/access-history" class="btn btn-sm btn-primary">View All</a>
+                </div>
+                <div class="card-body">
+                    <div class="table-container">
+                        <table id="accessHistoryTable">
+                            <thead>
+                                <tr>
+                                    <th>Timestamp</th>
+                                    <th>Location</th>
+                                    <th>Result</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td colspan="3" class="text-center">Loading...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
 
-        <ul style="margin-top:12px; padding-left:18px; color:#64748b; line-height:1.6;">
-          <li>✅ Ensure good lighting</li>
-          <li>✅ Face front-on to the camera</li>
-          <li>❌ Avoid blurry images</li>
-        </ul>
-      </div>
-    </div>
+            <!-- Quick Actions -->
+            <div class="card">
+                <div class="card-header">
+                    <h2>Quick Actions</h2>
+                </div>
+                <div class="card-body">
+                    <div class="flex gap-10">
+                        <a href="/resident/visitors?action=add" class="btn btn-primary">+ Add New Visitor</a>
 
-    <!-- RIGHT: Preview & Submit -->
-    <div class="card">
-      <div class="card-header"><h2>Preview &amp; Submit</h2></div>
-      <div class="card-body">
-        <div class="preview-box-v2">
-          <img id="previewImg" alt="Preview" style="display:none;" />
-          <div id="previewEmpty" class="preview-empty-v2">
-            <div style="font-size:34px; margin-bottom:6px;">🙂</div>
-            <div>No photo selected</div>
-          </div>
-        </div>
+                        </a>
+                        <a href="/resident/face-registration" class="btn btn-secondary">Update Face Data</a>
 
-        <button id="uploadBtn" class="btn btn-primary btn-full" type="button" disabled>Upload &amp; Register</button>
-        <button id="clearBtn" class="btn btn-ghost btn-full" type="button" disabled>Clear</button>
-
-        <div id="statusMsg" class="status-message" style="margin-top:14px;"></div>
-      </div>
-    </div>
-  </div>
-</main>
-
+                        </a>
+                        <button onclick="toggleFaceAccess()" class="btn btn-danger" id="toggleAccessBtn">
+                            Disable Face Access
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </main>
     </div>
 
     <script src="/frontend/js/config.js"></script>
