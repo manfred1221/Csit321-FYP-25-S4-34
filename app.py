@@ -1062,7 +1062,7 @@ if SECURITY_OFFICER_AVAILABLE:
                 reference_id=visitor_id,
                 embedding=embedding_vector,
             )
-            
+
             db.session.add(new_embedding)
             db.session.commit()
 
@@ -1070,7 +1070,7 @@ if SECURITY_OFFICER_AVAILABLE:
                 recognized_person=full_name,
                 person_type="visitor",
                 confidence=1.0,
-                result="registered",
+                result="success",
                 embedding_id=new_embedding.embedding_id
             )
 
