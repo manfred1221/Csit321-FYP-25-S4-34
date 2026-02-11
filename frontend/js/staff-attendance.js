@@ -59,9 +59,10 @@ async function loadAttendance() {
         const response = await fetch(url);
         const result = await response.json();
         
-        if (result.success && result.data.records && result.data.records.length > 0) {
-            displayAttendance(result.data.records);
-            calculateStats(result.data.records);
+        const records = (result.data && result.data.records) || result.records || [];
+        if (records.length > 0) {
+            displayAttendance(records);
+            calculateStats(records);
         } else {
             document.getElementById('attendanceTableBody').innerHTML = 
                 '<tr><td colspan="6" style="text-align:center; padding: 40px; color: #6b7280;">No attendance records found</td></tr>';
