@@ -36,9 +36,14 @@ class Visitor(db.Model):
     full_name = db.Column(db.String(100), nullable=False)
     contact_number = db.Column(db.String(20))
     visiting_unit = db.Column(db.String(20))
-    check_in = db.Column(db.DateTime)
-    check_out = db.Column(db.DateTime)
+    check_in = db.Column(db.DateTime, default=datetime.utcnow)
+    check_out = db.Column(db.DateTime, nullable=True)
 
+    approved_by = db.Column(
+        db.Integer,
+        db.ForeignKey("security_officers.officer_id"),
+        nullable=False
+    )
     def __repr__(self):
         return f"<Visitor {self.visitor_id} - {self.full_name}>"
 

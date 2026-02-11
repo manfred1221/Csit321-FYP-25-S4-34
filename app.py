@@ -1042,7 +1042,7 @@ if SECURITY_OFFICER_AVAILABLE:
                 full_name=full_name,
                 contact_number=contact_number,
                 visiting_unit=visiting_unit,
-                check_in_time=datetime.now(),
+                check_in=datetime.now(),
                 approved_by=approved_by
             )
             db.session.add(new_visitor)
