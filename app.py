@@ -1060,8 +1060,9 @@ if SECURITY_OFFICER_AVAILABLE:
             new_embedding = FaceEmbedding(
                 user_type="visitor",
                 reference_id=visitor_id,
-                embedding=embedding_vector.to_list(),
+                embedding=embedding_vector,
             )
+            
             db.session.add(new_embedding)
             db.session.commit()
 
