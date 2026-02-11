@@ -1065,15 +1065,7 @@ if SECURITY_OFFICER_AVAILABLE:
 
             db.session.add(new_embedding)
             db.session.commit()
-
-            log_access(
-                recognized_person=full_name,
-                person_type="visitor",
-                confidence=1.0,
-                result="success",
-                embedding_id=new_embedding.embedding_id
-            )
-
+            
             return jsonify({
                 "status": "success",
                 "message": f"Visitor '{full_name}' registered successfully",
